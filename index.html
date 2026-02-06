@@ -1531,8 +1531,22 @@
             .steps-grid { grid-template-columns: 1fr; gap: 48px; }
             .step-arrow { display: none; }
             .testimonial-grid { grid-template-columns: 1fr; }
-            .trust-roles { gap: 8px; }
-            .trust-pill { font-size: 0.8rem; padding: 6px 14px; }
+            .trust {
+                padding: 48px 0;
+            }
+            .trust-label {
+                font-size: 0.68rem;
+                padding: 0 12px;
+                line-height: 1.5;
+            }
+            .trust-roles { 
+                gap: 8px; 
+                padding: 0 12px;
+            }
+            .trust-pill { 
+                font-size: 0.78rem; 
+                padding: 6px 12px; 
+            }
             .footer-inner { flex-direction: column; gap: 20px; text-align: center; }
             .footer-left { flex-direction: column; gap: 8px; }
             .about-grid { grid-template-columns: 1fr; }
@@ -1546,11 +1560,84 @@
             .stat-grid { gap: 12px; }
             .stat-card { padding: 24px 20px; }
             .stat-number { font-size: 2.2rem; }
-            .problem { padding: 80px 0 60px; }
-            .features, .how-it-works, .testimonials { padding: 80px 0; }
-            .final-cta { padding: 80px 0; }
+            .problem { padding: 70px 0 50px; }
+            .problem-text h2 {
+                font-size: 2rem;
+                margin-bottom: 20px;
+            }
+            .problem-text p {
+                font-size: 1rem;
+                margin-bottom: 16px;
+            }
+            .features, .how-it-works, .testimonials { padding: 70px 0; }
+            .your-day, .deep-dive, .podcast-strip { padding: 70px 0; }
+            .about-creator { padding: 70px 0 0; }
+            .final-cta { padding: 70px 0; }
+            .section-header {
+                margin-bottom: 48px;
+            }
+            .section-header h2 {
+                font-size: 1.9rem;
+            }
+            .section-subtitle {
+                font-size: 1rem;
+                padding: 0 12px;
+            }
+            .feature-card {
+                padding: 32px 24px;
+            }
+            .feature-card h3 {
+                font-size: 1.15rem;
+            }
+            .feature-card p {
+                font-size: 0.9rem;
+            }
+            .timeline {
+                padding: 0 12px;
+            }
+            .timeline::before {
+                left: 62px;
+            }
+            .timeline-time {
+                width: 54px;
+                font-size: 0.8rem;
+            }
+            .timeline-body h3 {
+                font-size: 1.1rem;
+            }
+            .timeline-body p {
+                font-size: 0.9rem;
+            }
+            .testimonial-card {
+                padding: 32px 24px;
+            }
+            .testimonial-quote {
+                font-size: 0.98rem;
+                line-height: 1.7;
+            }
+            .about-text > p {
+                font-size: 0.98rem;
+            }
+            .final-cta h2 {
+                font-size: 2.2rem;
+            }
+            .final-cta p {
+                font-size: 1.05rem;
+                padding: 0 12px;
+            }
             .theme-swatches { gap: 6px; overflow-x: auto; padding: 0 4px; }
             .swatch { width: 22px; height: 22px; }
+            .hero-github {
+                gap: 10px;
+                padding: 0 12px;
+            }
+            .gh-badge {
+                font-size: 0.76rem;
+                padding: 6px 12px;
+            }
+            .gh-free {
+                font-size: 0.78rem;
+            }
         }
         @media (max-width: 480px) {
             .stat-grid { grid-template-columns: 1fr; }
