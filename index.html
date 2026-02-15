@@ -984,64 +984,59 @@
         /* ============ TESTIMONIALS ============ */
         .testimonials { padding: 120px 0; }
         .testimonial-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+            display: flex;
+            justify-content: center;
             margin-top: 72px;
         }
         .testimonial-card {
-            padding: 40px 36px;
-            border-radius: 20px;
+            padding: 48px 56px;
+            border-radius: 24px;
             background: var(--bg-surface);
             border: 1px solid var(--border);
             position: relative;
             transition: all 0.35s;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            text-align: center;
+            max-width: 720px;
         }
         .testimonial-card:hover { border-color: var(--border-hover); }
         .testimonial-mark {
             font-family: 'Fraunces', Georgia, serif;
             font-size: 5rem;
             line-height: 1;
-            position: absolute;
-            top: 16px; left: 28px;
             opacity: 0.08;
             color: var(--accent);
             user-select: none;
             transition: color 0.4s;
+            margin-bottom: -24px;
         }
         .testimonial-quote {
-            font-size: 1.05rem;
-            line-height: 1.82;
+            font-size: 1.15rem;
+            line-height: 1.85;
             color: var(--text-primary);
-            margin-bottom: 28px;
+            margin-bottom: 32px;
             font-style: italic;
             position: relative;
             z-index: 1;
             transition: color 0.4s;
-            flex: 1;
         }
-        .testimonial-author { display: flex; align-items: center; gap: 14px; }
+        .testimonial-author { display: flex; align-items: center; gap: 16px; }
         .testimonial-avatar {
-            width: 44px; height: 44px;
+            width: 56px; height: 56px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 750;
-            font-size: 0.85rem;
             flex-shrink: 0;
-            letter-spacing: 0.02em;
+            overflow: hidden;
             transition: all 0.4s;
         }
-        .av-1, .av-2, .av-3, .av-4 { 
-            background: color-mix(in srgb, var(--accent) 14%, transparent); 
-            color: var(--accent); 
+        .testimonial-avatar img {
+            width: 100%; height: 100%;
+            object-fit: cover;
         }
-        .testimonial-name { font-weight: 700; font-size: 0.92rem; }
+        .testimonial-name { font-weight: 700; font-size: 0.95rem; }
         .testimonial-role {
-            font-size: 0.82rem;
+            font-size: 0.84rem;
             color: var(--text-secondary);
             margin-top: 2px;
             transition: color 0.4s;
@@ -1548,7 +1543,7 @@
             .features-grid { grid-template-columns: 1fr; }
             .steps-grid { grid-template-columns: 1fr; gap: 48px; }
             .step-arrow { display: none; }
-            .testimonial-grid { grid-template-columns: 1fr; }
+            .testimonial-grid { flex-direction: column; align-items: center; }
             .trust {
                 padding: 48px 0;
             }
@@ -2017,58 +2012,23 @@
     </section>
 
     <!-- ==================== TESTIMONIALS ==================== -->
-    <!--
-        NOTE: Placeholder testimonials — replace with real user quotes.
-        Keep the structure, swap the text / name / role.
-    -->
     <section class="testimonials" id="testimonials">
         <div class="container">
             <div class="section-header">
-                <p class="section-label reveal">Early Adopters</p>
-                <h2 class="reveal reveal-d1">Professionals who got<br>their time back</h2>
+                <p class="section-label reveal">What People Are Saying</p>
+                <h2 class="reveal reveal-d1">Built for people who<br>do real work</h2>
             </div>
             <div class="testimonial-grid">
                 <div class="testimonial-card reveal">
                     <div class="testimonial-mark">&ldquo;</div>
-                    <p class="testimonial-quote">I used to spend 20 minutes before every call scrambling for context. Now I just ask Dex. It knows who I talked to, what we discussed, and what I promised. It&rsquo;s like having a perfect memory.</p>
+                    <p class="testimonial-quote">Dex gives me a way to structure and accelerate my work without compromising my voice or my vision. The more I use it, the faster it works, the more time I have to focus on the things that really require human attention and intelligence. This is exactly what I&rsquo;ve been waiting for.</p>
                     <div class="testimonial-author">
-                        <div class="testimonial-avatar av-1">SC</div>
-                        <div>
-                            <div class="testimonial-name">Sarah C.</div>
-                            <div class="testimonial-role">VP of Product, Series B SaaS</div>
+                        <div class="testimonial-avatar">
+                            <img src="matt-lemay.png" alt="Matt LeMay">
                         </div>
-                    </div>
-                </div>
-                <div class="testimonial-card reveal reveal-d1">
-                    <div class="testimonial-mark">&ldquo;</div>
-                    <p class="testimonial-quote">The daily planning changed everything. I went from reactive firefighting to actually finishing what matters. My team noticed the difference within a week.</p>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar av-2">MR</div>
-                        <div>
-                            <div class="testimonial-name">Marcus R.</div>
-                            <div class="testimonial-role">Head of Sales, EMEA</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="testimonial-card reveal reveal-d2">
-                    <div class="testimonial-mark">&ldquo;</div>
-                    <p class="testimonial-quote">I manage 40 accounts. Before Dex, things slipped through constantly. Now nothing falls through the cracks&nbsp;&mdash; and I didn&rsquo;t have to learn any technical tools to make it happen.</p>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar av-3">PS</div>
-                        <div>
-                            <div class="testimonial-name">Priya S.</div>
-                            <div class="testimonial-role">Director of Customer Success</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="testimonial-card reveal reveal-d3">
-                    <div class="testimonial-mark">&ldquo;</div>
-                    <p class="testimonial-quote">When promotion time came, I had six months of documented impact ready to go. My manager said it was the strongest case she&rsquo;d seen. Dex captured it all while I was just doing my job.</p>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar av-4">JF</div>
-                        <div>
-                            <div class="testimonial-name">James F.</div>
-                            <div class="testimonial-role">Senior Product Manager</div>
+                        <div style="text-align: left;">
+                            <div class="testimonial-name">Matt LeMay</div>
+                            <div class="testimonial-role">Author, <em>Impact-First Product Teams</em></div>
                         </div>
                     </div>
                 </div>
