@@ -1042,6 +1042,100 @@
             transition: color 0.4s;
         }
 
+        /* ============ COMPARISON ============ */
+        .comparison {
+            padding: 120px 0;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .comparison-col {
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            transition: border-color 0.4s, background 0.4s;
+        }
+        .comparison-col.col-chatbot {
+            background: color-mix(in srgb, var(--text-primary) 2%, transparent);
+            opacity: 0.7;
+        }
+        .comparison-col.col-dex {
+            background: color-mix(in srgb, var(--accent) 4%, transparent);
+            border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+        }
+        .comparison-col h3 {
+            font-family: 'Fraunces', Georgia, serif;
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin-bottom: 28px;
+            letter-spacing: -0.02em;
+        }
+        .comparison-col.col-chatbot h3 { color: var(--text-muted); }
+        .comparison-col.col-dex h3 { color: var(--accent); }
+        .comparison-row {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            transition: color 0.4s, border-color 0.4s;
+        }
+        .comparison-row:last-child { border-bottom: none; }
+        .col-dex .comparison-row { color: var(--text-primary); }
+
+        /* ============ INTEGRATIONS ============ */
+        .integrations {
+            padding: 100px 0;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            transition: border-color 0.4s;
+        }
+        .integrations p.section-desc {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            max-width: 520px;
+            margin: 0 auto 48px;
+            line-height: 1.7;
+            transition: color 0.4s;
+        }
+        .integration-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .integration-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 100px;
+            background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+            border: 1px solid var(--border);
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+        }
+        .integration-pill:hover {
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+            background: color-mix(in srgb, var(--accent) 6%, transparent);
+        }
+        .integration-pill .int-icon { font-size: 1.1rem; }
+        .integration-more {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 24px;
+            transition: color 0.4s;
+        }
+
         /* ============ NEWSLETTER ============ */
         .newsletter {
             padding: 100px 0 60px;
@@ -1664,6 +1758,10 @@
             .features, .how-it-works, .testimonials { padding: 70px 0; }
             .your-day, .deep-dive, .podcast-strip { padding: 70px 0; }
             .about-creator { padding: 70px 0 0; }
+            .comparison { padding: 70px 0; }
+            .comparison-grid { grid-template-columns: 1fr; gap: 24px; }
+            .comparison-col { padding: 28px; }
+            .integrations { padding: 70px 0; }
             .newsletter { padding: 70px 0; }
             .newsletter-form { flex-direction: column; align-items: center; }
             .newsletter-form input[type="email"] { width: 100%; max-width: 320px; }
@@ -2019,6 +2117,59 @@
                     <p>Mention an improvement idea, Dex captures it. It tracks what you use, suggests features you&rsquo;re missing, and gets smarter the longer you use it. The system grows with you.</p>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- ==================== COMPARISON ==================== -->
+    <section class="comparison" id="comparison">
+        <div class="container">
+            <div class="section-header">
+                <p class="section-label reveal">More than a chatbot</p>
+                <h2 class="reveal reveal-d1">A blank chat window<br>vs. <span class="gradient-text">your system</span></h2>
+            </div>
+            <div class="comparison-grid reveal reveal-d2">
+                <div class="comparison-col col-chatbot">
+                    <h3>A chatbot</h3>
+                    <div class="comparison-row">Every conversation starts from zero</div>
+                    <div class="comparison-row">You re-explain your role, your projects, your preferences</div>
+                    <div class="comparison-row">Isolated from your calendar, email, tasks, and tools</div>
+                    <div class="comparison-row">No memory of who you met last Tuesday</div>
+                    <div class="comparison-row">You adapt to it</div>
+                </div>
+                <div class="comparison-col col-dex">
+                    <h3>Dex</h3>
+                    <div class="comparison-row">Every conversation builds on everything before it</div>
+                    <div class="comparison-row">Knows your role, your goals, how you like to work</div>
+                    <div class="comparison-row">Connected to Slack, Gmail, Calendar, Jira, and more</div>
+                    <div class="comparison-row">Rich profiles for every person you interact with</div>
+                    <div class="comparison-row">It adapts to you &mdash; and gets smarter the longer you use it</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== INTEGRATIONS ==================== -->
+    <section class="integrations" id="integrations">
+        <div class="container">
+            <div class="section-header">
+                <p class="section-label reveal">Your tools, connected</p>
+                <h2 class="reveal reveal-d1">Everything flows to<br><span class="gradient-text">one place</span></h2>
+            </div>
+            <p class="section-desc reveal reveal-d2">Dex connects to where your work actually happens. All your data stays on your machine &mdash; compounding, connecting, getting richer every day.</p>
+            <div class="integration-grid reveal reveal-d3">
+                <div class="integration-pill"><span class="int-icon">&#128172;</span> Slack</div>
+                <div class="integration-pill"><span class="int-icon">&#128229;</span> Gmail</div>
+                <div class="integration-pill"><span class="int-icon">&#128197;</span> Google Calendar</div>
+                <div class="integration-pill"><span class="int-icon">&#128483;</span> Microsoft Teams</div>
+                <div class="integration-pill"><span class="int-icon">&#9989;</span> Todoist</div>
+                <div class="integration-pill"><span class="int-icon">&#10003;</span> Things 3</div>
+                <div class="integration-pill"><span class="int-icon">&#128203;</span> Trello</div>
+                <div class="integration-pill"><span class="int-icon">&#127919;</span> Jira</div>
+                <div class="integration-pill"><span class="int-icon">&#128214;</span> Confluence</div>
+                <div class="integration-pill"><span class="int-icon">&#127909;</span> Zoom</div>
+                <div class="integration-pill"><span class="int-icon">&#127897;</span> Granola</div>
+            </div>
+            <p class="integration-more reveal reveal-d4">Add any MCP-compatible tool in minutes. Your integrations are protected during updates.</p>
         </div>
     </section>
 
