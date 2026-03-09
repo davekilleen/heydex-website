@@ -1134,7 +1134,20 @@
             color: var(--text-primary);
             background: color-mix(in srgb, var(--accent) 6%, transparent);
         }
-        .integration-pill .int-icon { font-size: 1.1rem; }
+        .integration-pill .int-svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+        .integration-pill-api {
+            border-style: dashed;
+            color: var(--accent);
+            border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+        }
+        .integration-pill-api:hover {
+            border-style: solid;
+        }
         .integration-more {
             font-size: 0.85rem;
             color: var(--text-muted);
@@ -2163,19 +2176,20 @@
             </div>
             <p class="section-desc reveal reveal-d2">Dex connects to where your work actually happens. All your data stays on your machine &mdash; compounding, connecting, getting richer every day.</p>
             <div class="integration-grid reveal reveal-d3">
-                <div class="integration-pill"><span class="int-icon">&#128172;</span> Slack</div>
-                <div class="integration-pill"><span class="int-icon">&#128229;</span> Gmail</div>
-                <div class="integration-pill"><span class="int-icon">&#128197;</span> Google Calendar</div>
-                <div class="integration-pill"><span class="int-icon">&#128483;</span> Microsoft Teams</div>
-                <div class="integration-pill"><span class="int-icon">&#9989;</span> Todoist</div>
-                <div class="integration-pill"><span class="int-icon">&#10003;</span> Things 3</div>
-                <div class="integration-pill"><span class="int-icon">&#128203;</span> Trello</div>
-                <div class="integration-pill"><span class="int-icon">&#127919;</span> Jira</div>
-                <div class="integration-pill"><span class="int-icon">&#128214;</span> Confluence</div>
-                <div class="integration-pill"><span class="int-icon">&#127909;</span> Zoom</div>
-                <div class="integration-pill"><span class="int-icon">&#127897;</span> Granola</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm6.313 2.521a2.528 2.528 0 0 1 2.521-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.332 2.521h-2.521V8.834zm-1.271 0a2.528 2.528 0 0 1-2.521 2.521 2.528 2.528 0 0 1-2.521-2.521V2.522A2.528 2.528 0 0 1 11.355 0a2.528 2.528 0 0 1 2.521 2.522v6.312zm-2.521 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521 2.528 2.528 0 0 1-2.521-2.521v-2.521h2.521zm0-1.271a2.528 2.528 0 0 1-2.521-2.521 2.528 2.528 0 0 1 2.521-2.521h6.313A2.528 2.528 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.521h-6.312z"/></svg> Slack</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/></svg> Gmail</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><path d="M18.316 5.684H24v12.632h-5.684V5.684zM5.684 24h12.632v-5.684H5.684V24zM18.316 5.684V0H5.684v5.684h12.632zM5.684 18.316H0V5.684h5.684v12.632z"/></svg> Google Calendar</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><path d="M11.214 0L0 11.214l4.655 4.655L16.083 4.655 11.214 0zm1.572 12.786L1.572 24l4.655-.001L12.786 17.44l4.655 4.655L24 15.536l-6.559-6.559L12.786 14.632l-4.655-4.655 4.655-4.655z"/></svg> Microsoft Teams</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0zm-1.564 17.756l-4.494-4.493 1.415-1.414 3.079 3.078 6.293-6.293 1.414 1.414-7.707 7.708z"/></svg> Todoist</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><path d="M12.002 2.26L4.71 9.553l3.381 3.381 7.291-7.291-3.38-3.382zm4.795 4.795l-7.291 7.291 3.381 3.381 7.291-7.291-3.381-3.381zM4.71 14.347L2.26 16.798l4.943 4.943 2.45-2.451L4.71 14.347z"/></svg> Things 3</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><path d="M21 0H3C1.343 0 0 1.343 0 3v18c0 1.657 1.343 3 3 3h18c1.657 0 3-1.343 3-3V3c0-1.657-1.343-3-3-3zM10.44 18.18c0 2.25-1.17 3.24-2.88 3.24-.84 0-1.56-.18-2.1-.48l.36-1.38c.36.24.84.42 1.38.42.72 0 1.14-.36 1.14-1.38V10.2h2.1v7.98zM16.14 16.2c0 1.62-1.08 2.76-3.12 2.76-1.08 0-1.92-.24-2.46-.54l.36-1.38c.48.3 1.2.54 1.98.54.96 0 1.44-.42 1.44-1.02 0-.6-.42-.96-1.5-1.32-1.56-.54-2.28-1.38-2.28-2.4 0-1.56 1.2-2.7 3.06-2.7.96 0 1.62.18 2.16.42l-.42 1.38c-.36-.18-.96-.42-1.68-.42-.78 0-1.2.42-1.2.96 0 .6.48.84 1.62 1.26 1.56.54 2.16 1.44 2.16 2.46z"/></svg> Jira</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><path d="M11.53.87C5.6.87.87 5.6.87 11.53c0 5.93 4.73 10.66 10.66 10.66 5.93 0 10.66-4.73 10.66-10.66C22.2 5.6 17.46.87 11.53.87zm3.22 14.15c-.45.57-1.12.88-1.85.88H8.64c-.73 0-1.4-.31-1.85-.88-.46-.57-.63-1.29-.48-2l1.56-7.12c.23-1.05 1.2-1.83 2.33-1.83h1.7c1.13 0 2.1.78 2.33 1.83l1.56 7.12c.15.71-.02 1.43-.48 2z"/></svg> Confluence</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><path d="M4.585 4.585a1.586 1.586 0 0 0-.466 1.12v12.59c0 .42.166.823.466 1.12l.037.036 7.053-7.053v-.166L4.622 4.549l-.037.036zm2.326-1.1l8.73 8.73h.166l2.728-2.728-.063-.037-4.882-2.776c-1.376-.783-3.098-.772-4.457.038l-2.222 1.282.037.036zm11.66 5.12l-2.765 2.765v.166l2.764 2.764.063-.037 2.88-1.638c.67-.381 1.089-1.085 1.089-1.835s-.42-1.455-1.089-1.836l-2.88-1.638-.062.037v.252zm-2.765 3.097l-7.054 7.054.037.036c.678.396 1.478.41 2.168.038l9.156-5.204-4.307-1.924z"/></svg> Trello</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><path d="M4.585 4.585a1.586 1.586 0 0 0-.466 1.12v12.59c0 .42.166.823.466 1.12l.037.036L12 12.166v-.332L4.622 4.549l-.037.036zM24 12c0 1.2-.63 2.262-1.572 2.855l-3.37 1.912-3.108-3.1v-.334l3.108-3.1 3.37 1.912C23.37 9.738 24 10.8 24 12zM12 12.166l-7.378 7.285.037.036a3.169 3.169 0 0 0 3.278.45l11.006-6.27L12 12.166zM12 11.834L18.943 6.333l-11.006-6.27a3.169 3.169 0 0 0-3.278.45l-.037.036L12 11.834z"/></svg> Zoom</div>
+                <div class="integration-pill"><svg class="int-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12l2.5 2.5L16 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Granola</div>
+                <div class="integration-pill integration-pill-api"><svg class="int-svg" viewBox="0 0 24 24"><path d="M8 3a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2H3a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2m8-16a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Anything with an API</div>
             </div>
-            <p class="integration-more reveal reveal-d4">Add any MCP-compatible tool in minutes. Your integrations are protected during updates.</p>
+            <p class="integration-more reveal reveal-d4">Built on MCP &mdash; the open standard for AI tool integrations. If it has an API, Dex can connect to it.</p>
         </div>
     </section>
 
