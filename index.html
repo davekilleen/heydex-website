@@ -1042,6 +1042,80 @@
             transition: color 0.4s;
         }
 
+        /* ============ NEWSLETTER ============ */
+        .newsletter {
+            padding: 100px 0;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            transition: border-color 0.4s;
+        }
+        .newsletter h2 {
+            font-family: 'Fraunces', Georgia, serif;
+            font-size: clamp(1.8rem, 4vw, 2.6rem);
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            margin-bottom: 12px;
+            line-height: 1.1;
+        }
+        .newsletter p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            max-width: 460px;
+            margin: 0 auto 32px;
+            line-height: 1.7;
+            transition: color 0.4s;
+        }
+        .newsletter-form {
+            display: flex;
+            gap: 12px;
+            max-width: 440px;
+            margin: 0 auto;
+            justify-content: center;
+        }
+        .newsletter-form input[type="email"] {
+            flex: 1;
+            padding: 13px 18px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s, background 0.3s;
+        }
+        .newsletter-form input[type="email"]::placeholder {
+            color: var(--text-muted);
+        }
+        .newsletter-form input[type="email"]:focus {
+            border-color: var(--accent);
+            background: var(--bg-card-hover);
+        }
+        .newsletter-form input[type="submit"] {
+            padding: 13px 28px;
+            border-radius: 12px;
+            border: none;
+            background: var(--accent);
+            color: var(--btn-text);
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.35s, transform 0.35s, box-shadow 0.35s;
+            white-space: nowrap;
+        }
+        .newsletter-form input[type="submit"]:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 40px color-mix(in srgb, var(--accent) 35%, transparent);
+        }
+        .newsletter-privacy {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 16px;
+            transition: color 0.4s;
+        }
+
         /* ============ FINAL CTA ============ */
         .final-cta {
             padding: 140px 0;
@@ -1585,6 +1659,10 @@
             .features, .how-it-works, .testimonials { padding: 70px 0; }
             .your-day, .deep-dive, .podcast-strip { padding: 70px 0; }
             .about-creator { padding: 70px 0 0; }
+            .newsletter { padding: 70px 0; }
+            .newsletter-form { flex-direction: column; align-items: center; }
+            .newsletter-form input[type="email"] { width: 100%; max-width: 320px; }
+            .newsletter-form input[type="submit"] { width: 100%; max-width: 320px; }
             .final-cta { padding: 70px 0; }
             .section-header {
                 margin-bottom: 48px;
@@ -1771,6 +1849,7 @@
                 <li><a href="#your-day">Your Day</a></li>
                 <li><a href="#deep-dive">The Article</a></li>
                 <li><a href="#about">About</a></li>
+                <li><a href="https://github.com/davekilleen/dex/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
                 <li><a href="https://github.com/davekilleen/dex" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Get Started</a></li>
             </ul>
         </div>
@@ -1823,7 +1902,7 @@
                 <span class="gh-free">100% Free &amp; Open Source</span>
             </div>
             <p class="hero-meta reveal reveal-d6">
-                Don&rsquo;t let the name GitHub scare you &mdash; you&rsquo;ll be up and running in 30 minutes.
+                Don&rsquo;t let the name GitHub scare you &mdash; you&rsquo;ll be up and running in 10 minutes, fully connected in 30.
             </p>
         </div>
     </section>
@@ -2044,9 +2123,9 @@
                 <h2>Your AI Chief of Staff: Building a Personal Operating System with Claude Code</h2>
                 <p>The full walkthrough &mdash; how Dex works under the hood, the building blocks (CLAUDE.md, Hooks, Skills, MCP), career development integration, and a step-by-step getting started guide. Everything you need to understand what&rsquo;s possible.</p>
                 <div class="article-stats">
-                    <span>414 likes</span>
+                    <span>452 likes</span>
                     <span class="sep">&middot;</span>
-                    <span>121 comments</span>
+                    <span>133 comments</span>
                     <span class="sep">&middot;</span>
                     <span>LinkedIn</span>
                 </div>
@@ -2188,6 +2267,24 @@
         </div>
     </section>
 
+    <!-- ==================== NEWSLETTER ==================== -->
+    <section class="newsletter" id="newsletter">
+        <div class="container">
+            <p class="section-label reveal">Stay in the loop</p>
+            <h2 class="reveal reveal-d1">Get Dex updates</h2>
+            <p class="reveal reveal-d2">New features, workflow ideas, and the occasional behind-the-scenes look at building an AI-powered operating system. No spam.</p>
+            <form
+                action="https://buttondown.com/api/emails/embed-subscribe/heydex"
+                method="post"
+                class="newsletter-form reveal reveal-d3"
+            >
+                <input type="email" name="email" placeholder="your@email.com" required />
+                <input type="submit" value="Subscribe" />
+            </form>
+            <p class="newsletter-privacy reveal reveal-d4">Powered by Buttondown. Unsubscribe anytime.</p>
+        </div>
+    </section>
+
     <!-- ==================== FINAL CTA ==================== -->
     <section class="final-cta">
         <div class="cta-glow"></div>
@@ -2195,7 +2292,7 @@
             <div class="final-cta-content">
                 <p class="section-label reveal">Ready?</p>
                 <h2 class="reveal reveal-d1">Take back your<br><span class="gradient-text">professional life</span></h2>
-                <p class="reveal reveal-d2">Open source. Your data stays on your machine.<br>Set up in under 10 minutes.</p>
+                <p class="reveal reveal-d2">Open source. Your data stays on your machine.<br>Running in 10 minutes. Fully connected in 30.</p>
                 <div class="hero-ctas reveal reveal-d3">
                     <a href="https://github.com/davekilleen/dex" target="_blank" rel="noopener" class="btn btn-primary">
                         Get Started Free on GitHub&ensp;&rarr;
@@ -2218,7 +2315,8 @@
                 </div>
                 <ul class="footer-links">
                     <li><a href="https://github.com/davekilleen/dex" target="_blank" rel="noopener">GitHub</a></li>
-                    <li><a href="mailto:hello@heydex.io">Contact</a></li>
+                    <li><a href="https://github.com/davekilleen/dex/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
+                    <li><a href="mailto:hey@heydex.ai">Contact</a></li>
                 </ul>
             </div>
         </div>
