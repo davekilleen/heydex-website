@@ -1052,12 +1052,15 @@
             gap: 48px;
             max-width: 900px;
             margin: 0 auto;
+            align-items: stretch;
         }
         .comparison-col {
             padding: 40px;
             border-radius: 20px;
             border: 1px solid var(--border);
             transition: border-color 0.4s, background 0.4s;
+            display: flex;
+            flex-direction: column;
         }
         .comparison-col.col-chatbot {
             background: color-mix(in srgb, var(--text-primary) 2%, transparent);
@@ -1083,6 +1086,9 @@
             line-height: 1.6;
             color: var(--text-secondary);
             transition: color 0.4s, border-color 0.4s;
+            flex: 1;
+            display: flex;
+            align-items: center;
         }
         .comparison-row:last-child { border-bottom: none; }
         .col-dex .comparison-row { color: var(--text-primary); }
