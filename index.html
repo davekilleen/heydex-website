@@ -1109,11 +1109,16 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 40px color-mix(in srgb, var(--accent) 35%, transparent);
         }
-        .newsletter-privacy {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            margin-top: 16px;
-            transition: color 0.4s;
+        .newsletter-success {
+            color: var(--accent);
+            font-size: 1.05rem;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+        .newsletter-error {
+            color: var(--accent-alt);
+            font-size: 0.95rem;
+            margin-top: 20px;
         }
 
         /* ============ FINAL CTA ============ */
@@ -2273,15 +2278,12 @@
             <p class="section-label reveal">Stay in the loop</p>
             <h2 class="reveal reveal-d1">Get Dex updates</h2>
             <p class="reveal reveal-d2">New features, workflow ideas, and the occasional behind-the-scenes look at building an AI-powered operating system. No spam.</p>
-            <form
-                action="https://buttondown.com/api/emails/embed-subscribe/heydex"
-                method="post"
-                target="_blank"
-                class="newsletter-form reveal reveal-d3"
-            >
-                <input type="email" name="email" placeholder="your@email.com" required />
+            <form id="newsletterForm" class="newsletter-form reveal reveal-d3">
+                <input type="email" name="email" id="newsletterEmail" placeholder="your@email.com" required />
                 <input type="submit" value="Subscribe" />
             </form>
+            <p id="newsletterSuccess" class="newsletter-success" style="display:none">Check your inbox to confirm your subscription.</p>
+            <p id="newsletterError" class="newsletter-error" style="display:none">Something went wrong. Try again?</p>
         </div>
     </section>
 
@@ -2418,6 +2420,30 @@
                 }
             })
             .catch(() => {}); // Fail silently, keep static fallback
+
+        // ===== Newsletter Form =====
+        document.getElementById('newsletterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('newsletterEmail').value;
+            const form = this;
+            const submitBtn = form.querySelector('input[type="submit"]');
+            submitBtn.value = 'Sending...';
+            submitBtn.disabled = true;
+
+            fetch('https://buttondown.com/api/emails/embed-subscribe/heydex', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'email=' + encodeURIComponent(email),
+                mode: 'no-cors'
+            }).then(function() {
+                form.style.display = 'none';
+                document.getElementById('newsletterSuccess').style.display = 'block';
+            }).catch(function() {
+                document.getElementById('newsletterError').style.display = 'block';
+                submitBtn.value = 'Subscribe';
+                submitBtn.disabled = false;
+            });
+        });
     </script>
 
 </body>
