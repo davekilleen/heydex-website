@@ -1251,11 +1251,15 @@
 
         /* ============ HERO EMAIL FORM ============ */
         .hero-email-capture {
-            margin-top: 32px;
+            margin-top: 52px;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 10px;
+            padding: 28px 36px;
+            border-radius: 16px;
+            background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 70%);
+            border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
         }
         .hero-email-capture-label {
             font-size: 0.8rem;
@@ -2101,9 +2105,6 @@
                 <a href="https://github.com/davekilleen/dex" target="_blank" rel="noopener" class="btn btn-primary">
                     Get Started Free on GitHub&ensp;&rarr;
                 </a>
-                <a href="/settings/" class="btn btn-secondary">
-                    Open Profile Sync Beta
-                </a>
                 <a href="#how-it-works" class="btn btn-secondary">
                     See How It Works
                 </a>
@@ -2717,7 +2718,7 @@
         // ===== Newsletter subscribe (Beehiiv via Cloudflare Worker) =====
         // After deploying the worker, replace WORKER_URL_HERE with your worker URL
         // e.g. https://heydex-subscribe.yourname.workers.dev
-        const SUBSCRIBE_URL = 'WORKER_URL_HERE';
+        const SUBSCRIBE_URL = 'https://heydex-subscribe.heydex.workers.dev';
 
         async function subscribe({ email, formEl, btnEl, successEl, errorEl, loadingText, successText }) {
             btnEl.textContent = loadingText || 'Sending...';
