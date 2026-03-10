@@ -39,12 +39,12 @@ Copy that URL — you'll need it in the next step.
 ```bash
 wrangler secret put API_KEY
 ```
-Paste when prompted: `oGUuLoRLdj3lsGS2nszsVPvrkJl2c9J0qh83dMl3kgxNUiLG7imtdZUEltI7Jeql`
+Paste your Beehiiv API key when prompted.
 
 ```bash
 wrangler secret put PUB_ID
 ```
-Paste when prompted: `pub_0461ae06-c7c6-40d7-8b2b-729262791b17`
+Paste your Beehiiv publication ID when prompted (example: `pub_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
 
 ### 5. Update the website
 
