@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Link a Dex Device</title>
+  <meta name="description" content="Approve a Dex device so it can use your roaming profile.">
+  <link rel="stylesheet" href="../styles.css">
+  <!-- Pendo Analytics -->
+  <script>
+    (function(publicAppId){
+      (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+      v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
+      for(w=0,x=v.length;w<x;++w)(function(m){
+        o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+      y=e.createElement(n);y.async=!0;
+      y.src='https://cdn.pendo.io/agent/static/'+publicAppId+'/pendo.js';
+      z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);}
+      )(window,document,'script','pendo');
+      pendo.initialize({ visitor: { id: 'anonymous' }, account: { id: 'heydex-link-device' } });
+    })('c23ee23e-f3e6-4a1f-81a8-d19a3a85fe2b');
+  </script>
+</head>
+<body data-page="link-device" class="link-page">
+  <header class="settings-header">
+    <div class="settings-header-left">
+      <h1>Approve a device</h1>
+    </div>
+    <div class="settings-header-right">
+      <div class="settings-header-meta">
+        <div id="authStatusMessage" class="header-meta-line">Checking sign-in…</div>
+      </div>
+      <button id="authAction" class="button button-secondary hidden" type="button"></button>
+      <div id="userButton"></div>
+      <a class="close-button" href="/settings/" aria-label="Back to settings">×</a>
+    </div>
+  </header>
+
+  <main class="link-shell">
+    <section id="configGate" class="settings-banner hidden">
+      <strong>Missing configuration</strong>
+      <p>The browser still needs a Clerk publishable key in <span class="inline-code">/settings/config.js</span> before live sign-in can run.</p>
+    </section>
+
+    <section id="authGate" class="settings-banner hidden">
+      <strong>Sign in to approve this machine</strong>
+      <p>Dex opened this page from <span class="inline-code">./dex login</span>. Sign in, review the device details, then approve it so Dex can sync the safe roaming profile.</p>
+      <div class="banner-actions">
+        <button id="signInGateButton" class="button button-primary" type="button">Sign in</button>
+        <a class="button button-secondary" href="/settings/">Back to settings</a>
+      </div>
+    </section>
+
+    <section id="linkShell" class="link-panel">
+      <span id="linkStatusChip" class="status-chip neutral">Checking code…</span>
+      <div class="section-header" style="margin-top: 12px;">
+        <div class="section-header-top">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <h2 id="linkTitle">Looking up your device link</h2>
+        </div>
+        <p id="linkBody" class="link-body">Checking the link code from Dex and waiting for sign-in.</p>
+      </div>
+
+      <div id="linkFacts" class="link-meta"></div>
+
+      <div class="banner-actions">
+        <button id="approveButton" class="button button-primary" type="button">Approve this device</button>
+        <a id="backToSettingsLink" class="button button-secondary" href="/settings/">Back to settings</a>
+      </div>
+
+      <p id="linkError" class="error-text"></p>
+
+      <div class="section-caption section-caption-space">
+        <span>What this does</span>
+        <p>Approval gives this one Dex device a token for the narrow roaming profile. Claude Code can auto-pull at session start. Cursor stays manual for now.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Approve the machine here</strong>
+            <span>Dex records the device name, harness, and platform, then issues a device-scoped token.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Dex finishes login locally</strong>
+            <span>If your local profile and web profile differ, Dex asks which one should win. It does not merge silently.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Your safe roaming profile can sync</strong>
+            <span>Secrets, providers, MCP setup, hooks, themes, and file paths still stay local.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" crossorigin="anonymous"></script>
+  <script defer src="../config.js"></script>
+  <script type="module" src="../app.mjs"></script>
+</body>
+</html>

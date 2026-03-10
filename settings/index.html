@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dex Settings</title>
+  <meta name="description" content="Manage the part of Dex that follows you across machines.">
+  <link rel="stylesheet" href="./styles.css">
+  <!-- Pendo Analytics -->
+  <script>
+    (function(publicAppId){
+      (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+      v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
+      for(w=0,x=v.length;w<x;++w)(function(m){
+        o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+      y=e.createElement(n);y.async=!0;
+      y.src='https://cdn.pendo.io/agent/static/'+publicAppId+'/pendo.js';
+      z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);}
+      )(window,document,'script','pendo');
+      pendo.initialize({ visitor: { id: 'anonymous' }, account: { id: 'heydex-settings' } });
+    })('c23ee23e-f3e6-4a1f-81a8-d19a3a85fe2b');
+  </script>
+</head>
+<body data-page="settings">
+  <main class="settings-app">
+    <header class="settings-header">
+      <div class="settings-header-left">
+        <h1>Settings</h1>
+      </div>
+      <div class="settings-header-right">
+        <div class="settings-header-meta">
+          <div id="authStatusMessage" class="header-meta-line">Checking sign-in…</div>
+          <div id="saveStatusInline" class="header-meta-line">Nothing saved yet.</div>
+        </div>
+        <button id="authAction" class="button button-secondary hidden" type="button"></button>
+        <button id="refreshData" class="button button-secondary hidden" type="button">Refresh</button>
+        <div id="userButton"></div>
+        <a class="close-button" href="/" aria-label="Back to site">×</a>
+      </div>
+    </header>
+
+    <section id="configGate" class="settings-banner hidden">
+      <strong>Missing configuration</strong>
+      <p>Sign-in needs a Clerk publishable key in <span class="inline-code">/settings/config.js</span> before the live auth flow can run.</p>
+    </section>
+
+    <section id="authGate" class="settings-banner hidden">
+      <strong>Sign in to manage your profile</strong>
+      <p>After you sign in, you can edit your roaming profile, run <span class="inline-code">./dex login</span>, and manage linked devices.</p>
+      <div class="banner-actions">
+        <button id="signInGateButton" class="button button-primary" type="button">Sign in</button>
+        <a class="button button-secondary" href="/">Back to heydex.ai</a>
+      </div>
+    </section>
+
+    <div id="appShell" class="settings-body">
+      <aside class="settings-sidebar">
+        <nav class="sidebar-nav">
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Setup</div>
+            <a class="sidebar-item is-active" href="#section-profile" data-nav-target="section-profile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Profile</span>
+            </a>
+          </div>
+
+          <div class="sidebar-divider"></div>
+
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Customize</div>
+            <a class="sidebar-item" href="#section-journaling" data-nav-target="section-journaling">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              <span>Journaling</span>
+            </a>
+            <a class="sidebar-item" href="#section-ritual-intelligence" data-nav-target="section-ritual-intelligence">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M3 12h18"/><path d="M5.6 5.6l12.8 12.8"/><path d="M18.4 5.6 5.6 18.4"/></svg>
+              <span>Ritual Intelligence</span>
+            </a>
+            <a class="sidebar-item" href="#section-planning" data-nav-target="section-planning">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              <span>Planning</span>
+            </a>
+            <a class="sidebar-item" href="#section-communication" data-nav-target="section-communication">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span>Communication</span>
+            </a>
+          </div>
+
+          <div class="sidebar-divider"></div>
+
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Sync</div>
+            <a class="sidebar-item" href="#section-devices" data-nav-target="section-devices">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+              <span>Your Dex devices</span>
+            </a>
+            <a class="sidebar-item" href="#section-linking" data-nav-target="section-linking">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              <span>Connect a new device</span>
+            </a>
+          </div>
+        </nav>
+      </aside>
+
+      <section class="settings-content">
+        <div class="settings-content-inner">
+          <section class="sync-callout">
+            <div class="sync-callout-copy">
+              <strong id="bannerTitle">Loading your Dex settings…</strong>
+              <p id="bannerBody">Checking your sign-in and linked devices.</p>
+              <p id="saveStatusBlock" class="save-note">Loading your current profile…</p>
+            </div>
+            <div class="sync-callout-actions">
+              <button id="bannerPrimaryAction" class="button button-primary" type="button">Download Dex</button>
+              <button id="bannerSecondaryAction" class="button button-secondary" type="button">Copy ./dex login</button>
+            </div>
+          </section>
+
+          <section id="section-profile" class="settings-panel" data-settings-panel>
+            <div class="section-header">
+              <div class="section-header-top">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <h2>Profile</h2>
+              </div>
+              <p>Tell Dex who you are so it can personalize your experience</p>
+            </div>
+
+            <div class="settings-list">
+              <label class="text-row">
+                <span class="field-label">Name</span>
+                <span class="field-desc">So Dex knows which meeting participant is you</span>
+                <input class="setting-input" data-path="name" id="profile-name" type="text" autocomplete="name" placeholder="Your full name">
+              </label>
+
+              <label class="text-row">
+                <span class="field-label">Role</span>
+                <span class="field-desc">Your job title — helps Dex give you role-relevant insights</span>
+                <input class="setting-input" data-path="role" id="profile-role" type="text" autocomplete="organization-title" placeholder="e.g. VP Product">
+              </label>
+
+              <label class="text-row">
+                <span class="field-label">Company</span>
+                <span class="field-desc">Your organization name</span>
+                <input class="setting-input" data-path="company" id="profile-company" type="text" autocomplete="organization" placeholder="e.g. Acme Corp">
+              </label>
+
+              <label class="text-row">
+                <span class="field-label">Email domain</span>
+                <span class="field-desc">Dex uses this to tell colleagues from external contacts</span>
+                <input class="setting-input" data-path="email_domain" id="profile-email-domain" type="text" inputmode="email" placeholder="acme.com">
+              </label>
+
+              <label class="select-row">
+                <span class="field-copy">
+                  <span class="field-label">Role group</span>
+                  <span class="field-desc">Dex adjusts its suggestions based on your role type</span>
+                </span>
+                <select class="setting-select" data-path="role_group" id="profile-role-group">
+                  <option value="">Select role group</option>
+                  <option value="leadership">Leadership</option>
+                  <option value="product">Product</option>
+                  <option value="engineering">Engineering</option>
+                  <option value="sales">Sales</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="customer_success">Customer success</option>
+                  <option value="operations">Operations</option>
+                  <option value="finance">Finance</option>
+                  <option value="people">People / HR</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+
+              <label class="select-row">
+                <span class="field-copy">
+                  <span class="field-label">Company size</span>
+                  <span class="field-desc">Helps Dex calibrate advice to your organization’s scale</span>
+                </span>
+                <select class="setting-select" data-path="company_size" id="profile-company-size">
+                  <option value="">Select company size</option>
+                  <option value="solo">Solo</option>
+                  <option value="startup">Startup (1-100)</option>
+                  <option value="scale_up">Scale-up (100-1000)</option>
+                  <option value="enterprise">Enterprise (1000+)</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section id="section-ritual-intelligence" class="settings-panel hidden" data-settings-panel>
+            <div class="section-header">
+              <div class="section-header-top">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M3 12h18"/><path d="M5.6 5.6l12.8 12.8"/><path d="M18.4 5.6 5.6 18.4"/></svg>
+                <h2>Ritual Intelligence</h2>
+                <span class="beta-badge">Beta</span>
+              </div>
+              <p>Early access to richer ritual-aware insights across planning, journaling, and meeting follow-through.</p>
+            </div>
+
+            <div class="beta-card">
+              <h3>Coming soon</h3>
+              <p>This beta is not part of Phase 1 profile sync yet, but it is the direction Dex is heading.</p>
+              <ul class="beta-list">
+                <li>Spot recurring habits and patterns across your routines</li>
+                <li>Connect meetings, plans, and reflections into one loop</li>
+                <li>Highlight where you follow through and where things drift</li>
+              </ul>
+              <p>If you want to try it early or hear more, email <a href="mailto:hey@heydex.ai">hey@heydex.ai</a>.</p>
+            </div>
+          </section>
+
+          <section id="section-journaling" class="settings-panel hidden" data-settings-panel>
+            <div class="section-header">
+              <div class="section-header-top">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                <h2>Journaling</h2>
+              </div>
+              <p>Guided questions to help you reflect on your day and week</p>
+            </div>
+
+            <div class="settings-list">
+              <label class="toggle-row"><span class="field-copy"><span class="field-label">Morning prompts</span><span class="field-desc">Intentions and focus for the day ahead</span></span><input class="toggle-switch" data-path="journaling.morning" type="checkbox"></label>
+              <label class="toggle-row"><span class="field-copy"><span class="field-label">Evening prompts</span><span class="field-desc">Wins, lessons, and gratitude from the day</span></span><input class="toggle-switch" data-path="journaling.evening" type="checkbox"></label>
+              <label class="toggle-row"><span class="field-copy"><span class="field-label">Weekly prompts</span><span class="field-desc">Patterns and strategic reflection each week</span></span><input class="toggle-switch" data-path="journaling.weekly" type="checkbox"></label>
+            </div>
+          </section>
+
+          <section id="section-planning" class="settings-panel hidden" data-settings-panel>
+            <div class="section-header">
+              <div class="section-header-top">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                <h2>Planning &amp; Calendar</h2>
+              </div>
+              <p>How Dex lines up quarter-based prompts with your planning cadence</p>
+            </div>
+
+            <div class="settings-list">
+              <label class="toggle-row">
+                <span class="field-copy">
+                  <span class="field-label">Quarterly planning</span>
+                  <span class="field-desc">Enable quarter-based planning support in Dex</span>
+                </span>
+                <select class="setting-select setting-select-compact" data-path="quarterly_planning.enabled" id="profile-quarterly-enabled">
+                  <option value="false">Off</option>
+                  <option value="true">On</option>
+                </select>
+              </label>
+
+              <label class="select-row">
+                <span class="field-copy">
+                  <span class="field-label">Q1 starts in</span>
+                  <span class="field-desc">When your organization’s fiscal year begins</span>
+                </span>
+                <select class="setting-select" data-path="quarterly_planning.q1_start_month" id="profile-quarterly-month">
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section id="section-communication" class="settings-panel hidden" data-settings-panel>
+            <div class="section-header">
+              <div class="section-header-top">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <h2>Communication Style</h2>
+              </div>
+              <p>How Dex adapts its tone and language when working with you</p>
+            </div>
+
+            <div class="settings-list">
+              <label class="select-row"><span class="field-copy"><span class="field-label">Formality</span><span class="field-desc">How formal Dex should be in responses</span></span><select class="setting-select" data-path="communication.formality" id="profile-formality"><option value="casual">Casual</option><option value="professional_casual">Professional casual</option><option value="formal">Formal</option></select></label>
+              <label class="select-row"><span class="field-copy"><span class="field-label">Directness</span><span class="field-desc">How direct vs supportive Dex should be when giving feedback</span></span><select class="setting-select" data-path="communication.directness" id="profile-directness"><option value="supportive">Supportive</option><option value="balanced">Balanced</option><option value="very_direct">Very direct</option></select></label>
+              <label class="select-row"><span class="field-copy"><span class="field-label">Detail level</span><span class="field-desc">How much detail Dex includes in responses</span></span><select class="setting-select" data-path="communication.detail_level" id="profile-detail-level"><option value="concise">Concise</option><option value="balanced">Balanced</option><option value="comprehensive">Comprehensive</option></select></label>
+              <label class="select-row"><span class="field-copy"><span class="field-label">Career level</span><span class="field-desc">Dex adjusts its tone — more coaching for juniors, more strategic for leaders</span></span><select class="setting-select" data-path="communication.career_level" id="profile-career-level"><option value="junior">Junior</option><option value="mid">Mid</option><option value="senior">Senior</option><option value="leadership">Leadership</option><option value="c_suite">C-suite</option></select></label>
+              <label class="select-row"><span class="field-copy"><span class="field-label">Coaching style</span><span class="field-desc">How Dex approaches career development conversations with you</span></span><select class="setting-select" data-path="communication.coaching_style" id="profile-coaching-style"><option value="encouraging">Encouraging</option><option value="collaborative">Collaborative</option><option value="challenging">Challenging</option></select></label>
+            </div>
+          </section>
+
+          <section id="section-devices" class="settings-panel hidden" data-settings-panel>
+            <div class="section-header">
+              <div class="section-header-top">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                <h2>Your Dex devices</h2>
+              </div>
+              <p>See which computers already use this profile and remove access if needed</p>
+            </div>
+
+            <div class="sync-status-row">
+              <span id="syncChip" class="status-chip neutral">Checking…</span>
+              <p id="syncNote" class="status-note">Loading linked devices and sync details.</p>
+            </div>
+
+            <div id="devicesList" class="device-list"></div>
+
+            <div class="section-caption section-caption-space">
+              <span>This page can see</span>
+              <p>The web page can see linked devices and sync behavior. It cannot see API keys, local integrations, or machine permissions.</p>
+            </div>
+            <ul id="deviceFacts" class="info-list"></ul>
+          </section>
+
+          <section id="section-linking" class="settings-panel hidden" data-settings-panel>
+            <div class="section-header">
+              <div class="section-header-top">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <h2>Connect a new device</h2>
+              </div>
+              <p>Use one command to connect another Dex computer to this account</p>
+            </div>
+
+            <div class="linking-toolbar">
+              <button id="copyLoginInline" class="button button-secondary" type="button">Copy ./dex login</button>
+            </div>
+
+            <div id="flowSteps" class="steps"></div>
+
+            <div class="section-caption section-caption-space">
+              <span>What syncs</span>
+            </div>
+            <ul id="syncScopeList" class="info-list"></ul>
+
+            <div class="section-caption section-caption-space">
+              <span>What stays local</span>
+            </div>
+            <ul id="localOnlyList" class="info-list"></ul>
+          </section>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" crossorigin="anonymous"></script>
+  <script defer src="./config.js"></script>
+  <script>
+    (function () {
+      const navItems = Array.from(document.querySelectorAll("[data-nav-target]"));
+      const panels = Array.from(document.querySelectorAll("[data-settings-panel]"));
+
+      function showPanel(panelId) {
+        const targetId = panels.some((panel) => panel.id === panelId)
+          ? panelId
+          : panels[0]?.id;
+
+        if (!targetId) return;
+
+        navItems.forEach((item) => {
+          item.classList.toggle("is-active", item.dataset.navTarget === targetId);
+        });
+
+        panels.forEach((panel) => {
+          panel.classList.toggle("hidden", panel.id !== targetId);
+        });
+      }
+
+      navItems.forEach((item) => {
+        item.addEventListener("click", function (event) {
+          event.preventDefault();
+          const targetId = item.dataset.navTarget;
+          showPanel(targetId);
+          window.location.hash = targetId;
+        });
+      });
+
+      window.addEventListener("hashchange", function () {
+        showPanel(window.location.hash.replace("#", ""));
+      });
+
+      showPanel(window.location.hash.replace("#", "") || "section-profile");
+    })();
+  </script>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>

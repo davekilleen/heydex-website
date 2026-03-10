@@ -6,6 +6,21 @@
     <title>Dex — Your AI Chief of Staff | heydex.io</title>
     <meta name="description" content="Dex is a personal knowledge system that handles the cognitive overhead of professional life. AI-powered planning, relationship intelligence, and career growth — all through conversation.">
 
+    <!-- Pendo Analytics -->
+    <script>
+      (function(publicAppId){
+        (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+        v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
+        for(w=0,x=v.length;w<x;++w)(function(m){
+          o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+        y=e.createElement(n);y.async=!0;
+        y.src='https://cdn.pendo.io/agent/static/'+publicAppId+'/pendo.js';
+        z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);}
+        )(window,document,'script','pendo');
+        pendo.initialize({ visitor: { id: 'anonymous' }, account: { id: 'heydex-website' } });
+      })('c23ee23e-f3e6-4a1f-81a8-d19a3a85fe2b');
+    </script>
+
     <!-- Open Graph -->
     <meta property="og:title" content="Dex — Your AI Chief of Staff">
     <meta property="og:description" content="A personal knowledge system that handles the cognitive overhead of professional life.">
@@ -1234,6 +1249,82 @@
             margin-top: 20px;
         }
 
+        /* ============ HERO EMAIL FORM ============ */
+        .hero-email-capture {
+            margin-top: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .hero-email-capture-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            letter-spacing: 0.02em;
+            transition: color 0.4s;
+        }
+        .hero-email-form {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            max-width: 380px;
+        }
+        .hero-email-form input[type="email"] {
+            flex: 1;
+            padding: 11px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.04);
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.3s, background 0.3s;
+        }
+        .hero-email-form input[type="email"]::placeholder {
+            color: var(--text-muted);
+        }
+        .hero-email-form input[type="email"]:focus {
+            border-color: var(--accent);
+            background: rgba(255,255,255,0.07);
+        }
+        .hero-email-form button {
+            padding: 11px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: border-color 0.3s, color 0.3s, background 0.3s;
+        }
+        .hero-email-form button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: color-mix(in srgb, var(--accent) 8%, transparent);
+        }
+        .hero-email-form button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+        .hero-email-success {
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .hero-email-error {
+            font-size: 0.82rem;
+            color: var(--accent-alt);
+        }
+        @media (max-width: 520px) {
+            .hero-email-form { flex-direction: column; }
+            .hero-email-form input[type="email"],
+            .hero-email-form button { width: 100%; }
+        }
+
         /* ============ FINAL CTA ============ */
         .final-cta {
             padding: 140px 0;
@@ -1972,6 +2063,7 @@
                 <li><a href="#deep-dive">The Article</a></li>
                 <li><a href="#about">About</a></li>
                 <li><a href="https://github.com/davekilleen/dex/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
+                <li><a href="/settings/">Settings Beta</a></li>
                 <li><a href="#newsletter">Newsletter</a></li>
                 <li><a href="https://github.com/davekilleen/dex" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Get Started</a></li>
             </ul>
@@ -2009,6 +2101,9 @@
                 <a href="https://github.com/davekilleen/dex" target="_blank" rel="noopener" class="btn btn-primary">
                     Get Started Free on GitHub&ensp;&rarr;
                 </a>
+                <a href="/settings/" class="btn btn-secondary">
+                    Open Profile Sync Beta
+                </a>
                 <a href="#how-it-works" class="btn btn-secondary">
                     See How It Works
                 </a>
@@ -2027,6 +2122,15 @@
             <p class="hero-meta reveal reveal-d6">
                 Don&rsquo;t let the name GitHub scare you &mdash; you&rsquo;ll be up and running in 10 minutes, fully connected in 30.
             </p>
+            <div class="hero-email-capture reveal reveal-d7">
+                <p class="hero-email-capture-label">Not ready to install? Get updates in your inbox.</p>
+                <form id="heroEmailForm" class="hero-email-form">
+                    <input type="email" id="heroEmailInput" placeholder="your@email.com" required />
+                    <button type="submit">Stay in the loop</button>
+                </form>
+                <p id="heroEmailSuccess" class="hero-email-success" style="display:none">You&rsquo;re in! Check your inbox to confirm.</p>
+                <p id="heroEmailError" class="hero-email-error" style="display:none">Something went wrong &mdash; try again?</p>
+            </div>
         </div>
     </section>
 
@@ -2610,27 +2714,65 @@
             })
             .catch(() => {}); // Fail silently, keep static fallback
 
-        // ===== Newsletter Form =====
-        document.getElementById('newsletterForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const email = document.getElementById('newsletterEmail').value;
-            const form = this;
-            const submitBtn = form.querySelector('input[type="submit"]');
-            submitBtn.value = 'Sending...';
-            submitBtn.disabled = true;
+        // ===== Newsletter subscribe (Beehiiv via Cloudflare Worker) =====
+        // After deploying the worker, replace WORKER_URL_HERE with your worker URL
+        // e.g. https://heydex-subscribe.yourname.workers.dev
+        const SUBSCRIBE_URL = 'WORKER_URL_HERE';
 
-            fetch('https://buttondown.com/api/emails/embed-subscribe/heydex', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'email=' + encodeURIComponent(email),
-                mode: 'no-cors'
-            }).then(function() {
-                form.style.display = 'none';
-                document.getElementById('newsletterSuccess').style.display = 'block';
-            }).catch(function() {
-                document.getElementById('newsletterError').style.display = 'block';
-                submitBtn.value = 'Subscribe';
-                submitBtn.disabled = false;
+        async function subscribe({ email, formEl, btnEl, successEl, errorEl, loadingText, successText }) {
+            btnEl.textContent = loadingText || 'Sending...';
+            btnEl.disabled = true;
+            errorEl.style.display = 'none';
+
+            try {
+                const res = await fetch(SUBSCRIBE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                if (res.ok) {
+                    if (formEl) formEl.style.display = 'none';
+                    successEl.textContent = successText || 'Check your inbox to confirm your subscription.';
+                    successEl.style.display = 'block';
+                } else {
+                    throw new Error('Subscribe failed');
+                }
+            } catch {
+                errorEl.style.display = 'block';
+                btnEl.textContent = btnEl.dataset.originalText;
+                btnEl.disabled = false;
+            }
+        }
+
+        // Footer newsletter form
+        const newsletterForm = document.getElementById('newsletterForm');
+        const newsletterBtn = newsletterForm.querySelector('input[type="submit"]');
+        newsletterBtn.dataset.originalText = newsletterBtn.value;
+        newsletterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            subscribe({
+                email: document.getElementById('newsletterEmail').value,
+                formEl: newsletterForm,
+                btnEl: newsletterBtn,
+                successEl: document.getElementById('newsletterSuccess'),
+                errorEl: document.getElementById('newsletterError'),
+                loadingText: 'Sending...',
+            });
+        });
+
+        // Hero email form
+        const heroForm = document.getElementById('heroEmailForm');
+        const heroBtn = heroForm.querySelector('button');
+        heroBtn.dataset.originalText = heroBtn.textContent;
+        heroForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            subscribe({
+                email: document.getElementById('heroEmailInput').value,
+                formEl: heroForm,
+                btnEl: heroBtn,
+                successEl: document.getElementById('heroEmailSuccess'),
+                errorEl: document.getElementById('heroEmailError'),
+                loadingText: 'Sending...',
             });
         });
     </script>
