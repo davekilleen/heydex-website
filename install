@@ -1,262 +1,387 @@
-#!/bin/bash
-# Dex for Pi — One-command installer
-# Usage: curl -fsSL https://heydex.ai/install | bash
-#
-# What this does:
-# 1. Checks prerequisites (Node.js, git)
-# 2. Installs Pi agent harness (if not already installed)
-# 3. Installs the Dex Pi extension
-# 4. Prompts for AI provider configuration
-# 5. Verifies the installation
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dex for Pi — Install</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap');
 
-set -e
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-# ---------------------------------------------------------------------------
-# Colors
-# ---------------------------------------------------------------------------
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-BOLD='\033[1m'
-NC='\033[0m'
+  :root {
+    --bg: #08080a;
+    --bg-raised: #111114;
+    --bg-card: #16161a;
+    --border: #222228;
+    --border-hover: #333340;
+    --text: #e8e8ed;
+    --text-muted: #8888a0;
+    --text-dim: #555568;
+    --accent: #6ee7b7;
+    --accent-dim: #2d6a53;
+    --accent-glow: rgba(110, 231, 183, 0.08);
+    --font: 'DM Sans', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'SF Mono', monospace;
+  }
 
-info()  { echo -e "${BLUE}[dex]${NC} $1"; }
-ok()    { echo -e "${GREEN}[dex]${NC} $1"; }
-warn()  { echo -e "${YELLOW}[dex]${NC} $1"; }
-fail()  { echo -e "${RED}[dex]${NC} $1"; exit 1; }
+  html { font-size: 16px; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
 
-# ---------------------------------------------------------------------------
-# Banner
-# ---------------------------------------------------------------------------
-echo ""
-echo -e "${BOLD}  ____           "
-echo -e " |  _ \\  _____  __"
-echo -e " | | | |/ _ \\ \\/ /"
-echo -e " | |_| |  __/>  < "
-echo -e " |____/ \\___/_/\\_\\"
-echo -e "                   ${NC}"
-echo -e " ${BOLD}Dex for Pi${NC} — Proactive AI Intelligence"
-echo ""
+  /* Layout */
+  .page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 80px 24px 60px;
+  }
 
-# ---------------------------------------------------------------------------
-# Prerequisites
-# ---------------------------------------------------------------------------
-info "Checking prerequisites..."
+  /* Hero */
+  .hero { margin-bottom: 56px; }
 
-if ! command -v node &>/dev/null; then
-  fail "Node.js is required. Install it from https://nodejs.org (v18+)"
-fi
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-glow);
+    border: 1px solid var(--accent-dim);
+    padding: 4px 12px;
+    border-radius: 100px;
+    margin-bottom: 24px;
+  }
 
-NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 18 ]; then
-  fail "Node.js 18+ required. You have $(node -v)"
-fi
-ok "Node.js $(node -v)"
+  h1 {
+    font-size: clamp(2.4rem, 5vw, 3.2rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
 
-if ! command -v git &>/dev/null; then
-  fail "Git is required. Install it from https://git-scm.com"
-fi
-ok "Git $(git --version | cut -d' ' -f3)"
+  .subtitle {
+    font-size: 1.15rem;
+    color: var(--text-muted);
+    font-weight: 300;
+    max-width: 520px;
+    line-height: 1.5;
+  }
 
-# ---------------------------------------------------------------------------
-# Install Pi (if needed)
-# ---------------------------------------------------------------------------
-if command -v pi &>/dev/null; then
-  ok "Pi agent harness already installed ($(pi --version 2>/dev/null || echo 'installed'))"
-else
-  info "Installing Pi agent harness..."
-  if command -v bun &>/dev/null; then
-    bun install -g @mariozechner/pi-coding-agent
-  elif command -v npm &>/dev/null; then
-    npm install -g @mariozechner/pi-coding-agent
-  else
-    fail "npm or bun required to install Pi"
-  fi
-  ok "Pi agent harness installed"
-fi
+  /* Download section */
+  .downloads { margin-bottom: 48px; }
 
-# ---------------------------------------------------------------------------
-# Install Dex extension
-# ---------------------------------------------------------------------------
-PI_EXT_DIR="$HOME/.pi/agent/extensions"
-DEX_EXT_DIR="$PI_EXT_DIR/dex"
+  .download-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
 
-info "Installing Dex extension..."
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font);
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 100px;
+    padding: 14px 28px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    border: none;
+  }
 
-mkdir -p "$PI_EXT_DIR"
+  .btn-primary {
+    background: var(--accent);
+    color: #08080a;
+  }
+  .btn-primary:hover {
+    background: #8af0cc;
+    transform: translateY(-1px);
+  }
 
-if [ -d "$DEX_EXT_DIR" ]; then
-  warn "Dex extension already exists at $DEX_EXT_DIR"
-  read -p "  Overwrite? (y/N) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    info "Keeping existing installation"
-  else
-    rm -rf "$DEX_EXT_DIR"
-  fi
-fi
+  .btn-secondary {
+    background: var(--bg-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-card);
+    transform: translateY(-1px);
+  }
 
-if [ ! -d "$DEX_EXT_DIR" ]; then
-  git clone --depth 1 https://github.com/davekilleen/dex-pi.git /tmp/dex-pi-install 2>/dev/null
-  cp -r /tmp/dex-pi-install/extensions/dex "$DEX_EXT_DIR"
-  rm -rf /tmp/dex-pi-install
+  .btn-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+  }
 
-  # Install dependencies
-  cd "$DEX_EXT_DIR"
-  if command -v bun &>/dev/null; then
-    bun install --production 2>/dev/null
-  elif command -v npm &>/dev/null; then
-    npm install --production 2>/dev/null
-  fi
-  cd - >/dev/null
+  /* Terminal block */
+  .terminal-section {
+    margin-bottom: 56px;
+  }
 
-  ok "Dex extension installed at $DEX_EXT_DIR"
-fi
+  .terminal-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
 
-# ---------------------------------------------------------------------------
-# AI Provider setup
-# ---------------------------------------------------------------------------
-echo ""
-info "Configure your AI provider"
-echo ""
-echo "  Which AI provider do you want to use?"
-echo ""
-echo "  1) Anthropic (Claude) — best quality"
-echo "  2) OpenAI (GPT) — widely available"
-echo "  3) Google (Gemini) — good value"
-echo "  4) Local model (Ollama) — free, private"
-echo "  5) Skip — I'll configure later"
-echo ""
-read -p "  Choice (1-5): " -n 1 -r PROVIDER_CHOICE
-echo ""
+  .terminal {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    position: relative;
+  }
 
-case $PROVIDER_CHOICE in
-  1)
-    PROVIDER="anthropic"
-    read -p "  Anthropic API key (sk-ant-...): " API_KEY
-    ;;
-  2)
-    PROVIDER="openai"
-    read -p "  OpenAI API key (sk-...): " API_KEY
-    ;;
-  3)
-    PROVIDER="google"
-    read -p "  Google AI API key: " API_KEY
-    ;;
-  4)
-    PROVIDER="ollama"
-    API_KEY=""
-    info "Make sure Ollama is running locally (https://ollama.ai)"
-    ;;
-  5)
-    PROVIDER=""
-    API_KEY=""
-    warn "Skipped — configure your provider in Pi settings before first use"
-    ;;
-esac
+  .terminal code {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+    white-space: nowrap;
+    overflow-x: auto;
+    flex: 1;
+  }
 
-if [ -n "$PROVIDER" ] && [ "$PROVIDER" != "ollama" ] && [ -n "$API_KEY" ]; then
-  # Write provider config
-  PI_CONFIG_DIR="$HOME/.pi"
-  mkdir -p "$PI_CONFIG_DIR"
-  cat > "$PI_CONFIG_DIR/provider.json" << PROVIDER_EOF
-{
-  "provider": "$PROVIDER",
-  "apiKey": "$API_KEY"
+  .terminal code .prompt {
+    color: var(--text-dim);
+    user-select: none;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .copy-btn:hover {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+  }
+  .copy-btn.copied {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 56px 0;
+  }
+
+  /* Features */
+  .features-heading {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 24px;
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-bottom: 56px;
+  }
+
+  .feature {
+    background: var(--bg-raised);
+    padding: 28px 24px;
+    position: relative;
+  }
+
+  .feature:first-child { border-radius: 10px 0 0 0; }
+  .feature:nth-child(2) { border-radius: 0 10px 0 0; }
+  .feature:nth-child(5) { border-radius: 0 0 0 10px; }
+  .feature:last-child { border-radius: 0 0 10px 0; }
+
+  .feature-symbol {
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+    display: block;
+    opacity: 0.9;
+  }
+
+  .feature h3 {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .feature p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+
+  .footer a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 400;
+  }
+  .footer a:hover {
+    text-decoration: underline;
+  }
+
+  .footer .wordmark {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 20px;
+  }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    .page { padding: 48px 20px 40px; }
+    .download-row { flex-direction: column; }
+    .btn { justify-content: center; width: 100%; }
+    .features { grid-template-columns: 1fr; }
+    .feature { border-radius: 0 !important; }
+    .feature:first-child { border-radius: 10px 10px 0 0 !important; }
+    .feature:last-child { border-radius: 0 0 10px 10px !important; }
+    .terminal { flex-direction: column; align-items: flex-start; }
+    .terminal code { font-size: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <section class="hero">
+    <div class="badge">Now available</div>
+    <h1>Dex for Pi</h1>
+    <p class="subtitle">Your AI assistant that already has the answer before you finish asking. Proactive intelligence, any model, real cost tracking.</p>
+  </section>
+
+  <section class="downloads">
+    <div class="download-row">
+      <a href="#" class="btn btn-primary">
+        <span class="btn-icon">&apple;</span>
+        Mac (Apple Silicon)
+      </a>
+      <a href="#" class="btn btn-secondary">
+        <span class="btn-icon">&apple;</span>
+        Mac (Intel)
+      </a>
+      <a href="#" class="btn btn-secondary">
+        <span class="btn-icon">&#8862;</span>
+        Windows
+      </a>
+    </div>
+  </section>
+
+  <section class="terminal-section">
+    <div class="terminal-label">Or install from terminal</div>
+    <div class="terminal">
+      <code><span class="prompt">$&nbsp;</span>curl -fsSL https://heydex.ai/install.sh | bash</code>
+      <button class="copy-btn" onclick="copyCommand(this)">Copy</button>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <div class="features-heading">What you get</div>
+
+  <div class="features">
+    <div class="feature">
+      <span class="feature-symbol">&loz;</span>
+      <h3>Choose your AI model</h3>
+      <p>Use Claude, GPT, Gemini, or a local model. Switch mid-conversation. No vendor lock-in.</p>
+    </div>
+    <div class="feature">
+      <span class="feature-symbol">&rsaquo;</span>
+      <h3>Full context, first turn</h3>
+      <p>Pi pre-assembles your people, deals, calendar, and commitments. The AI has everything it needs immediately.</p>
+    </div>
+    <div class="feature">
+      <span class="feature-symbol">&times;</span>
+      <h3>Mistakes caught early</h3>
+      <p>Dangerous operations are blocked before they execute. Risky ones ask once, then remember your answer.</p>
+    </div>
+    <div class="feature">
+      <span class="feature-symbol">&curren;</span>
+      <h3>Know exactly what it costs</h3>
+      <p>Exact token counts and dollar costs per turn. Real data from your provider, not estimates.</p>
+    </div>
+    <div class="feature">
+      <span class="feature-symbol">&circ;</span>
+      <h3>Gets smarter every session</h3>
+      <p>Errors detected in real time. Patterns learned automatically. Every session compounds into a better system.</p>
+    </div>
+    <div class="feature">
+      <span class="feature-symbol">&equiv;</span>
+      <h3>Long sessions stay sharp</h3>
+      <p>Smart context management keeps deal data and decisions, compresses the noise. Turn 200 is as good as turn 1.</p>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>Already using Dex on Claude Code? <a href="https://heydex.ai/docs/pi">Pi is the upgrade.</a></p>
+    <div class="wordmark">heydex.ai</div>
+  </footer>
+
+</div>
+
+<script>
+function copyCommand(btn) {
+  const cmd = 'curl -fsSL https://heydex.ai/install.sh | bash';
+  navigator.clipboard.writeText(cmd).then(() => {
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
 }
-PROVIDER_EOF
-  chmod 600 "$PI_CONFIG_DIR/provider.json"
-  ok "Provider configured: $PROVIDER"
-fi
-
-# ---------------------------------------------------------------------------
-# Langfuse (optional)
-# ---------------------------------------------------------------------------
-echo ""
-read -p "  Enable cost tracking with Langfuse? (y/N) " -n 1 -r LANGFUSE_CHOICE
-echo ""
-
-if [[ $LANGFUSE_CHOICE =~ ^[Yy]$ ]]; then
-  read -p "  Langfuse public key (pk-lf-...): " LF_PUBLIC
-  read -p "  Langfuse secret key (sk-lf-...): " LF_SECRET
-  read -p "  Your name/ID for attribution: " LF_USER
-
-  mkdir -p "$DEX_EXT_DIR"
-  cat > "$DEX_EXT_DIR/.env" << ENV_EOF
-LANGFUSE_ENABLED=true
-LANGFUSE_PUBLIC_KEY=$LF_PUBLIC
-LANGFUSE_SECRET_KEY=$LF_SECRET
-LANGFUSE_HOST=https://cloud.langfuse.com
-LANGFUSE_USER_ID=$LF_USER
-LANGFUSE_PII_MODE=metadata
-ENV_EOF
-  chmod 600 "$DEX_EXT_DIR/.env"
-  ok "Langfuse cost tracking enabled"
-else
-  info "Skipped — you can enable Langfuse later"
-fi
-
-# ---------------------------------------------------------------------------
-# Vault setup
-# ---------------------------------------------------------------------------
-echo ""
-info "Where is your vault? (the folder where your notes/docs live)"
-read -p "  Path (or press Enter for current directory): " VAULT_PATH
-VAULT_PATH="${VAULT_PATH:-$(pwd)}"
-
-if [ ! -d "$VAULT_PATH" ]; then
-  fail "Directory not found: $VAULT_PATH"
-fi
-
-ok "Vault: $VAULT_PATH"
-
-# ---------------------------------------------------------------------------
-# Verify
-# ---------------------------------------------------------------------------
-echo ""
-info "Verifying installation..."
-
-CHECKS_PASSED=0
-CHECKS_TOTAL=4
-
-if [ -d "$DEX_EXT_DIR" ]; then
-  ok "Dex extension installed"; CHECKS_PASSED=$((CHECKS_PASSED + 1))
-else
-  warn "Dex extension not found"
-fi
-
-if [ -f "$DEX_EXT_DIR/index.ts" ]; then
-  ok "Extension entry point found"; CHECKS_PASSED=$((CHECKS_PASSED + 1))
-else
-  warn "Extension entry point missing"
-fi
-
-if [ -d "$DEX_EXT_DIR/hooks" ]; then
-  HOOK_COUNT=$(ls "$DEX_EXT_DIR/hooks/"*.ts 2>/dev/null | wc -l | tr -d ' ')
-  ok "$HOOK_COUNT hook modules installed"; CHECKS_PASSED=$((CHECKS_PASSED + 1))
-else
-  warn "Hooks directory missing"
-fi
-
-if [ -d "$DEX_EXT_DIR/observability" ]; then
-  ok "Observability module installed"; CHECKS_PASSED=$((CHECKS_PASSED + 1))
-else
-  warn "Observability module missing"
-fi
-
-echo ""
-echo -e "${BOLD}  Installation complete: $CHECKS_PASSED/$CHECKS_TOTAL checks passed${NC}"
-echo ""
-echo "  To start Dex on Pi:"
-echo ""
-echo -e "    ${BOLD}cd $VAULT_PATH && pi${NC}"
-echo ""
-echo "  Dex will activate automatically — context injection,"
-echo "  safety guards, cost tracking, and learning are all on."
-echo ""
-echo -e "  ${BLUE}Documentation:${NC} https://heydex.ai/docs/pi"
-echo -e "  ${BLUE}Support:${NC} https://github.com/davekilleen/dex-pi/issues"
-echo ""
-echo -e "  ${GREEN}Welcome to Dex for Pi.${NC}"
-echo ""
+</script>
+</body>
+</html>
