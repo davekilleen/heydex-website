@@ -479,22 +479,25 @@
       btn.textContent = 'Creating account...';
 
       try {
-        const signUpRes = await fetch(CONVEX_SITE_URL + "/api/auth/signIn", {
+        // Password provider uses the auth:signIn mutation via Convex API, not HTTP routes
+        const signUpRes = await fetch(CONVEX_URL + "/api/action", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            provider: "password",
-            params: { email, password, flow: "signUp" },
+            path: "auth:signIn",
+            args: { provider: "password", params: { email, password, flow: "signUp" } },
+            format: "json"
           }),
         });
 
-        if (!signUpRes.ok) {
-          const err = await signUpRes.json().catch(() => ({}));
-          throw new Error(err.message || "Registration failed");
+        const signUpResult = await signUpRes.json();
+        console.log("signUp response:", JSON.stringify(signUpResult));
+
+        if (signUpResult.status === "error") {
+          throw new Error(signUpResult.errorMessage || "Registration failed");
         }
 
-        const signUpData = await signUpRes.json();
-        console.log("signIn response:", JSON.stringify(signUpData));
+        const signUpData = signUpResult.value;
         storeAuth(signUpData);
 
         await afterAuth(name);
@@ -525,21 +528,24 @@
       btn.textContent = 'Logging in...';
 
       try {
-        const res = await fetch(CONVEX_SITE_URL + "/api/auth/signIn", {
+        const res = await fetch(CONVEX_URL + "/api/action", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            provider: "password",
-            params: { email, password, flow: "signIn" },
+            path: "auth:signIn",
+            args: { provider: "password", params: { email, password, flow: "signIn" } },
+            format: "json"
           }),
         });
 
-        if (!res.ok) {
-          throw new Error("Invalid email or password");
+        const result = await res.json();
+        console.log("signIn response:", JSON.stringify(result));
+
+        if (result.status === "error") {
+          throw new Error(result.errorMessage || "Invalid email or password");
         }
 
-        const data = await res.json();
-        console.log("signIn response:", JSON.stringify(data));
+        const data = result.value;
         storeAuth(data);
 
         await afterAuth(email.split('@')[0]);
