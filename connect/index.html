@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect to Dex</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9670;</text></svg>">
+  <!-- Pendo Analytics -->
+  <script>
+    (function(publicAppId){
+      (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+      v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
+      for(w=0,x=v.length;w<x;++w)(function(m){
+        o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+      y=e.createElement(n);y.async=!0;
+      y.src='https://cdn.pendo.io/agent/static/'+publicAppId+'/pendo.js';
+      z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);}
+      )(window,document,'script','pendo');
+      pendo.initialize({ visitor: { id: 'anonymous-connect' }, account: { id: 'heydex-dexdiff' } });
+    })('c23ee23e-f3e6-4a1f-81a8-d19a3a85fe2b');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-base: #0a0a0a;
+      --bg-surface: #111111;
+      --bg-elevated: #161616;
+      --border-default: #222222;
+      --border-strong: #333333;
+      --text-primary: #f0f0f0;
+      --text-secondary: #888888;
+      --text-tertiary: #555555;
+      --text-inverse: #0a0a0a;
+      --accent: #FF3870;
+      --accent-dim: #992244;
+      --accent-bg: #1f0f15;
+      --accent-border: #3d0a1e;
+      --error: #ef4444;
+      --success: #22c55e;
+      --font-mono: 'Geist Mono', 'Berkeley Mono', 'JetBrains Mono', monospace;
+      --font-sans: 'Geist', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    }
+
+    .page {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .page-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .page-title {
+      font-family: var(--font-sans);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    /* ── TABS ─────────────────────────────────────── */
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    .tab {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      padding: 8px 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 80ms ease, border-color 80ms ease;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+
+    .tab:hover { color: var(--text-secondary); }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── FORMS ────────────────────────────────────── */
+
+    .form { display: none; }
+    .form.active { display: block; }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .field-input {
+      width: 100%;
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 2px;
+      outline: none;
+      caret-color: var(--accent);
+      transition: border-color 80ms ease;
+    }
+
+    .field-input:focus { border-color: var(--accent-dim); }
+    .field-input::placeholder { color: var(--text-tertiary); }
+
+    .submit-btn {
+      width: 100%;
+      padding: 10px 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-inverse);
+      background: var(--accent);
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: opacity 80ms ease;
+      margin-top: 8px;
+    }
+
+    .submit-btn:hover { opacity: 0.9; }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .form-error {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--error);
+      margin-top: 8px;
+      min-height: 16px;
+    }
+
+    /* ── CODE DISPLAY ─────────────────────────────── */
+
+    #code-view { display: none; }
+
+    .code-display {
+      text-align: center;
+      padding: 32px 0;
+    }
+
+    .code-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .code-value {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      padding: 16px 24px;
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-border);
+      border-radius: 2px;
+      display: inline-block;
+      margin-bottom: 16px;
+    }
+
+    .code-hint {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 12px;
+    }
+
+    .code-error {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--error);
+      padding: 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 2px;
+    }
+
+    .code-error-detail {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 8px;
+    }
+
+    .code-instructions {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .code-instructions ol {
+      text-align: left;
+      padding-left: 20px;
+      margin-top: 12px;
+    }
+
+    .code-instructions li {
+      margin-bottom: 4px;
+    }
+
+    .code-instructions code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-primary);
+      background: var(--bg-surface);
+      padding: 1px 6px;
+      border-radius: 2px;
+    }
+
+    .code-expiry {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 16px;
+    }
+
+    .welcome-msg {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--success);
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 480px) {
+      .page { padding: 48px 16px; }
+      .code-value { font-size: 24px; letter-spacing: 0.1em; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- AUTH FORMS -->
+  <div class="page" id="auth-view">
+    <div class="page-meta">heydex.ai</div>
+    <h1 class="page-title">Connect to Dex</h1>
+    <p class="page-subtitle">Register or log in to publish diffs, track adoptions, and see your company's AI map.</p>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('register')">Register</button>
+      <button class="tab" onclick="switchTab('login')">Log in</button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div class="form active" id="form-register">
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input type="email" class="field-input" id="reg-email" placeholder="you@company.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input type="password" class="field-input" id="reg-password" placeholder="Choose a password" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label class="field-label">Display Name</label>
+        <input type="text" class="field-input" id="reg-name" placeholder="Your name" autocomplete="name">
+      </div>
+      <div class="field">
+        <label class="field-label">Handle</label>
+        <input type="text" class="field-input" id="reg-handle" placeholder="yourhandle (used in @handle/diff-id)">
+      </div>
+      <div class="field">
+        <label class="field-label">Role</label>
+        <input type="text" class="field-input" id="reg-role" placeholder="e.g., Product Manager, AE, CSM">
+      </div>
+      <button class="submit-btn" id="reg-btn" onclick="handleRegister()">Create account</button>
+      <div class="form-error" id="reg-error"></div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="form" id="form-login">
+      <div class="field">
+        <label class="field-label">Email</label>
+        <input type="email" class="field-input" id="login-email" placeholder="you@company.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <input type="password" class="field-input" id="login-password" placeholder="Your password" autocomplete="current-password">
+      </div>
+      <button class="submit-btn" id="login-btn" onclick="handleLogin()">Log in</button>
+      <div class="form-error" id="login-error"></div>
+    </div>
+  </div>
+
+  <!-- CONNECTION CODE -->
+  <div class="page" id="code-view">
+    <div class="page-meta">heydex.ai</div>
+    <h1 class="page-title">Connected</h1>
+  </div>
+
+  <script>
+    // ── Configuration ──────────────────────────────
+    const CONVEX_URL = "https://brave-ibex-877.eu-west-1.convex.cloud";
+    const CONVEX_SITE_URL = "https://brave-ibex-877.eu-west-1.convex.site";
+
+    // ── URL params ─────────────────────────────────
+    const _params = new URLSearchParams(window.location.search);
+    const returnUrl = _params.get('return') || '/diff/';
+    const isConnectMode = _params.get('mode') === 'connect';
+
+    // ── Token storage ──────────────────────────────
+    const TOKEN_KEY = "dexdiff-auth";
+
+    function storeAuth(data) {
+      localStorage.setItem(TOKEN_KEY, JSON.stringify(data));
+    }
+
+    function getStoredAuth() {
+      const raw = localStorage.getItem(TOKEN_KEY);
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+
+    function getAccessToken() {
+      const auth = getStoredAuth();
+      if (!auth) return null;
+      return auth?.token || auth?.tokens?.token || null;
+    }
+
+    function clearAuth() {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+
+    // ── Convex HTTP helpers ────────────────────────
+    async function callQuery(path, args) {
+      const token = getAccessToken();
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = "Bearer " + token;
+
+      const res = await fetch(CONVEX_URL + "/api/query", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ path, args, format: "json" })
+      });
+
+      const result = await res.json();
+      if (result.status === "error") throw new Error(result.errorMessage);
+      return result.value;
+    }
+
+    async function callMutation(path, args) {
+      const token = getAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const res = await fetch(CONVEX_URL + "/api/mutation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ path, args, format: "json" })
+      });
+
+      const result = await res.json();
+      if (result.status === "error") throw new Error(result.errorMessage);
+      return result.value;
+    }
+
+    // ── After auth: register profile if needed, then redirect or show code ──
+    async function afterAuth(displayName) {
+      // Call users:me first; only register if no profile exists yet
+      const me = await callQuery("users:me", {});
+      if (me === null) {
+        // No profile yet — this is a new signup, register the profile
+        const name = displayName || document.getElementById('reg-name').value.trim();
+        const handle = (document.getElementById('reg-handle') || {}).value
+          ? document.getElementById('reg-handle').value.trim().toLowerCase()
+          : undefined;
+        const role = (document.getElementById('reg-role') || {}).value
+          ? document.getElementById('reg-role').value.trim()
+          : undefined;
+
+        const registerArgs = { displayName: name };
+        if (handle) registerArgs.handle = handle;
+        if (role) registerArgs.role = role;
+
+        await callMutation("users:register", registerArgs);
+      }
+
+      if (isConnectMode) {
+        await showCodeView();
+      } else {
+        window.location.href = returnUrl;
+      }
+    }
+
+    // ── Tab switching ──────────────────────────────
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
+
+      if (tab === 'register') {
+        document.querySelector('.tab:first-child').classList.add('active');
+        document.getElementById('form-register').classList.add('active');
+      } else {
+        document.querySelector('.tab:last-child').classList.add('active');
+        document.getElementById('form-login').classList.add('active');
+      }
+    }
+
+    // ── Registration ───────────────────────────────
+    async function handleRegister() {
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const name = document.getElementById('reg-name').value.trim();
+      const handle = document.getElementById('reg-handle').value.trim().toLowerCase();
+      const role = document.getElementById('reg-role').value.trim();
+      const errorEl = document.getElementById('reg-error');
+      const btn = document.getElementById('reg-btn');
+
+      errorEl.textContent = '';
+
+      if (!email || !password || !name || !handle) {
+        errorEl.textContent = 'All fields except role are required';
+        return;
+      }
+
+      if (!/^[a-z0-9-]+$/.test(handle)) {
+        errorEl.textContent = 'Handle must be lowercase letters, numbers, and hyphens only';
+        return;
+      }
+
+      if (password.length < 8) {
+        errorEl.textContent = 'Password must be at least 8 characters';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
+
+      try {
+        const signUpRes = await fetch(CONVEX_SITE_URL + "/api/auth/signIn", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: "password",
+            params: { email, password, flow: "signUp" },
+          }),
+        });
+
+        if (!signUpRes.ok) {
+          const err = await signUpRes.json().catch(() => ({}));
+          throw new Error(err.message || "Registration failed");
+        }
+
+        const signUpData = await signUpRes.json();
+        console.log("signIn response:", JSON.stringify(signUpData));
+        storeAuth(signUpData);
+
+        await afterAuth(name);
+
+      } catch (err) {
+        errorEl.textContent = err.message || 'Registration failed';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create account';
+      }
+    }
+
+    // ── Login ──────────────────────────────────────
+    async function handleLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errorEl = document.getElementById('login-error');
+      const btn = document.getElementById('login-btn');
+
+      errorEl.textContent = '';
+
+      if (!email || !password) {
+        errorEl.textContent = 'Email and password required';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Logging in...';
+
+      try {
+        const res = await fetch(CONVEX_SITE_URL + "/api/auth/signIn", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: "password",
+            params: { email, password, flow: "signIn" },
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Invalid email or password");
+        }
+
+        const data = await res.json();
+        console.log("signIn response:", JSON.stringify(data));
+        storeAuth(data);
+
+        await afterAuth(email.split('@')[0]);
+
+      } catch (err) {
+        errorEl.textContent = err.message || 'Login failed';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Log in';
+      }
+    }
+
+    // ── Show code view (connect mode only) ────────
+    async function showCodeView() {
+      document.getElementById('auth-view').style.display = 'none';
+
+      try {
+        const { code, expiresInSeconds } = await callMutation("connect:generateCode", {});
+        document.getElementById('code-view').innerHTML = `
+          <div class="page-meta">heydex.ai</div>
+          <h1 class="page-title">Connected</h1>
+          <div class="code-display">
+            <div class="code-label">Your connection code</div>
+            <span class="code-value">${code}</span>
+            <p class="code-hint">Paste this code in your terminal when prompted. Expires in ${Math.floor(expiresInSeconds / 60)} minutes.</p>
+          </div>`;
+        document.getElementById('code-view').style.display = 'block';
+      } catch (err) {
+        console.error("Failed to generate connection code:", err);
+        document.getElementById('code-view').innerHTML = `
+          <div class="page-meta">heydex.ai</div>
+          <h1 class="page-title">Connected</h1>
+          <div class="code-error">
+            <p>Failed to generate connection code. Please try again.</p>
+            <p class="code-error-detail">${err.message}</p>
+          </div>`;
+        document.getElementById('code-view').style.display = 'block';
+      }
+    }
+
+    // ── Page load: check for existing session ─────
+    (async function init() {
+      const token = getAccessToken();
+      if (!token) return;
+
+      try {
+        const me = await callQuery("users:me", {});
+        if (me === null) {
+          // Token present but no profile — clear stale auth and show forms
+          clearAuth();
+          return;
+        }
+        // Valid session
+        if (isConnectMode) {
+          await showCodeView();
+        } else {
+          window.location.href = returnUrl;
+        }
+      } catch (err) {
+        // Token likely expired — clear and show forms
+        clearAuth();
+      }
+    })();
+  </script>
+
+</body>
+</html>

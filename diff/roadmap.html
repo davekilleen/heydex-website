@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What's Next for DexDiff</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9670;</text></svg>">
+  <!-- Pendo Analytics -->
+  <script>
+    (function(publicAppId){
+      (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+      v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
+      for(w=0,x=v.length;w<x;++w)(function(m){
+        o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+      y=e.createElement(n);y.async=!0;
+      y.src='https://cdn.pendo.io/agent/static/'+publicAppId+'/pendo.js';
+      z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);}
+      )(window,document,'script','pendo');
+      pendo.initialize({ visitor: { id: 'anonymous-diff' }, account: { id: 'heydex-dexdiff' } });
+    })('c23ee23e-f3e6-4a1f-81a8-d19a3a85fe2b');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-base: #0a0a0a;
+      --bg-surface: #111111;
+      --bg-elevated: #161616;
+      --bg-hover: #1a1a1a;
+      --border-subtle: #1c1c1c;
+      --border-default: #222222;
+      --text-primary: #f0f0f0;
+      --text-secondary: #888888;
+      --text-tertiary: #555555;
+      --accent: #FF3870;
+      --accent-dim: #992244;
+      --accent-bg: #1f0f15;
+      --accent-border: #3d0a1e;
+      --font-mono: 'Geist Mono', 'Berkeley Mono', 'JetBrains Mono', monospace;
+      --font-sans: 'Geist', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    .back-link {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 32px;
+      transition: color 80ms ease;
+    }
+
+    .back-link:hover { color: var(--text-secondary); }
+
+    .page-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .page-title {
+      font-family: var(--font-sans);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border-subtle);
+      margin: 32px 0;
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    /* ── ROADMAP ITEMS ─────────────────────────────── */
+
+    .roadmap-list {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .roadmap-item {
+      padding-left: 20px;
+      border-left: 2px solid var(--accent);
+    }
+
+    .roadmap-item-title {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .roadmap-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 1px 6px;
+      border: 1px solid var(--accent-border);
+      border-radius: 2px;
+      background: var(--accent-bg);
+    }
+
+    .roadmap-item-body {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .roadmap-item-body p + p {
+      margin-top: 8px;
+    }
+
+    /* ── VISION SECTION ────────────────────────────── */
+
+    .vision {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .vision p + p {
+      margin-top: 12px;
+    }
+
+    /* ── FOOTER ────────────────────────────────────── */
+
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .footer-link {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color 80ms ease;
+    }
+
+    .footer-link:hover { color: var(--text-secondary); }
+
+    .footer-note {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    @media (max-width: 480px) {
+      .page { padding: 32px 16px 64px; }
+      .page-title { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+
+    <a href="index.html" class="back-link">&larr; Back to Dave's profile</a>
+
+    <div class="page-meta">DexDiff / Roadmap</div>
+    <h1 class="page-title">What's Next for DexDiff</h1>
+    <p class="page-subtitle">Where we're headed &mdash; from individual profiles to a platform that shows how your company uses AI.</p>
+
+    <hr class="divider">
+    <div class="section-label">Roadmap</div>
+
+    <div class="roadmap-list">
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-title">Community Browse</div>
+        <div class="roadmap-item-body">
+          <p>Discover workflows by role &mdash; Product Manager, Account Executive, Customer Success, Engineering Leader. See what people in your function are building with AI.</p>
+          <p>Dynamic role pages assemble automatically as critical mass is reached. When enough PMs have published diffs, a "How Product Managers Use Dex" page materialises with the most-adopted workflows, common pairings, and a one-command starter pack: "Set me up as a PM."</p>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-title">Company View</div>
+        <div class="roadmap-item-body">
+          <p>Register with your work email. Automatically see what colleagues at your company have built &mdash; private to your org, no admin needed. Email domain matching creates the boundary.</p>
+          <p>See which integrations your team has connected and who to ask for help. "3 people have connected Salesforce &mdash; talk to Sarah." New joiners land on a page that shows how their function already uses AI at this company, not a blank canvas.</p>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-title">AI Transformation Dashboard</div>
+        <div class="roadmap-item-body">
+          <p>The question every leader asks: "How is AI actually being used here?" Dex answers it at the workflow level &mdash; not prompts sent, not tokens consumed, but structured workflows being used by real people to do real work differently.</p>
+          <p>See active workflows by function, integration coverage across teams, adoption spread, and capability gaps. "Engineering has 12 active workflows across 4 people. Customer Success has zero &mdash; here are 5 community diffs that would work for them."</p>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-title">Diff Lineage</div>
+        <div class="roadmap-item-body">
+          <p>When you adopt a workflow, improve it, and share your version, credit flows back to the original author. Browse variants &mdash; the version optimised for your specific role might already exist.</p>
+          <p>Dave publishes Meeting Intelligence. Sarah adapts it for CSMs. Marcus adapts it for enterprise AEs. When you browse the diff, you see the family tree and pick the variant closest to your work.</p>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-title">Role-Specific Starter Packs</div>
+        <div class="roadmap-item-body">
+          <p>"Set me up as a Product Manager" &mdash; one command installs the top 3 most-adopted workflows for your role. Computed from real adoption data, not curated lists. Only surfaces when critical mass is reached.</p>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-title">Enterprise Teams</div>
+        <div class="roadmap-item-body">
+          <p>Admin-controlled distribution for organisations. Push workflows to teams, enforce baselines, measure AI fluency scores by function. A VP of Product sees which teams have adopted AI workflows and which haven't &mdash; capability visibility, not surveillance.</p>
+          <p>The organic company view (free) is the natural path to the enterprise product. Bottom-up adoption creates the data. Top-down visibility creates the business case.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <hr class="divider">
+    <div class="section-label">The Vision</div>
+
+    <div class="vision">
+      <p>DexDiff turns how you use AI into a visible, shareable professional identity. Your workflows become a credential &mdash; not what you say you do, but what you actually do.</p>
+      <p>The community collectively improves how knowledge workers use AI. And your company gets a real answer to "how is AI being used here?" &mdash; not vanity metrics about prompts sent, but structured workflows being used by real people to do real work differently.</p>
+    </div>
+
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="index.html" class="footer-link">Dave's profile</a>
+        <a href="https://heydex.ai" class="footer-link">Get Dex</a>
+        <a href="https://github.com/davekilleen/dex" class="footer-link">GitHub</a>
+      </div>
+      <div class="footer-note">DexDiff Beta &mdash; invite only</div>
+    </footer>
+
+  </div>
+
+</body>
+</html>

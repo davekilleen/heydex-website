@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DexDiff — Dave Killeen</title>
+  <meta name="description" content="How Dave Killeen uses Dex as a Field CPO. 7 AI workflows you can adopt in one command.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9670;</text></svg>">
+  <!-- Pendo Analytics -->
+  <script>
+    (function(publicAppId){
+      (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+      v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
+      for(w=0,x=v.length;w<x;++w)(function(m){
+        o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+      y=e.createElement(n);y.async=!0;
+      y.src='https://cdn.pendo.io/agent/static/'+publicAppId+'/pendo.js';
+      z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);}
+      )(window,document,'script','pendo');
+      pendo.initialize({ visitor: { id: 'anonymous-diff' }, account: { id: 'heydex-dexdiff' } });
+    })('c23ee23e-f3e6-4a1f-81a8-d19a3a85fe2b');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-base: #0a0a0a;
+      --bg-surface: #111111;
+      --bg-elevated: #161616;
+      --bg-hover: #1a1a1a;
+      --bg-selected: #1f1a0f;
+      --border-subtle: #1c1c1c;
+      --border-default: #222222;
+      --border-strong: #333333;
+      --text-primary: #f0f0f0;
+      --text-secondary: #888888;
+      --text-tertiary: #555555;
+      --text-inverse: #0a0a0a;
+      --accent: #FF3870;
+      --accent-dim: #992244;
+      --accent-bg: #1f0f15;
+      --accent-border: #3d0a1e;
+      --font-mono: 'Geist Mono', 'Berkeley Mono', 'JetBrains Mono', monospace;
+      --font-sans: 'Geist', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    }
+
+    /* ── MAIN CONTENT ──────────────────────────────── */
+
+    #content {
+      display: block;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    /* ── TOP NAV ───────────────────────────────────── */
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .top-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .top-nav-link {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color 80ms ease;
+    }
+
+    .top-nav-link:hover {
+      color: var(--accent);
+    }
+
+    .auth-indicator {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .auth-indicator-handle {
+      color: var(--text-secondary);
+    }
+
+    .auth-logout {
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: color 80ms ease;
+      text-decoration: none;
+    }
+
+    .auth-logout:hover {
+      color: var(--text-secondary);
+    }
+
+    /* ── PROFILE HEADER ────────────────────────────── */
+
+    .profile-header {
+      margin-bottom: 48px;
+    }
+
+    .profile-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .profile-name {
+      font-family: var(--font-sans);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
+    }
+
+    .profile-role {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .profile-quote {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-style: italic;
+      border-left: 2px solid var(--accent-border);
+      padding-left: 12px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .profile-intro {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .profile-intro p + p {
+      margin-top: 12px;
+    }
+
+    /* ── PROFILE ADOPT BOX ─────────────────────────── */
+
+    .profile-adopt-box {
+      margin-bottom: 8px;
+    }
+
+    /* ── ADOPT COMMAND ─────────────────────────────── */
+
+    .adopt-command {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-border);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 80ms ease;
+      margin-bottom: 8px;
+    }
+
+    .adopt-command:hover {
+      background: rgba(255, 56, 112, 0.12);
+    }
+
+    .adopt-command-text {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+      flex: 1;
+    }
+
+    .adopt-command-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      transition: color 80ms ease;
+    }
+
+    .adopt-command:hover .adopt-command-btn {
+      color: var(--text-secondary);
+    }
+
+    .adopt-command-hint {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-bottom: 0;
+    }
+
+    .install-hint {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 10px;
+    }
+
+    .install-hint a {
+      color: var(--text-tertiary);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .install-hint a:hover {
+      color: var(--text-secondary);
+    }
+
+    /* ── SECTION DIVIDER ───────────────────────────── */
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border-subtle);
+      margin: 32px 0;
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    /* ── DIFF FILTER ───────────────────────────────── */
+
+    .diff-filter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .diff-filter-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .diff-filter-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      padding: 2px 8px;
+      border: 1px solid var(--border-default);
+      border-radius: 2px;
+      background: transparent;
+      cursor: pointer;
+      transition: color 80ms ease, border-color 80ms ease, background 80ms ease;
+    }
+
+    .diff-filter-btn:hover {
+      color: var(--text-secondary);
+      border-color: var(--border-strong);
+    }
+
+    .diff-filter-btn.active {
+      color: var(--accent);
+      border-color: var(--accent-border);
+      background: var(--accent-bg);
+    }
+
+    /* ── DIFF CARDS ────────────────────────────────── */
+
+    .diff-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      background: var(--border-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .diff-card {
+      background: var(--bg-base);
+      transition: background 80ms ease;
+    }
+
+    .diff-card.hidden {
+      display: none;
+    }
+
+    .diff-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .diff-header:hover {
+      background: var(--bg-hover);
+    }
+
+    .diff-expand {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+      transition: transform 120ms ease;
+    }
+
+    .diff-card.open .diff-expand {
+      transform: rotate(90deg);
+    }
+
+    .diff-title {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .diff-tagline {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+      display: none;
+    }
+
+    @media (min-width: 600px) {
+      .diff-tagline { display: block; }
+    }
+
+    .diff-copy {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-dim);
+      padding: 2px 8px;
+      border: 1px solid var(--accent-border);
+      border-radius: 2px;
+      background: transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: color 80ms ease, border-color 80ms ease, background 80ms ease;
+    }
+
+    .diff-copy:hover {
+      color: var(--accent);
+      border-color: var(--accent-dim);
+      background: var(--accent-bg);
+    }
+
+    .diff-copy.copied {
+      color: #22c55e;
+      border-color: #1a4a2a;
+    }
+
+    /* ── DIFF BODY (EXPANDABLE) ────────────────────── */
+
+    .diff-body {
+      overflow: hidden;
+      transition: max-height 120ms ease-in-out;
+    }
+
+    .diff-card:not(.open) .diff-body {
+      max-height: 0;
+    }
+
+    .diff-card.open .diff-body {
+      max-height: 2000px;
+    }
+
+    .diff-body-inner {
+      padding: 0 16px 20px 44px;
+    }
+
+    .diff-section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 16px;
+      margin-bottom: 6px;
+    }
+
+    .diff-section-label:first-child {
+      margin-top: 0;
+    }
+
+    .diff-problem,
+    .diff-solution,
+    .diff-baseline,
+    .diff-adds {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .diff-baseline {
+      color: var(--text-tertiary);
+      font-style: italic;
+    }
+
+    .diff-commands {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .diff-cmd {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-primary);
+      padding: 4px 8px;
+      background: var(--bg-surface);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diff-cmd-name {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .diff-cmd-desc {
+      color: var(--text-tertiary);
+      font-size: 11px;
+    }
+
+    .diff-adopt-row {
+      margin-top: 16px;
+    }
+
+    /* ── ADOPT CMD (logged-in state) ───────────────── */
+
+    .diff-adopt-cmd {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-border);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 80ms ease;
+    }
+
+    .diff-adopt-cmd:hover {
+      background: rgba(255, 56, 112, 0.12);
+    }
+
+    .diff-adopt-cmd-text {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .diff-adopt-cmd-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ── ADOPT CTA (logged-out state) ──────────────── */
+
+    .diff-adopt-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-border);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 80ms ease;
+    }
+
+    .diff-adopt-cta:hover {
+      background: rgba(255, 56, 112, 0.12);
+    }
+
+    .diff-adopt-cta .diff-adopt-cmd-text {
+      color: var(--accent);
+    }
+
+    /* ── ADOPTED INDICATOR ─────────────────────────── */
+
+    .diff-adopted-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .diff-adopted-check {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .diff-adopted-text {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ── MARK AS ADOPTED ───────────────────────────── */
+
+    .diff-mark-adopted {
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      cursor: default;
+    }
+
+    .diff-mark-link {
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      transition: color 80ms ease;
+    }
+
+    .diff-mark-link:hover {
+      color: var(--text-primary);
+    }
+
+    /* ── ADOPT EXPLAIN ─────────────────────────────── */
+
+    .diff-adopt-explain {
+      margin-top: 8px;
+    }
+
+    .diff-adopt-toggle {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 80ms ease;
+      user-select: none;
+    }
+
+    .diff-adopt-toggle:hover {
+      color: var(--text-secondary);
+    }
+
+    .diff-adopt-chevron {
+      display: inline-block;
+      font-size: 10px;
+      transition: transform 120ms ease;
+    }
+
+    .diff-adopt-explain.expanded .diff-adopt-chevron {
+      transform: rotate(90deg);
+    }
+
+    .diff-adopt-detail {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 120ms ease-in-out;
+    }
+
+    .diff-adopt-explain.expanded .diff-adopt-detail {
+      max-height: 500px;
+    }
+
+    .diff-adopt-steps {
+      padding-left: 16px;
+      margin: 8px 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .diff-adopt-steps li {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+
+    .diff-adopt-steps strong {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* ── COMPOUND SECTION ──────────────────────────── */
+
+    .compound-section {
+      margin-top: 48px;
+    }
+
+    .compound-loop {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .compound-loop li {
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .compound-loop li:last-child {
+      border-bottom: none;
+    }
+
+    .compound-arrow {
+      color: var(--accent-dim);
+      font-family: var(--font-mono);
+    }
+
+    /* ── FOOTER ────────────────────────────────────── */
+
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .footer-link {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color 80ms ease;
+    }
+
+    .footer-link:hover {
+      color: var(--text-secondary);
+    }
+
+    .footer-note {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    /* ── TOAST ──────────────────────────────────────── */
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-primary);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      padding: 8px 16px;
+      border-radius: 2px;
+      opacity: 0;
+      transition: transform 120ms ease, opacity 120ms ease;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* ── RESPONSIVE ─────────────────────────────────── */
+
+    @media (max-width: 480px) {
+      #content { padding: 32px 16px 64px; }
+      .profile-name { font-size: 18px; }
+      .diff-header { padding: 10px 12px; }
+      .diff-body-inner { padding-left: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MAIN CONTENT -->
+  <div id="content">
+
+    <!-- TOP NAV -->
+    <nav class="top-nav">
+      <div class="top-nav-left">
+        <span class="profile-meta">DexDiff / Profile</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="auth-indicator" id="auth-indicator"></div>
+        <a href="roadmap.html" class="top-nav-link">What's next for DexDiff &rarr;</a>
+      </div>
+    </nav>
+
+    <!-- PROFILE HEADER -->
+    <header class="profile-header">
+      <h1 class="profile-name">Dave Killeen</h1>
+      <div class="profile-role">Field CPO, EMEA</div>
+      <div class="profile-quote">Every interaction compounds into the next one. After 3 months, my Dex knows more about my professional relationships than I do &mdash; and it surfaces things I'd miss on my own.</div>
+      <div class="profile-intro">
+        <p>Dex ships with standard capabilities &mdash; meeting prep, daily planning, weekly reviews. What you're looking at below is what I've built <strong style="color: var(--text-primary); font-weight: 500;">on top</strong> of that baseline. Seven workflows specific to how I work as a Field CPO across 30+ enterprise deals in EMEA.</p>
+        <p>If any of these resonate, copy the adopt command and paste it in your terminal. Your Dex reads the methodology, asks you a few questions, and generates a version tailored to your vault. Nothing from my system gets copied into yours.</p>
+      </div>
+
+      <!-- FULL PROFILE ADOPT -->
+      <div class="profile-adopt-box" id="profile-adopt-box"></div>
+      <div class="adopt-command-hint">Copy this command and paste it into Dex to adopt all 7 workflows</div>
+      <div class="install-hint">Don't have Dex yet? <a href="https://heydex.ai" target="_blank" rel="noopener">Install Dex first &rarr;</a></div>
+    </header>
+
+    <hr class="divider">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="section-label" style="margin-bottom:0;">7 Workflows</div>
+      <div class="diff-filter" id="diff-filter" style="display:none;">
+        <span class="diff-filter-label">Show</span>
+        <button class="diff-filter-btn active" id="filter-all" onclick="setFilter('all')">All</button>
+        <button class="diff-filter-btn" id="filter-unadopted" onclick="setFilter('unadopted')">Unadopted</button>
+      </div>
+    </div>
+
+    <!-- DIFF LIST -->
+    <div class="diff-list" id="diff-list">
+
+      <!-- 1. Meeting Intelligence -->
+      <div class="diff-card open" data-diff="meeting-intelligence">
+        <div class="diff-header" onclick="toggleDiff(this)">
+          <span class="diff-expand">&#9656;</span>
+          <span class="diff-title">Meeting Intelligence</span>
+          <span class="diff-tagline">recordings &rarr; compounding intel</span>
+        </div>
+        <div class="diff-body">
+          <div class="diff-body-inner">
+            <div class="diff-section-label">Problem</div>
+            <p class="diff-problem">You finish a call, scribble some notes, and move on. A week later you can't remember what was agreed. Every meeting generates context that could make your next meeting better &mdash; but it sits in a recording nobody will re-listen to.</p>
+
+            <div class="diff-section-label">What this does</div>
+            <p class="diff-solution">One command after any recorded meeting turns the recording into a structured note &mdash; decisions, action items split by owner, competitive mentions, customer pain points. Then updates each attendee's page, catches commitments the first pass missed, and suggests connections to follow up on.</p>
+
+            <div class="diff-section-label">Baseline vs Added</div>
+            <p class="diff-baseline">Dex-core: meeting prep briefs and basic note processing.</p>
+            <p class="diff-adds">This adds: deep recording integration, missed action extraction, batch processing, connection suggestions, background queue monitoring.</p>
+
+            <div class="diff-section-label">Commands</div>
+            <div class="diff-commands">
+              <div class="diff-cmd"><span class="diff-cmd-name">/process-meeting</span><span class="diff-cmd-desc">single recording &rarr; structured note</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/process-daily-meetings</span><span class="diff-cmd-desc">batch process today's calls</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/find-missed-commitments</span><span class="diff-cmd-desc">scan for slipped promises</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/review-connections</span><span class="diff-cmd-desc">surface new contacts and links</span></div>
+            </div>
+
+            <div class="diff-adopt-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Deal Intelligence -->
+      <div class="diff-card open" data-diff="deal-intelligence">
+        <div class="diff-header" onclick="toggleDiff(this)">
+          <span class="diff-expand">&#9656;</span>
+          <span class="diff-title">Deal Intelligence</span>
+          <span class="diff-tagline">portfolio health + coaching</span>
+        </div>
+        <div class="diff-body">
+          <div class="diff-body-inner">
+            <div class="diff-section-label">Problem</div>
+            <p class="diff-problem">You're across 30 deals. You can't hold the status of each one in your head. By the time you realise a champion has gone quiet, it's been three weeks. You find out about competitive threats during forecast reviews &mdash; not when they first appear in a transcript.</p>
+
+            <div class="diff-section-label">What this does</div>
+            <p class="diff-solution">One command scans your entire portfolio and flags what needs attention &mdash; deals gone quiet, MEDDPICC gaps, missed follow-ups. Another analyses call transcripts for a specific deal and coaches you on where the conversation is weak.</p>
+
+            <div class="diff-section-label">Baseline vs Added</div>
+            <p class="diff-baseline">Dex-core: people pages and meeting notes.</p>
+            <p class="diff-adds">This adds: portfolio-wide health monitoring, transcript-based coaching, continuous deal page enrichment from every interaction.</p>
+
+            <div class="diff-section-label">Commands</div>
+            <div class="diff-commands">
+              <div class="diff-cmd"><span class="diff-cmd-name">/deals-attention</span><span class="diff-cmd-desc">portfolio triage &mdash; what needs you now?</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/analyze-deal</span><span class="diff-cmd-desc">coaching analysis from transcripts</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/add-deal</span><span class="diff-cmd-desc">start tracking a company</span></div>
+            </div>
+
+            <div class="diff-adopt-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Relationship Compounding -->
+      <div class="diff-card open" data-diff="relationship-compounding">
+        <div class="diff-header" onclick="toggleDiff(this)">
+          <span class="diff-expand">&#9656;</span>
+          <span class="diff-title">Relationship Compounding</span>
+          <span class="diff-tagline">every interaction &rarr; smarter next one</span>
+        </div>
+        <div class="diff-body">
+          <div class="diff-body-inner">
+            <div class="diff-section-label">Problem</div>
+            <p class="diff-problem">You meet someone at a conference, have a great conversation, and three months later can't remember what you discussed. Every relationship starts from scratch because nothing connects.</p>
+
+            <div class="diff-section-label">What this does</div>
+            <p class="diff-solution">When you write a meeting note, every person mentioned gets automatically linked to their contact page. When commitments slip or relationships go stale, Dex generates ready-to-send messages. Your weekly stakeholder update writes itself from actual work.</p>
+
+            <div class="diff-section-label">Baseline vs Added</div>
+            <p class="diff-baseline">Dex-core: person pages and context injection.</p>
+            <p class="diff-adds">This adds: automatic cross-referencing, context-aware message drafting, stakeholder updates from real activity.</p>
+
+            <div class="diff-section-label">Commands</div>
+            <div class="diff-commands">
+              <div class="diff-cmd"><span class="diff-cmd-name">/link-people</span><span class="diff-cmd-desc">scan files, update contact pages</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/draft-messages</span><span class="diff-cmd-desc">messages from detected gaps</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/stakeholder-update</span><span class="diff-cmd-desc">weekly synthesis for your manager</span></div>
+            </div>
+
+            <div class="diff-adopt-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Weekly Operating Rhythm -->
+      <div class="diff-card open" data-diff="weekly-rhythm">
+        <div class="diff-header" onclick="toggleDiff(this)">
+          <span class="diff-expand">&#9656;</span>
+          <span class="diff-title">Weekly Operating Rhythm</span>
+          <span class="diff-tagline">clarity Mon &rarr; evidence Fri</span>
+        </div>
+        <div class="diff-body">
+          <div class="diff-body-inner">
+            <div class="diff-section-label">Problem</div>
+            <p class="diff-problem">Monday morning: you react to whatever's in front of you. Friday evening: someone asks what you shipped and you can't articulate it. Your quarterly goals exist in a document you haven't looked at in three weeks.</p>
+
+            <div class="diff-section-label">What this does</div>
+            <p class="diff-solution">Morning planning starts with your deals, not your calendar. Parallel intel pipelines scan social, newsletters, and competitive channels. Pillar balance tracking catches drift within a week. Friday auto-drafts a leadership update from real evidence.</p>
+
+            <div class="diff-section-label">Baseline vs Added</div>
+            <p class="diff-baseline">Dex-core: daily planning, daily review, weekly planning, weekly review.</p>
+            <p class="diff-adds">This adds: deal-first framing, parallel intel pipelines, pillar balance tracking, meeting gap detection, closed-loop cadence.</p>
+
+            <div class="diff-section-label">Commands</div>
+            <div class="diff-commands">
+              <div class="diff-cmd"><span class="diff-cmd-name">/daily-plan</span><span class="diff-cmd-desc">deal-first morning with real-time intel</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/daily-review</span><span class="diff-cmd-desc">evening capture + meeting gap detection</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/week-plan</span><span class="diff-cmd-desc">priorities linked to quarterly goals</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/week-review</span><span class="diff-cmd-desc">evidence-based synthesis</span></div>
+            </div>
+
+            <div class="diff-adopt-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Accountability & Cracks Detection -->
+      <div class="diff-card open" data-diff="accountability">
+        <div class="diff-header" onclick="toggleDiff(this)">
+          <span class="diff-expand">&#9656;</span>
+          <span class="diff-title">Accountability &amp; Cracks Detection</span>
+          <span class="diff-tagline">nothing falls through</span>
+        </div>
+        <div class="diff-body">
+          <div class="diff-body-inner">
+            <div class="diff-section-label">Problem</div>
+            <p class="diff-problem">You promised someone you'd send something by Thursday. It's now the following Tuesday and you've forgotten. A project has quietly stalled. Performance review season arrives and you spend 3 hours reconstructing your impact from memory.</p>
+
+            <div class="diff-section-label">What this does</div>
+            <p class="diff-solution">One command scans your vault for slipped commitments &mdash; things with dates that have passed, people waiting on you. Another gives you a health dashboard across all active projects. Background automation passively captures decisions, impact, and feedback as career evidence.</p>
+
+            <div class="diff-section-label">Baseline vs Added</div>
+            <p class="diff-baseline">Dex-core: task tracking and project pages.</p>
+            <p class="diff-adds">This adds: proactive crack detection, initiative-wide health dashboards, automatic career evidence capture.</p>
+
+            <div class="diff-section-label">Commands</div>
+            <div class="diff-commands">
+              <div class="diff-cmd"><span class="diff-cmd-name">/cracks</span><span class="diff-cmd-desc">scan for slipped commitments</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/project-health</span><span class="diff-cmd-desc">red/yellow/green across initiatives</span></div>
+            </div>
+
+            <div class="diff-adopt-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Thought Leadership Pipeline -->
+      <div class="diff-card open" data-diff="thought-leadership">
+        <div class="diff-header" onclick="toggleDiff(this)">
+          <span class="diff-expand">&#9656;</span>
+          <span class="diff-title">Thought Leadership Pipeline</span>
+          <span class="diff-tagline">expertise &rarr; published content</span>
+        </div>
+        <div class="diff-body">
+          <div class="diff-body-inner">
+            <div class="diff-section-label">Problem</div>
+            <p class="diff-problem">You have strong opinions and give great talks. But between having the thought and publishing it, there's a 4-hour gap. Most ideas die in your head. Meanwhile, you're not tracking competitors systematically.</p>
+
+            <div class="diff-section-label">What this does</div>
+            <p class="diff-solution">Drop a podcast transcript and get a LinkedIn post in your voice in under 2 minutes. Scan competitors and market trends. Post to social from the command line. For longer pieces, a full pipeline takes your brief through drafting and a 22-agent review squad.</p>
+
+            <div class="diff-section-label">Baseline vs Added</div>
+            <p class="diff-baseline">Dex-core: content creation tools.</p>
+            <p class="diff-adds">This adds: podcast-to-social pipeline, competitive intel scanning, social integration, multi-agent content review.</p>
+
+            <div class="diff-section-label">Commands</div>
+            <div class="diff-commands">
+              <div class="diff-cmd"><span class="diff-cmd-name">/podcast-to-social</span><span class="diff-cmd-desc">transcript &rarr; LinkedIn post</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/competitive-intel</span><span class="diff-cmd-desc">market scanning</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/create-article</span><span class="diff-cmd-desc">brief &rarr; draft &rarr; 22-agent review</span></div>
+            </div>
+
+            <div class="diff-adopt-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Self-Improving System -->
+      <div class="diff-card open" data-diff="self-improving-system">
+        <div class="diff-header" onclick="toggleDiff(this)">
+          <span class="diff-expand">&#9656;</span>
+          <span class="diff-title">Self-Improving System</span>
+          <span class="diff-tagline">every session &rarr; smarter next one</span>
+        </div>
+        <div class="diff-body">
+          <div class="diff-body-inner">
+            <div class="diff-section-label">Problem</div>
+            <p class="diff-problem">You correct your AI. Next session, it makes the same mistake. Over time, you repeat the same instructions hundreds of times. Your AI never learns your preferences and never gets better at working with you specifically.</p>
+
+            <div class="diff-section-label">What this does</div>
+            <p class="diff-solution">Background automations watch every session and learn. Corrections are captured. Patterns are recorded. A guard runs before every action and checks against known mistakes. It tracks which files you actually use, building a picture of your real workflows over time.</p>
+
+            <div class="diff-section-label">Baseline vs Added</div>
+            <p class="diff-baseline">Dex-core: session memory and basic observation.</p>
+            <p class="diff-adds">This adds: automatic learning capture, pattern detection, mistake prevention, usage analysis, a living model of your working style.</p>
+
+            <div class="diff-section-label">Commands</div>
+            <div class="diff-commands">
+              <div class="diff-cmd"><span class="diff-cmd-name">/save-insight</span><span class="diff-cmd-desc">capture compound learnings</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/identity-snapshot</span><span class="diff-cmd-desc">your working pattern model</span></div>
+              <div class="diff-cmd"><span class="diff-cmd-name">/learnings</span><span class="diff-cmd-desc">what the system has learned</span></div>
+            </div>
+
+            <div class="diff-adopt-row"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /diff-list -->
+
+    <!-- COMPOUND LOOPS -->
+    <div class="compound-section">
+      <hr class="divider">
+      <div class="section-label">Compound Loops</div>
+      <p class="diff-solution" style="margin-bottom: 12px;">These workflows form feedback loops &mdash; each one makes the others stronger.</p>
+      <ul class="compound-loop">
+        <li><span class="compound-arrow">&rarr;</span> Meetings feed relationships feed meetings. Every meeting note updates person pages. Every person page enriches the next prep.</li>
+        <li><span class="compound-arrow">&rarr;</span> Deals feed planning feed accountability. Deal intel surfaces what needs attention. Planning prioritises it. Cracks detection catches when it slips.</li>
+        <li><span class="compound-arrow">&rarr;</span> Sessions feed learning feed sessions. Every correction teaches the system. Every pattern becomes a guard rail.</li>
+      </ul>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="https://heydex.ai" class="footer-link">Get Dex</a>
+        <a href="https://github.com/davekilleen/dex" class="footer-link">GitHub</a>
+        <a href="roadmap.html" class="footer-link">What's next</a>
+      </div>
+      <div class="footer-note">DexDiff Beta</div>
+    </footer>
+
+  </div><!-- /content -->
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">Copied to clipboard</div>
+
+  <script>
+    // ── Convex config ──────────────────────────────────
+    const CONVEX_URL = 'https://brave-ibex-877.eu-west-1.convex.cloud';
+    const TOKEN_KEY = 'dexdiff-auth';
+
+    // ── Token storage helpers ──────────────────────────
+    function getStoredAuth() {
+      const raw = localStorage.getItem(TOKEN_KEY);
+      if (!raw) return null;
+      try { return JSON.parse(raw); }
+      catch { return null; }
+    }
+
+    function getAccessToken() {
+      const auth = getStoredAuth();
+      if (!auth) return null;
+      return auth?.token || auth?.tokens?.token || null;
+    }
+
+    function clearAuth() {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+
+    // ── Convex HTTP API ────────────────────────────────
+    async function callQuery(path, args) {
+      const token = getAccessToken();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      const res = await fetch(CONVEX_URL + '/api/query', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ path, args: args || {}, format: 'json' })
+      });
+
+      const result = await res.json();
+      if (result.status === 'error') throw new Error(result.errorMessage);
+      return result.value;
+    }
+
+    async function callMutation(path, args) {
+      const token = getAccessToken();
+      if (!token) throw new Error('Not authenticated');
+
+      const res = await fetch(CONVEX_URL + '/api/mutation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ path, args: args || {}, format: 'json' })
+      });
+
+      const result = await res.json();
+      if (result.status === 'error') throw new Error(result.errorMessage);
+      return result.value;
+    }
+
+    // ── Auth state check ───────────────────────────────
+    async function checkAuthState() {
+      const token = getAccessToken();
+      if (!token) return { authenticated: false, user: null };
+
+      try {
+        const res = await fetch(CONVEX_URL + '/api/query', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ path: 'users:me', args: {}, format: 'json' })
+        });
+
+        const result = await res.json();
+
+        if (result.status === 'success' && result.value) {
+          return { authenticated: true, user: result.value };
+        }
+
+        clearAuth();
+        return { authenticated: false, user: null };
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        clearAuth();
+        return { authenticated: false, user: null };
+      }
+    }
+
+    // ── Auth indicator ────────────────────────────────
+    function renderAuthIndicator(authState) {
+      const el = document.getElementById('auth-indicator');
+      if (!el) return;
+
+      if (authState.authenticated && authState.user?.handle) {
+        el.innerHTML = `
+          <span class="auth-indicator-handle">@${authState.user.handle}</span>
+          <a class="auth-logout" onclick="clearAuth(); window.location.reload();">Log out</a>`;
+        el.style.display = 'flex';
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    // ── Render adopt boxes ─────────────────────────────
+    const ADOPT_STEPS_HTML = `
+      <ol class="diff-adopt-steps">
+        <li><strong>Preview</strong> &mdash; Dex runs the workflow once against your real data so you can see the output before committing. Nothing is installed.</li>
+        <li><strong>Compatibility check</strong> &mdash; Dex checks which integrations you have connected and what the workflow can do with and without each one.</li>
+        <li><strong>Role tailoring</strong> &mdash; Dex reads your role from your profile and adapts the workflow output to match how you actually work.</li>
+        <li><strong>Setup plan</strong> &mdash; Dex shows you exactly what it will create &mdash; which commands, which automations, what guidance &mdash; and you approve before anything is written.</li>
+        <li><strong>Build</strong> &mdash; Dex generates everything tailored to your vault &mdash; your folders, your integrations, your role. Nothing from Dave's system is copied.</li>
+        <li><strong>First run</strong> &mdash; Dex walks you through using the workflow for the first time with a concrete example from your own data.</li>
+      </ol>`;
+
+    function renderAdoptBox(diffSlug, containerEl, isAuthenticated, adoptedSlugs) {
+      const isAdopted = adoptedSlugs.has(diffSlug);
+      const returnPath = encodeURIComponent(window.location.pathname);
+
+      if (!isAuthenticated) {
+        containerEl.innerHTML = `
+          <div class="diff-adopt-cta" onclick="window.location.href='/connect/?return=${returnPath}'">
+            <span class="diff-adopt-cmd-text">Register to adopt this workflow</span>
+            <span class="diff-adopt-cmd-label">&rarr;</span>
+          </div>`;
+      } else if (isAdopted) {
+        containerEl.innerHTML = `
+          <div class="diff-adopted-indicator">
+            <span class="diff-adopted-check">&#10003;</span>
+            <span class="diff-adopted-text">Adopted</span>
+          </div>`;
+      } else {
+        const cmd = '/diff-adopt @dave/' + diffSlug;
+        containerEl.innerHTML = `
+          <div class="diff-adopt-cmd" onclick="copyCommand('${cmd}', this)">
+            <span class="diff-adopt-cmd-text">${cmd}</span>
+            <span class="diff-adopt-cmd-label">Copy</span>
+          </div>
+          <div class="diff-adopt-explain">
+            <span class="diff-adopt-toggle" onclick="this.parentElement.classList.toggle('expanded')">What happens when I paste this? <span class="diff-adopt-chevron">&#9656;</span></span>
+            <div class="diff-adopt-detail">${ADOPT_STEPS_HTML}</div>
+          </div>
+          <div class="diff-mark-adopted" style="display:none;" data-slug="${diffSlug}">
+            Already adopted this? <span class="diff-mark-link" onclick="markAsAdopted('dave', '${diffSlug}', this)">Mark it</span>
+          </div>`;
+      }
+    }
+
+    function renderProfileAdoptBox(isAuthenticated) {
+      const el = document.getElementById('profile-adopt-box');
+      if (!el) return;
+      const returnPath = encodeURIComponent(window.location.pathname);
+
+      if (!isAuthenticated) {
+        el.innerHTML = `
+          <div class="diff-adopt-cta" onclick="window.location.href='/connect/?return=${returnPath}'" style="display:inline-flex;padding:8px 12px;margin-bottom:8px;">
+            <span class="diff-adopt-cmd-text" style="font-size:13px;">Register to adopt all 7 workflows &rarr;</span>
+          </div>`;
+      } else {
+        el.innerHTML = `
+          <div class="adopt-command" onclick="copyCommand('/diff-adopt-profile @dave', this)">
+            <span class="adopt-command-text">/diff-adopt-profile @dave</span>
+            <span class="adopt-command-btn">Copy</span>
+          </div>`;
+      }
+    }
+
+    // ── Mark as adopted ────────────────────────────────
+    async function markAsAdopted(authorHandle, diffSlug, element) {
+      try {
+        await callMutation('adoptions:record', { authorHandle, diffSlug });
+
+        const adoptRow = element.closest('.diff-adopt-row');
+        if (adoptRow) {
+          adoptRow.innerHTML = `
+            <div class="diff-adopted-indicator">
+              <span class="diff-adopted-check">&#10003;</span>
+              <span class="diff-adopted-text">Adopted</span>
+            </div>`;
+        }
+
+        // Update filter state
+        const card = element.closest('.diff-card');
+        if (card) card.dataset.adopted = 'true';
+        applyFilter();
+
+        if (typeof pendo !== 'undefined') {
+          pendo.track('diff_marked_adopted', { diffId: diffSlug });
+        }
+      } catch (err) {
+        console.error('Failed to record adoption:', err);
+      }
+    }
+
+    // ── Filter ─────────────────────────────────────────
+    let activeFilter = 'all';
+
+    function setFilter(filter) {
+      activeFilter = filter;
+      document.getElementById('filter-all').classList.toggle('active', filter === 'all');
+      document.getElementById('filter-unadopted').classList.toggle('active', filter === 'unadopted');
+      applyFilter();
+    }
+
+    function applyFilter() {
+      document.querySelectorAll('.diff-card').forEach(card => {
+        if (activeFilter === 'unadopted') {
+          card.classList.toggle('hidden', card.dataset.adopted === 'true');
+        } else {
+          card.classList.remove('hidden');
+        }
+      });
+    }
+
+    // ── Diff card toggle ───────────────────────────────
+    function toggleDiff(header) {
+      const card = header.closest('.diff-card');
+      const wasOpen = card.classList.contains('open');
+      card.classList.toggle('open');
+
+      if (window.pendo) {
+        const diffId = card.dataset.diff;
+        pendo.track(wasOpen ? 'diff_collapsed' : 'diff_expanded', { diffId });
+      }
+    }
+
+    // ── Copy to clipboard ──────────────────────────────
+    function copyCommand(cmd, el) {
+      navigator.clipboard.writeText(cmd).then(() => {
+        if (window.pendo) pendo.track('diff_command_copied', { command: cmd });
+
+        const toast = document.getElementById('toast');
+        toast.textContent = 'Copied: ' + cmd;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+
+        const btn = el.querySelector('.diff-copy, .adopt-command-btn, .diff-adopt-cmd-label');
+        if (btn) {
+          const original = btn.textContent;
+          btn.textContent = 'Copied';
+          if (el.classList.contains('diff-copy')) el.classList.add('copied');
+          setTimeout(() => {
+            btn.textContent = original;
+            if (el.classList.contains('diff-copy')) el.classList.remove('copied');
+          }, 2000);
+        }
+
+        // Show mark-as-adopted link for diff adopt commands
+        const adoptRow = el.closest('.diff-adopt-row');
+        if (adoptRow) {
+          const markEl = adoptRow.querySelector('.diff-mark-adopted');
+          if (markEl) markEl.style.display = '';
+        }
+      });
+    }
+
+    // ── Page initialization ────────────────────────────
+    (async function init() {
+      const authState = await checkAuthState();
+
+      // Upgrade Pendo identity if logged in
+      if (authState.authenticated && authState.user?.handle) {
+        pendo.identify({
+          visitor: { id: authState.user.handle },
+          account: { id: 'heydex-dexdiff' }
+        });
+      }
+
+      // Load adoption state if logged in
+      let adoptedSlugs = new Set();
+      if (authState.authenticated) {
+        try {
+          const adoptions = await callQuery('adoptions:mine', {});
+          adoptedSlugs = new Set((adoptions || []).map(a => a.diffSlug));
+        } catch (err) {
+          console.error('Failed to load adoptions:', err);
+        }
+      }
+
+      // Render all adopt rows
+      document.querySelectorAll('.diff-card').forEach(card => {
+        const diffSlug = card.dataset.diff;
+        const adoptRow = card.querySelector('.diff-adopt-row');
+        if (adoptRow && diffSlug) {
+          renderAdoptBox(diffSlug, adoptRow, authState.authenticated, adoptedSlugs);
+          if (adoptedSlugs.has(diffSlug)) card.dataset.adopted = 'true';
+        }
+      });
+
+      // Render profile adopt box
+      renderProfileAdoptBox(authState.authenticated);
+
+      // Render auth indicator
+      renderAuthIndicator(authState);
+
+      // Show filter toggle only for logged-in users
+      if (authState.authenticated) {
+        document.getElementById('diff-filter').style.display = 'flex';
+      }
+    })();
+  </script>
+
+</body>
+</html>
