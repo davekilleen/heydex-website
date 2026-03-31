@@ -85,40 +85,36 @@
       margin-bottom: 32px;
     }
 
-    /* ── TABS ─────────────────────────────────────── */
+    /* ── OAUTH BUTTONS ───────────────────────────── */
 
-    .tabs {
+    .oauth-btn {
+      width: 100%;
       display: flex;
-      gap: 0;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--border-default);
-    }
-
-    .tab {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--text-tertiary);
-      padding: 8px 16px;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 16px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 2px;
       cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: color 80ms ease, border-color 80ms ease;
-      background: none;
-      border-top: none;
-      border-left: none;
-      border-right: none;
+      transition: background 80ms ease, border-color 80ms ease;
+      margin-bottom: 12px;
     }
-
-    .tab:hover { color: var(--text-secondary); }
-
-    .tab.active {
-      color: var(--accent);
-      border-bottom-color: var(--accent);
+    .oauth-btn:hover {
+      background: var(--bg-elevated);
+      border-color: var(--border-strong);
+    }
+    .oauth-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     /* ── FORMS ────────────────────────────────────── */
-
-    .form { display: none; }
-    .form.active { display: block; }
 
     .field {
       margin-bottom: 16px;
@@ -151,52 +147,6 @@
     .field-input:focus { border-color: var(--accent-dim); }
     .field-input::placeholder { color: var(--text-tertiary); }
 
-    .google-btn {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 12px 16px;
-      font-family: var(--font-sans);
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-primary);
-      background: var(--bg-surface);
-      border: 1px solid var(--border-default);
-      border-radius: 2px;
-      cursor: pointer;
-      transition: background 80ms ease, border-color 80ms ease;
-      margin-bottom: 20px;
-    }
-    .google-btn:hover {
-      background: var(--bg-elevated);
-      border-color: var(--border-strong);
-    }
-
-    .divider-text {
-      text-align: center;
-      margin-bottom: 20px;
-      position: relative;
-    }
-    .divider-text::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: var(--border-default);
-    }
-    .divider-text span {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-tertiary);
-      background: var(--bg-base);
-      padding: 0 12px;
-      position: relative;
-    }
-
     .submit-btn {
       width: 100%;
       padding: 10px 16px;
@@ -222,6 +172,60 @@
       margin-top: 8px;
       min-height: 16px;
     }
+
+    /* ── CHECKBOX ─────────────────────────────────── */
+
+    .checkbox-field {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .checkbox-field input[type="checkbox"] {
+      margin-top: 3px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .checkbox-field label {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    /* ── ENRICHMENT LOADING ───────────────────────── */
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border-strong);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      padding: 16px 0;
+    }
+
+    /* ── HIDDEN SCREENS ──────────────────────────── */
+
+    .screen { display: none; }
+    .screen.active { display: block; }
 
     /* ── CODE DISPLAY ─────────────────────────────── */
 
@@ -278,39 +282,6 @@
       margin-top: 8px;
     }
 
-    .code-instructions {
-      font-family: var(--font-sans);
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-
-    .code-instructions ol {
-      text-align: left;
-      padding-left: 20px;
-      margin-top: 12px;
-    }
-
-    .code-instructions li {
-      margin-bottom: 4px;
-    }
-
-    .code-instructions code {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--text-primary);
-      background: var(--bg-surface);
-      padding: 1px 6px;
-      border-radius: 2px;
-    }
-
-    .code-expiry {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-tertiary);
-      margin-top: 16px;
-    }
-
     .welcome-msg {
       font-family: var(--font-sans);
       font-size: 13px;
@@ -318,71 +289,165 @@
       margin-bottom: 8px;
     }
 
+    /* ── COOKIE CONSENT BANNER ────────────────────── */
+
+    .consent-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-default);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 100;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .consent-banner a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .consent-banner a:hover {
+      text-decoration: underline;
+    }
+
+    .consent-dismiss {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-inverse);
+      background: var(--accent);
+      border: none;
+      border-radius: 2px;
+      padding: 6px 16px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: opacity 80ms ease;
+    }
+
+    .consent-dismiss:hover { opacity: 0.9; }
+
+    /* ── FOOTER ───────────────────────────────────── */
+
+    .page-footer {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-default);
+      text-align: center;
+    }
+
+    .page-footer a {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      letter-spacing: 0.06em;
+    }
+
+    .page-footer a:hover {
+      color: var(--text-secondary);
+    }
+
     @media (max-width: 480px) {
       .page { padding: 48px 16px; }
       .code-value { font-size: 24px; letter-spacing: 0.1em; }
+      .consent-banner {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- AUTH FORMS -->
+  <!-- AUTH VIEW: OAuth buttons -->
   <div class="page" id="auth-view">
     <div class="page-meta">heydex.ai</div>
     <h1 class="page-title">Connect to Dex</h1>
-    <p class="page-subtitle">Register or log in to publish diffs, track adoptions, and see your company's AI map.</p>
+    <p class="page-subtitle">Sign in to publish diffs, track adoptions, and see your company's AI map.</p>
 
-    <!-- GOOGLE SIGN IN -->
-    <button class="google-btn" id="google-btn" onclick="handleGoogle()">
+    <button class="oauth-btn" id="google-btn" onclick="handleOAuth('google')">
       <svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0;"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 2.58 9 3.58z" fill="#EA4335"/></svg>
       Continue with Google
     </button>
 
-    <div class="divider-text"><span>or use email</span></div>
+    <button class="oauth-btn" id="microsoft-btn" onclick="handleOAuth('microsoft')">
+      <svg width="18" height="18" viewBox="0 0 21 21" style="flex-shrink:0;"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+      Continue with Microsoft
+    </button>
 
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('register')">Register</button>
-      <button class="tab" onclick="switchTab('login')">Log in</button>
+    <button class="oauth-btn" id="apple-btn" onclick="handleOAuth('apple')">
+      <svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0;" fill="currentColor"><path d="M14.94 9.63c-.02-2.1 1.71-3.11 1.79-3.16-0.97-1.42-2.49-1.62-3.03-1.64-1.29-0.13-2.52 0.76-3.18 0.76-0.65 0-1.66-0.74-2.73-0.72-1.41 0.02-2.7 0.82-3.43 2.08-1.46 2.53-0.37 6.29 1.05 8.35 0.7 1.01 1.53 2.14 2.62 2.1 1.05-0.04 1.45-0.68 2.72-0.68 1.27 0 1.63 0.68 2.74 0.66 1.13-0.02 1.85-1.03 2.54-2.05 0.8-1.17 1.13-2.31 1.15-2.37-0.03-0.01-2.2-0.85-2.23-3.35zM12.87 3.53c0.58-0.7 0.97-1.68 0.86-2.65-0.83 0.03-1.84 0.55-2.44 1.25-0.53 0.62-1 1.6-0.87 2.55 0.93 0.07 1.87-0.47 2.44-1.15z"/></svg>
+      Continue with Apple
+    </button>
+
+    <div class="page-footer">
+      <a href="/privacy/">Privacy policy</a>
+    </div>
+  </div>
+
+  <!-- PROFILE COMPLETION VIEW -->
+  <div class="page screen" id="profile-view">
+    <div class="page-meta">heydex.ai</div>
+    <h1 class="page-title">Complete your profile</h1>
+    <p class="page-subtitle">Import from LinkedIn to pre-fill your details, or enter them manually.</p>
+
+    <!-- LinkedIn enrichment -->
+    <div id="linkedin-section">
+      <div class="field">
+        <label class="field-label">LinkedIn URL</label>
+        <input type="url" class="field-input" id="linkedin-url" placeholder="https://linkedin.com/in/yourprofile">
+      </div>
+      <button class="oauth-btn" id="linkedin-import-btn" onclick="handleLinkedInImport()" style="margin-bottom:24px;">
+        <svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0;" fill="#0A66C2"><path d="M15.34 1H2.66A1.65 1.65 0 001 2.66v12.68A1.65 1.65 0 002.66 17h12.68A1.65 1.65 0 0017 15.34V2.66A1.65 1.65 0 0015.34 1zM5.8 14.5H3.56V7.2H5.8v7.3zM4.68 6.22a1.3 1.3 0 110-2.6 1.3 1.3 0 010 2.6zM14.5 14.5h-2.24v-3.55c0-.85-.01-1.93-1.18-1.93s-1.36.92-1.36 1.87v3.61H7.48V7.2h2.15v1h.03a2.36 2.36 0 012.13-1.17c2.27 0 2.69 1.5 2.69 3.44v4.03z"/></svg>
+        Import from LinkedIn
+      </button>
+      <div class="loading-text" id="linkedin-loading" style="display:none;">
+        <span class="loading-spinner"></span> Fetching profile data...
+      </div>
     </div>
 
-    <!-- REGISTER FORM -->
-    <div class="form active" id="form-register">
-      <div class="field">
-        <label class="field-label">Email</label>
-        <input type="email" class="field-input" id="reg-email" placeholder="you@company.com" autocomplete="email">
-      </div>
-      <div class="field">
-        <label class="field-label">Password</label>
-        <input type="password" class="field-input" id="reg-password" placeholder="Choose a password" autocomplete="new-password">
-      </div>
-      <div class="field">
-        <label class="field-label">Display Name</label>
-        <input type="text" class="field-input" id="reg-name" placeholder="Your name" autocomplete="name">
-      </div>
-      <div class="field">
-        <label class="field-label">Handle</label>
-        <input type="text" class="field-input" id="reg-handle" placeholder="yourhandle (used in @handle/diff-id)">
-      </div>
-      <div class="field">
-        <label class="field-label">Role</label>
-        <input type="text" class="field-input" id="reg-role" placeholder="e.g., Product Manager, AE, CSM">
-      </div>
-      <button class="submit-btn" id="reg-btn" onclick="handleRegister()">Create account</button>
-      <div class="form-error" id="reg-error"></div>
+    <!-- Editable profile fields -->
+    <div class="field">
+      <label class="field-label">Name</label>
+      <input type="text" class="field-input" id="profile-name" placeholder="Your name" autocomplete="name">
+    </div>
+    <div class="field">
+      <label class="field-label">Title</label>
+      <input type="text" class="field-input" id="profile-title" placeholder="e.g., Product Manager">
+    </div>
+    <div class="field">
+      <label class="field-label">Company</label>
+      <input type="text" class="field-input" id="profile-company" placeholder="e.g., Acme Corp">
+    </div>
+    <div class="field">
+      <label class="field-label">Seniority</label>
+      <input type="text" class="field-input" id="profile-seniority" placeholder="e.g., Senior, Director, VP">
+    </div>
+    <div class="field">
+      <label class="field-label">Handle</label>
+      <input type="text" class="field-input" id="profile-handle" placeholder="yourhandle (used in @handle/diff-id)">
     </div>
 
-    <!-- LOGIN FORM -->
-    <div class="form" id="form-login">
-      <div class="field">
-        <label class="field-label">Email</label>
-        <input type="email" class="field-input" id="login-email" placeholder="you@company.com" autocomplete="email">
-      </div>
-      <div class="field">
-        <label class="field-label">Password</label>
-        <input type="password" class="field-input" id="login-password" placeholder="Your password" autocomplete="current-password">
-      </div>
-      <button class="submit-btn" id="login-btn" onclick="handleLogin()">Log in</button>
-      <div class="form-error" id="login-error"></div>
+    <!-- Marketing consent -->
+    <div class="checkbox-field">
+      <input type="checkbox" id="marketing-consent">
+      <label for="marketing-consent">Keep me posted on Dex updates and new features</label>
+    </div>
+
+    <button class="submit-btn" id="profile-submit-btn" onclick="handleProfileSubmit()">Create account</button>
+    <div class="form-error" id="profile-error"></div>
+
+    <div class="page-footer">
+      <a href="/privacy/">Privacy policy</a>
     </div>
   </div>
 
@@ -390,6 +455,12 @@
   <div class="page" id="code-view">
     <div class="page-meta">heydex.ai</div>
     <h1 class="page-title">Connected</h1>
+  </div>
+
+  <!-- COOKIE CONSENT BANNER -->
+  <div class="consent-banner" id="consent-banner" style="display:none;">
+    <span>We use localStorage to keep you signed in. <a href="/privacy/">Privacy policy</a></span>
+    <button class="consent-dismiss" onclick="dismissConsent()">Got it</button>
   </div>
 
   <script>
@@ -423,6 +494,33 @@
 
     function clearAuth() {
       localStorage.removeItem(TOKEN_KEY);
+    }
+
+    // ── IP geolocation for marketing consent ──────
+    let isEU = false;
+    fetch('https://ip-api.com/json/?fields=continentCode')
+      .then(r => r.json())
+      .then(d => { isEU = d.continentCode === 'EU'; applyConsentDefault(); })
+      .catch(() => {});
+
+    function applyConsentDefault() {
+      const checkbox = document.getElementById('marketing-consent');
+      if (checkbox) {
+        // EU: unticked (opt-in required), non-EU: ticked (opt-out)
+        checkbox.checked = !isEU;
+      }
+    }
+
+    // ── Cookie consent banner ─────────────────────
+    (function showConsentBanner() {
+      if (!localStorage.getItem('dexdiff-consent-dismissed')) {
+        document.getElementById('consent-banner').style.display = 'flex';
+      }
+    })();
+
+    function dismissConsent() {
+      localStorage.setItem('dexdiff-consent-dismissed', '1');
+      document.getElementById('consent-banner').style.display = 'none';
     }
 
     // ── Convex HTTP helpers ────────────────────────
@@ -460,105 +558,211 @@
       return result.value;
     }
 
-    // ── After auth: register profile if needed, then redirect or show code ──
-    async function afterAuth(displayName) {
-      // Call users:me first; only register if no profile exists yet
-      const me = await callQuery("users:me", {});
-      if (me === null) {
-        // No profile yet — this is a new signup, register the profile
-        const name = displayName || document.getElementById('reg-name').value.trim();
-        const handle = (document.getElementById('reg-handle') || {}).value
-          ? document.getElementById('reg-handle').value.trim().toLowerCase()
-          : undefined;
-        const role = (document.getElementById('reg-role') || {}).value
-          ? document.getElementById('reg-role').value.trim()
-          : undefined;
+    async function callAction(path, args) {
+      const token = getAccessToken();
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = "Bearer " + token;
 
-        const registerArgs = { displayName: name };
-        if (handle) registerArgs.handle = handle;
-        if (role) registerArgs.role = role;
+      const res = await fetch(CONVEX_URL + "/api/action", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ path, args, format: "json" })
+      });
 
-        await callMutation("users:register", registerArgs);
-      }
-
-      if (isConnectMode) {
-        await showCodeView();
-      } else {
-        window.location.href = returnUrl;
-      }
+      const result = await res.json();
+      if (result.status === "error") throw new Error(result.errorMessage);
+      return result.value;
     }
 
-    // ── Tab switching ──────────────────────────────
-    // ── Google OAuth ───────────────────────────────
-    async function handleGoogle() {
-      const btn = document.getElementById('google-btn');
+    // ── OAuth handlers ────────────────────────────
+    async function handleOAuth(provider) {
+      const btnId = provider + '-btn';
+      const btn = document.getElementById(btnId);
       btn.disabled = true;
       btn.textContent = 'Redirecting...';
 
-      // For OAuth, we redirect to the Convex site URL which handles the full flow
-      // After Google auth, Convex redirects back to SITE_URL with the token
-      const redirectUrl = encodeURIComponent(window.location.origin + '/connect/?oauth=callback&return=' + encodeURIComponent(returnUrl) + (isConnectMode ? '&mode=connect' : ''));
-      window.location.href = CONVEX_SITE_URL + '/api/auth/signin/google?redirectTo=' + redirectUrl;
+      const callbackUrl = window.location.origin + '/connect/?oauth=callback&return=' +
+        encodeURIComponent(returnUrl) +
+        (isConnectMode ? '&mode=connect' : '');
+
+      // Map button names to Convex Auth provider IDs
+      const providerMap = {
+        google: 'google',
+        microsoft: 'microsoft-entra-id',
+        apple: 'apple',
+      };
+
+      try {
+        // Call auth:signIn action which returns a redirect URL with verifier in state
+        const res = await fetch(CONVEX_URL + '/api/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: 'auth:signIn',
+            args: {
+              provider: providerMap[provider],
+              params: { redirectTo: callbackUrl },
+            },
+            format: 'json',
+          }),
+        });
+
+        const result = await res.json();
+        console.log('OAuth signIn response:', JSON.stringify(result));
+
+        if (result.status === 'error') {
+          throw new Error(result.errorMessage || 'OAuth failed');
+        }
+
+        const { redirect, verifier } = result.value || {};
+
+        // Store the verifier so we can pass it back on callback
+        if (verifier) {
+          localStorage.setItem('dexdiff-oauth-verifier', verifier);
+        }
+
+        if (redirect) {
+          window.location.href = redirect;
+        } else {
+          throw new Error('No redirect URL returned from auth');
+        }
+      } catch (err) {
+        console.error('OAuth error:', err);
+        btn.disabled = false;
+        btn.textContent = 'Continue with ' + provider.charAt(0).toUpperCase() + provider.slice(1);
+        alert('Authentication failed: ' + err.message);
+      }
     }
 
-    // ── Check for OAuth callback ──────────────────
-    // After Google OAuth, Convex redirects back here with token in URL fragment
+    // ── OAuth callback handling ───────────────────
     if (_params.get('oauth') === 'callback') {
-      // The token should be in the URL hash or as a query param from Convex
-      // Try to extract it
+      const code = _params.get('code');
+      const verifier = localStorage.getItem('dexdiff-oauth-verifier');
+
+      // Try multiple token sources: direct token in URL, or code+verifier exchange
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
-      const token = hashParams.get('token') || _params.get('token');
-      if (token) {
-        storeAuth({ token });
-        // Continue with afterAuth flow
-        (async () => {
-          try {
-            await afterAuth('User');
-          } catch (err) {
-            console.error('OAuth callback error:', err);
+      const directToken = hashParams.get('token') || _params.get('token');
+
+      (async () => {
+        try {
+          let token;
+
+          if (directToken) {
+            // Token provided directly (some flows)
+            token = directToken;
+          } else if (code && verifier) {
+            // Exchange code + verifier for token via auth:signIn action
+            const res = await fetch(CONVEX_URL + '/api/action', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                path: 'auth:signIn',
+                args: {
+                  params: { code },
+                  verifier,
+                },
+                format: 'json',
+              }),
+            });
+
+            const result = await res.json();
+            console.log('OAuth code exchange response:', JSON.stringify(result));
+
+            if (result.status === 'error') {
+              throw new Error(result.errorMessage || 'Token exchange failed');
+            }
+
+            // Extract token from response
+            const val = result.value;
+            token = val?.token || val?.tokens?.token;
+            if (val) storeAuth(val);
           }
+
+          localStorage.removeItem('dexdiff-oauth-verifier');
+
+          if (!token) {
+            throw new Error('No token received');
+          }
+
+          if (!directToken) storeAuth({ tokens: { token } });
+
+          const me = await callQuery("users:me", {});
+          if (me !== null) {
+            if (isConnectMode) {
+              await showCodeView();
+            } else {
+              window.location.href = returnUrl;
+            }
+          } else {
+            showProfileView();
+          }
+        } catch (err) {
+          console.error('OAuth callback error:', err);
         })();
       }
     }
 
-    // ── Tab switching ──────────────────────────────
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
-
-      if (tab === 'register') {
-        document.querySelector('.tab:first-child').classList.add('active');
-        document.getElementById('form-register').classList.add('active');
-      } else {
-        document.querySelector('.tab:last-child').classList.add('active');
-        document.getElementById('form-login').classList.add('active');
-      }
+    // ── Show profile completion view ──────────────
+    function showProfileView() {
+      document.getElementById('auth-view').style.display = 'none';
+      document.getElementById('profile-view').classList.add('active');
+      applyConsentDefault();
     }
 
-    // ── Registration ───────────────────────────────
-    async function handleRegister() {
-      const email = document.getElementById('reg-email').value.trim();
-      const password = document.getElementById('reg-password').value;
-      const name = document.getElementById('reg-name').value.trim();
-      const handle = document.getElementById('reg-handle').value.trim().toLowerCase();
-      const role = document.getElementById('reg-role').value.trim();
-      const errorEl = document.getElementById('reg-error');
-      const btn = document.getElementById('reg-btn');
+    // ── LinkedIn enrichment ───────────────────────
+    async function handleLinkedInImport() {
+      const urlInput = document.getElementById('linkedin-url');
+      const linkedinUrl = urlInput.value.trim();
+      const btn = document.getElementById('linkedin-import-btn');
+      const loading = document.getElementById('linkedin-loading');
+      const errorEl = document.getElementById('profile-error');
 
       errorEl.textContent = '';
 
-      if (!email || !password || !name || !handle) {
-        errorEl.textContent = 'All fields except role are required';
+      if (!linkedinUrl || !linkedinUrl.includes('linkedin.com/in/')) {
+        errorEl.textContent = 'Please enter a valid LinkedIn profile URL';
         return;
       }
 
-      if (!/^[a-z0-9-]+$/.test(handle)) {
+      btn.disabled = true;
+      loading.style.display = 'flex';
+
+      try {
+        const enriched = await callAction("enrichment:enrichProfile", { linkedinUrl });
+
+        // Pre-fill editable fields with enriched data
+        if (enriched.name) document.getElementById('profile-name').value = enriched.name;
+        if (enriched.title) document.getElementById('profile-title').value = enriched.title;
+        if (enriched.company) document.getElementById('profile-company').value = enriched.company;
+        if (enriched.seniority) document.getElementById('profile-seniority').value = enriched.seniority;
+      } catch (err) {
+        errorEl.textContent = err.message || 'Failed to import LinkedIn profile';
+      } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+      }
+    }
+
+    // ── Profile submission (new user registration) ─
+    async function handleProfileSubmit() {
+      const name = document.getElementById('profile-name').value.trim();
+      const title = document.getElementById('profile-title').value.trim();
+      const company = document.getElementById('profile-company').value.trim();
+      const seniority = document.getElementById('profile-seniority').value.trim();
+      const handle = document.getElementById('profile-handle').value.trim().toLowerCase();
+      const marketingConsent = document.getElementById('marketing-consent').checked;
+      const errorEl = document.getElementById('profile-error');
+      const btn = document.getElementById('profile-submit-btn');
+
+      errorEl.textContent = '';
+
+      if (!name) {
+        errorEl.textContent = 'Name is required';
+        return;
+      }
+
+      if (handle && !/^[a-z0-9-]+$/.test(handle)) {
         errorEl.textContent = 'Handle must be lowercase letters, numbers, and hyphens only';
-        return;
-      }
-
-      if (password.length < 8) {
-        errorEl.textContent = 'Password must be at least 8 characters';
         return;
       }
 
@@ -566,29 +770,22 @@
       btn.textContent = 'Creating account...';
 
       try {
-        // Password provider uses the auth:signIn mutation via Convex API, not HTTP routes
-        const signUpRes = await fetch(CONVEX_URL + "/api/action", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            path: "auth:signIn",
-            args: { provider: "password", params: { email, password, flow: "signUp" } },
-            format: "json"
-          }),
-        });
+        const registerArgs = {
+          displayName: name,
+          marketingOptOut: !marketingConsent
+        };
+        if (handle) registerArgs.handle = handle;
+        if (title) registerArgs.role = title;
+        if (company) registerArgs.company = company;
+        if (seniority) registerArgs.seniority = seniority;
 
-        const signUpResult = await signUpRes.json();
-        console.log("signUp response:", JSON.stringify(signUpResult));
+        await callMutation("users:register", registerArgs);
 
-        if (signUpResult.status === "error") {
-          throw new Error(signUpResult.errorMessage || "Registration failed");
+        if (isConnectMode) {
+          await showCodeView();
+        } else {
+          window.location.href = returnUrl;
         }
-
-        const signUpData = signUpResult.value;
-        storeAuth(signUpData);
-
-        await afterAuth(name);
-
       } catch (err) {
         errorEl.textContent = err.message || 'Registration failed';
       } finally {
@@ -597,57 +794,10 @@
       }
     }
 
-    // ── Login ──────────────────────────────────────
-    async function handleLogin() {
-      const email = document.getElementById('login-email').value.trim();
-      const password = document.getElementById('login-password').value;
-      const errorEl = document.getElementById('login-error');
-      const btn = document.getElementById('login-btn');
-
-      errorEl.textContent = '';
-
-      if (!email || !password) {
-        errorEl.textContent = 'Email and password required';
-        return;
-      }
-
-      btn.disabled = true;
-      btn.textContent = 'Logging in...';
-
-      try {
-        const res = await fetch(CONVEX_URL + "/api/action", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            path: "auth:signIn",
-            args: { provider: "password", params: { email, password, flow: "signIn" } },
-            format: "json"
-          }),
-        });
-
-        const result = await res.json();
-        console.log("signIn response:", JSON.stringify(result));
-
-        if (result.status === "error") {
-          throw new Error(result.errorMessage || "Invalid email or password");
-        }
-
-        const data = result.value;
-        storeAuth(data);
-
-        await afterAuth(email.split('@')[0]);
-
-      } catch (err) {
-        errorEl.textContent = err.message || 'Login failed';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Log in';
-      }
-    }
-
     // ── Show code view (connect mode only) ────────
     async function showCodeView() {
       document.getElementById('auth-view').style.display = 'none';
+      document.getElementById('profile-view').classList.remove('active');
 
       try {
         const { code, expiresInSeconds } = await callMutation("connect:generateCode", {});
@@ -675,13 +825,16 @@
 
     // ── Page load: check for existing session ─────
     (async function init() {
+      // Skip if we're handling an OAuth callback (handled above)
+      if (_params.get('oauth') === 'callback') return;
+
       const token = getAccessToken();
       if (!token) return;
 
       try {
         const me = await callQuery("users:me", {});
         if (me === null) {
-          // Token present but no profile — clear stale auth and show forms
+          // Token present but no profile -- clear stale auth and show buttons
           clearAuth();
           return;
         }
@@ -692,7 +845,7 @@
           window.location.href = returnUrl;
         }
       } catch (err) {
-        // Token likely expired — clear and show forms
+        // Token likely expired -- clear and show buttons
         clearAuth();
       }
     })();
