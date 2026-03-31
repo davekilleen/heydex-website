@@ -57,7 +57,7 @@
     .page {
       max-width: 720px;
       margin: 0 auto;
-      padding: 48px 24px 96px;
+      padding: 80px 24px 96px;
     }
 
     .back-link {
@@ -205,36 +205,46 @@
       color: var(--text-tertiary);
     }
 
-    /* ── TOP NAV ───────────────────────────────────── */
+    /* ── NAV BAR ──────────────────────────────────── */
 
-    .top-nav {
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: rgba(10, 10, 10, 0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 20px 24px 0;
-      margin-bottom: 0;
     }
 
-    .top-nav-brand {
+    .nav-logo {
       font-family: var(--font-mono);
       font-size: 13px;
-      color: #aaaaaa;
+      font-weight: 500;
+      color: var(--text-primary);
       text-decoration: none;
       letter-spacing: 0.02em;
-      transition: color 80ms ease;
     }
 
-    .top-nav-brand:hover { color: var(--text-primary); }
-
-    .top-nav-links {
+    .nav-links {
       display: flex;
       align-items: center;
       gap: 20px;
     }
 
-    .top-nav-link {
+    .nav-link {
       font-family: var(--font-mono);
       font-size: 11px;
       color: #aaaaaa;
@@ -244,37 +254,48 @@
       transition: color 80ms ease;
     }
 
-    .top-nav-link:hover { color: var(--text-primary); }
+    .nav-link:hover {
+      color: var(--text-primary);
+    }
 
-    .top-nav-cta {
+    .nav-cta {
       font-family: var(--font-mono);
       font-size: 11px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: #0a0a0a;
-      background: #FF3870;
+      color: var(--text-inverse);
+      background: var(--accent);
       border: none;
       padding: 6px 14px;
       border-radius: 2px;
       text-decoration: none;
-      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 80ms ease;
+    }
+
+    .nav-cta:hover {
+      opacity: 0.85;
     }
 
     @media (max-width: 480px) {
-      .page { padding: 32px 16px 64px; }
+      .nav-links { gap: 12px; }
+      .nav-link { display: none; }
+      .page { padding: 64px 16px 64px; }
       .page-title { font-size: 18px; }
     }
   </style>
 </head>
 <body>
 
-  <nav class="top-nav" aria-label="Main navigation">
-    <a href="/diff/" class="top-nav-brand">&#9670; dexdiff</a>
-    <div class="top-nav-links">
-      <a href="/diff/community/" class="top-nav-link">Community</a>
-      <a href="/diff/company/" class="top-nav-link">Your Company</a>
-      <a href="/diff/love-letters/" class="top-nav-link">Love Letters</a>
-      <a href="/connect/" class="top-nav-cta">Get Dexed Up</a>
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="/diff/" class="nav-logo">&#9670; dexdiff</a>
+      <div class="nav-links">
+        <a href="/diff/community/" class="nav-link">Community</a>
+        <a href="/diff/company/" class="nav-link">Your Company</a>
+        <a href="/diff/love-letters/" class="nav-link">Love Letters</a>
+        <a href="/connect/" class="nav-cta">Get Dexed Up</a>
+      </div>
     </div>
   </nav>
 
