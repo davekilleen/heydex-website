@@ -575,15 +575,11 @@
     }
 
     // ── OAuth handlers ────────────────────────────
-    async function handleOAuth(provider) {
+    function handleOAuth(provider) {
       const btnId = provider + '-btn';
       const btn = document.getElementById(btnId);
       btn.disabled = true;
       btn.textContent = 'Redirecting...';
-
-      const callbackUrl = window.location.origin + '/connect/?oauth=callback&return=' +
-        encodeURIComponent(returnUrl) +
-        (isConnectMode ? '&mode=connect' : '');
 
       // Map button names to Convex Auth provider IDs
       const providerMap = {
@@ -592,46 +588,14 @@
         apple: 'apple',
       };
 
-      try {
-        // Call auth:signIn action which returns a redirect URL with verifier in state
-        const res = await fetch(CONVEX_URL + '/api/action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            path: 'auth:signIn',
-            args: {
-              provider: providerMap[provider],
-              params: { redirectTo: callbackUrl },
-            },
-            format: 'json',
-          }),
-        });
+      // Use Convex Auth HTTP routes directly — the verifier is managed via cookies on the .convex.site domain
+      const redirectTo = encodeURIComponent(
+        window.location.origin + '/connect/?oauth=callback&return=' +
+        encodeURIComponent(returnUrl) +
+        (isConnectMode ? '&mode=connect' : '')
+      );
 
-        const result = await res.json();
-        console.log('OAuth signIn response:', JSON.stringify(result));
-
-        if (result.status === 'error') {
-          throw new Error(result.errorMessage || 'OAuth failed');
-        }
-
-        const { redirect, verifier } = result.value || {};
-
-        // Store the verifier so we can pass it back on callback
-        if (verifier) {
-          localStorage.setItem('dexdiff-oauth-verifier', verifier);
-        }
-
-        if (redirect) {
-          window.location.href = redirect;
-        } else {
-          throw new Error('No redirect URL returned from auth');
-        }
-      } catch (err) {
-        console.error('OAuth error:', err);
-        btn.disabled = false;
-        btn.textContent = 'Continue with ' + provider.charAt(0).toUpperCase() + provider.slice(1);
-        alert('Authentication failed: ' + err.message);
-      }
+      window.location.href = CONVEX_SITE_URL + '/api/auth/signin/' + providerMap[provider] + '?redirectTo=' + redirectTo;
     }
 
     // ── OAuth callback handling ───────────────────
