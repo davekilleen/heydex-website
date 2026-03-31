@@ -151,6 +151,52 @@
     .field-input:focus { border-color: var(--accent-dim); }
     .field-input::placeholder { color: var(--text-tertiary); }
 
+    .google-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 16px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 80ms ease, border-color 80ms ease;
+      margin-bottom: 20px;
+    }
+    .google-btn:hover {
+      background: var(--bg-elevated);
+      border-color: var(--border-strong);
+    }
+
+    .divider-text {
+      text-align: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .divider-text::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--border-default);
+    }
+    .divider-text span {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      background: var(--bg-base);
+      padding: 0 12px;
+      position: relative;
+    }
+
     .submit-btn {
       width: 100%;
       padding: 10px 16px;
@@ -285,6 +331,14 @@
     <div class="page-meta">heydex.ai</div>
     <h1 class="page-title">Connect to Dex</h1>
     <p class="page-subtitle">Register or log in to publish diffs, track adoptions, and see your company's AI map.</p>
+
+    <!-- GOOGLE SIGN IN -->
+    <button class="google-btn" id="google-btn" onclick="handleGoogle()">
+      <svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0;"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 2.58 9 3.58z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
+
+    <div class="divider-text"><span>or use email</span></div>
 
     <div class="tabs">
       <button class="tab active" onclick="switchTab('register')">Register</button>
@@ -431,6 +485,39 @@
         await showCodeView();
       } else {
         window.location.href = returnUrl;
+      }
+    }
+
+    // ── Tab switching ──────────────────────────────
+    // ── Google OAuth ───────────────────────────────
+    async function handleGoogle() {
+      const btn = document.getElementById('google-btn');
+      btn.disabled = true;
+      btn.textContent = 'Redirecting...';
+
+      // For OAuth, we redirect to the Convex site URL which handles the full flow
+      // After Google auth, Convex redirects back to SITE_URL with the token
+      const redirectUrl = encodeURIComponent(window.location.origin + '/connect/?oauth=callback&return=' + encodeURIComponent(returnUrl) + (isConnectMode ? '&mode=connect' : ''));
+      window.location.href = CONVEX_SITE_URL + '/api/auth/signin/google?redirectTo=' + redirectUrl;
+    }
+
+    // ── Check for OAuth callback ──────────────────
+    // After Google OAuth, Convex redirects back here with token in URL fragment
+    if (_params.get('oauth') === 'callback') {
+      // The token should be in the URL hash or as a query param from Convex
+      // Try to extract it
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const token = hashParams.get('token') || _params.get('token');
+      if (token) {
+        storeAuth({ token });
+        // Continue with afterAuth flow
+        (async () => {
+          try {
+            await afterAuth('User');
+          } catch (err) {
+            console.error('OAuth callback error:', err);
+          }
+        })();
       }
     }
 
