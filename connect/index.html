@@ -575,47 +575,71 @@
     }
 
     // ── OAuth handlers ────────────────────────────
-    function handleOAuth(provider) {
+    // Map button names to Convex Auth provider IDs
+    const providerMap = {
+      google: 'google',
+      microsoft: 'microsoft-entra-id',
+      apple: 'apple',
+    };
+
+    async function handleOAuth(provider) {
       const btnId = provider + '-btn';
       const btn = document.getElementById(btnId);
       btn.disabled = true;
       btn.textContent = 'Redirecting...';
 
-      // Map button names to Convex Auth provider IDs
-      const providerMap = {
-        google: 'google',
-        microsoft: 'microsoft-entra-id',
-        apple: 'apple',
-      };
-
-      // Use Convex Auth HTTP routes directly — the verifier is managed via cookies on the .convex.site domain
-      const redirectTo = encodeURIComponent(
-        window.location.origin + '/connect/?oauth=callback&return=' +
+      const redirectTo = window.location.origin + '/connect/?oauth=callback&return=' +
         encodeURIComponent(returnUrl) +
-        (isConnectMode ? '&mode=connect' : '')
-      );
+        (isConnectMode ? '&mode=connect' : '');
 
-      window.location.href = CONVEX_SITE_URL + '/api/auth/signin/' + providerMap[provider] + '?redirectTo=' + redirectTo;
+      try {
+        // Step 1: Call auth:signIn action — returns { redirect, verifier }
+        const res = await fetch(CONVEX_URL + '/api/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: 'auth:signIn',
+            args: {
+              provider: providerMap[provider],
+              params: { redirectTo },
+            },
+            format: 'json',
+          }),
+        });
+
+        const result = await res.json();
+        console.log('OAuth step 1 response:', JSON.stringify(result));
+
+        if (result.status === 'error') throw new Error(result.errorMessage);
+
+        const { redirect, verifier } = result.value || {};
+
+        // Store verifier for step 2 (PKCE)
+        if (verifier) localStorage.setItem('dexdiff-oauth-verifier', verifier);
+
+        // Redirect to OAuth provider
+        if (redirect) {
+          window.location.href = redirect;
+        } else {
+          throw new Error('No redirect URL from auth');
+        }
+      } catch (err) {
+        console.error('OAuth error:', err);
+        btn.disabled = false;
+        btn.textContent = 'Continue with ' + provider.charAt(0).toUpperCase() + provider.slice(1);
+        alert('Sign-in failed: ' + err.message);
+      }
     }
 
-    // ── OAuth callback handling ───────────────────
+    // ── OAuth callback handling (Step 2: exchange code + verifier for tokens) ──
     if (_params.get('oauth') === 'callback') {
       const code = _params.get('code');
       const verifier = localStorage.getItem('dexdiff-oauth-verifier');
 
-      // Try multiple token sources: direct token in URL, or code+verifier exchange
-      const hashParams = new URLSearchParams(window.location.hash.slice(1));
-      const directToken = hashParams.get('token') || _params.get('token');
-
-      (async () => {
-        try {
-          let token;
-
-          if (directToken) {
-            // Token provided directly (some flows)
-            token = directToken;
-          } else if (code && verifier) {
-            // Exchange code + verifier for token via auth:signIn action
+      if (code && verifier) {
+        (async () => {
+          try {
+            // Step 2: Exchange code + stored verifier for tokens
             const res = await fetch(CONVEX_URL + '/api/action', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -630,40 +654,36 @@
             });
 
             const result = await res.json();
-            console.log('OAuth code exchange response:', JSON.stringify(result));
+            console.log('OAuth step 2 response:', JSON.stringify(result));
 
-            if (result.status === 'error') {
-              throw new Error(result.errorMessage || 'Token exchange failed');
-            }
+            if (result.status === 'error') throw new Error(result.errorMessage);
 
-            // Extract token from response
+            localStorage.removeItem('dexdiff-oauth-verifier');
+
+            // Store tokens
             const val = result.value;
-            token = val?.token || val?.tokens?.token;
-            if (val) storeAuth(val);
-          }
+            storeAuth(val);
 
-          localStorage.removeItem('dexdiff-oauth-verifier');
-
-          if (!token) {
-            throw new Error('No token received');
-          }
-
-          if (!directToken) storeAuth({ tokens: { token } });
-
-          const me = await callQuery("users:me", {});
-          if (me !== null) {
-            if (isConnectMode) {
-              await showCodeView();
+            // Check if user has a profile
+            const me = await callQuery("users:me", {});
+            if (me !== null) {
+              if (isConnectMode) {
+                await showCodeView();
+              } else {
+                window.location.href = returnUrl;
+              }
             } else {
-              window.location.href = returnUrl;
+              showProfileView();
             }
-          } else {
-            showProfileView();
+          } catch (err) {
+            console.error('OAuth callback error:', err);
+            localStorage.removeItem('dexdiff-oauth-verifier');
+            alert('Sign-in failed: ' + err.message);
           }
-        } catch (err) {
-          console.error('OAuth callback error:', err);
-        }
-      })();
+        })();
+      } else {
+        console.error('OAuth callback missing code or verifier', { code: !!code, verifier: !!verifier });
+      }
     }
 
     // ── Show profile completion view ──────────────
