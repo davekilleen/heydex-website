@@ -142,7 +142,7 @@
       gap: 32px;
       max-width: 1100px;
       margin: 0 auto;
-      padding: 80px 24px 96px;
+      padding: 0 24px 96px;
     }
 
     .main-content {
@@ -155,27 +155,75 @@
       flex-shrink: 0;
     }
 
-    /* ── HEADER ROW ────────────────────────────────── */
+    /* ── HERO ──────────────────────────────────────── */
 
-    .header-row {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
+    .hero {
+      max-width: 680px;
+      margin: 0 auto 56px;
+      padding: 80px 24px 0;
+      text-align: center;
+    }
+
+    .hero-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .hero-headline {
+      font-family: var(--font-sans);
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+      line-height: 1.3;
+    }
+
+    .hero-description {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.7;
       margin-bottom: 20px;
     }
 
-    .header-label {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-secondary);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
+    .hero-note {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: #777777;
+      margin-bottom: 28px;
     }
+
+    .hero-cta {
+      display: inline-block;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-inverse);
+      background: var(--accent);
+      border: none;
+      padding: 12px 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 120ms ease;
+    }
+
+    .hero-cta:hover {
+      opacity: 0.9;
+    }
+
+    /* ── CONTENT HEADER ────────────────────────────── */
 
     .header-count {
       font-family: var(--font-sans);
       font-size: 12px;
       color: #777777;
+      margin-bottom: 8px;
     }
 
     /* ── TABS ──────────────────────────────────────── */
@@ -547,17 +595,20 @@
     </div>
   </nav>
 
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-label">Community</div>
+    <h1 class="hero-headline">Browse real AI workflows from real people.</h1>
+    <p class="hero-description">See what others have built with Dex. Find workflows for your role. Adopt what works and share what you've built.</p>
+    <p class="hero-note">7 diffs from 1 contributor</p>
+    <a href="/diff/@dave/" class="hero-cta">Browse Diffs</a>
+  </section>
+
   <!-- PAGE LAYOUT -->
   <div class="page-layout">
 
     <!-- MAIN CONTENT -->
     <main class="main-content">
-
-      <!-- Header -->
-      <div class="header-row">
-        <h1 class="header-label">Community</h1>
-        <div class="header-count">7 diffs from 1 contributor</div>
-      </div>
 
       <!-- Tabs -->
       <div class="tabs">

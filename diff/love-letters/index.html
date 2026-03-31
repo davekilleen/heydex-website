@@ -64,7 +64,7 @@
     #page {
       max-width: 1100px;
       margin: 0 auto;
-      padding: 80px 24px 96px;
+      padding: 0 24px 96px;
       display: flex;
       gap: 32px;
     }
@@ -155,26 +155,59 @@
       opacity: 0.85;
     }
 
-    /* ── PAGE HEADER ───────────────────────────────── */
+    /* ── HERO ──────────────────────────────────────── */
 
-    .page-header {
+    .hero {
+      max-width: 680px;
+      margin: 0 auto 56px;
+      padding: 80px 24px 0;
+      text-align: center;
+    }
+
+    .hero-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .hero-headline {
+      font-family: var(--font-sans);
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+      line-height: 1.3;
+    }
+
+    .hero-description {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.7;
       margin-bottom: 28px;
     }
 
-    .page-label {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-secondary);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    .page-description {
+    .hero-cta {
+      display: inline-block;
       font-family: var(--font-sans);
       font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.6;
+      font-weight: 500;
+      color: var(--text-inverse);
+      background: var(--accent);
+      border: none;
+      padding: 12px 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 120ms ease;
+    }
+
+    .hero-cta:hover {
+      opacity: 0.9;
     }
 
     /* ── TABS ──────────────────────────────────────── */
@@ -241,7 +274,7 @@
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      background: linear-gradient(135deg, #FF3870 0%, #992244 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -344,7 +377,7 @@
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      background: linear-gradient(135deg, #FF3870 0%, #992244 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -556,16 +589,18 @@
     </div>
   </nav>
 
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-label">Love Letters</div>
+    <h1 class="hero-headline">Real reactions from real people.</h1>
+    <p class="hero-description">Captured in the moment, not written on demand. What people actually say when Dex changes how they work.</p>
+    <a href="/connect/" class="hero-cta">Share your story</a>
+  </section>
+
   <main id="page">
 
     <!-- MAIN CONTENT -->
     <div id="content">
-
-      <!-- PAGE HEADER -->
-      <div class="page-header">
-        <h1 class="page-label">Love Letters</h1>
-        <p class="page-description">Real reactions from real people. Captured in the moment, not written on demand.</p>
-      </div>
 
       <!-- TABS -->
       <div class="tabs">
