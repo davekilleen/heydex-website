@@ -275,6 +275,37 @@
       accent-color: var(--accent);
     }
 
+    /* ── STEP 2 TWO-COLUMN LAYOUT ────────────────── */
+
+    .confirm-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 24px;
+      align-items: start;
+    }
+
+    .confirm-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .confirm-right {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .summary-accent textarea {
+      border-left: 3px solid var(--accent);
+      border-radius: 0 2px 2px 0;
+      padding-left: 14px;
+    }
+
+    @media (max-width: 540px) {
+      .confirm-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     /* ── HANDLE SUGGESTIONS ──────────────────────── */
 
     .suggestion-chips {
@@ -496,54 +527,63 @@
   </div>
 
   <!-- STEP 2: Profile Confirmation -->
-  <div class="page screen" id="step-confirm">
-    <div class="page-meta">heydex.ai</div>
-    <h1 class="page-title" id="step2-title">Here's what we found.</h1>
-    <p class="page-subtitle">Dex uses this to personalise your briefings, meeting prep, and intelligence. Edit anything that doesn't look right.</p>
+  <div class="screen" id="step-confirm">
+    <div class="page" style="max-width:520px;">
+      <div class="page-meta">heydex.ai</div>
+      <h1 class="page-title" id="step2-title">Here's what we found.</h1>
+      <p class="page-subtitle">Dex uses this to personalise your briefings, meeting prep, and intelligence. Edit anything that doesn't look right.</p>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-      <div class="field">
-        <label class="field-label">Name</label>
-        <input type="text" class="field-input" id="profile-name" placeholder="Your name" autocomplete="name">
-      </div>
-      <div class="field">
-        <label class="field-label">Seniority</label>
-        <div class="radio-group" id="seniority-group">
-          <label class="radio-opt"><input type="radio" name="seniority" value="Manager"> Manager</label>
-          <label class="radio-opt"><input type="radio" name="seniority" value="Director"> Director</label>
-          <label class="radio-opt"><input type="radio" name="seniority" value="VP"> VP</label>
-          <label class="radio-opt"><input type="radio" name="seniority" value="C-Suite"> C-Suite</label>
-          <label class="radio-opt"><input type="radio" name="seniority" value="Founder"> Founder</label>
+      <div class="confirm-grid">
+        <!-- Left column: Name, Title & Company, Function -->
+        <div class="confirm-left">
+          <div class="field">
+            <label class="field-label">Name</label>
+            <input type="text" class="field-input" id="profile-name" placeholder="Your name" autocomplete="name">
+          </div>
+
+          <div class="field">
+            <label class="field-label">Title &amp; Company</label>
+            <input type="text" class="field-input" id="profile-title-company" placeholder="e.g., CPO at Acme Corp">
+          </div>
+
+          <div class="field">
+            <label class="field-label">Function</label>
+            <div class="pill-group" id="function-group">
+              <button class="fn-pill" data-fn="Product">Product</button>
+              <button class="fn-pill" data-fn="Sales">Sales</button>
+              <button class="fn-pill" data-fn="CS">CS</button>
+              <button class="fn-pill" data-fn="Engineering">Eng</button>
+              <button class="fn-pill" data-fn="Marketing">Mktg</button>
+              <button class="fn-pill" data-fn="Design">Design</button>
+              <button class="fn-pill" data-fn="Founder">Founder</button>
+              <button class="fn-pill" data-fn="Other">Other</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column: Seniority, Summary -->
+        <div class="confirm-right">
+          <div class="field">
+            <label class="field-label">Seniority</label>
+            <div class="radio-group" id="seniority-group">
+              <label class="radio-opt"><input type="radio" name="seniority" value="Manager"> Manager</label>
+              <label class="radio-opt"><input type="radio" name="seniority" value="Director"> Director</label>
+              <label class="radio-opt"><input type="radio" name="seniority" value="VP"> VP</label>
+              <label class="radio-opt"><input type="radio" name="seniority" value="C-Suite"> C-Suite</label>
+              <label class="radio-opt"><input type="radio" name="seniority" value="Founder"> Founder</label>
+            </div>
+          </div>
+
+          <div class="field summary-accent">
+            <label class="field-label">Summary</label>
+            <textarea class="field-input" id="profile-summary" rows="5" placeholder="A brief summary of what you do..." style="resize:vertical;font-family:var(--font-sans);"></textarea>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="field">
-      <label class="field-label">Title &amp; Company</label>
-      <input type="text" class="field-input" id="profile-title-company" placeholder="e.g., Product Manager at Acme Corp">
+      <button class="submit-btn" onclick="handleLooksGood()">Looks good</button>
+      <div class="form-error" id="step2-error"></div>
     </div>
-
-    <div class="field">
-      <label class="field-label">Function</label>
-      <div class="pill-group" id="function-group">
-        <button class="fn-pill" data-fn="Product">Product</button>
-        <button class="fn-pill" data-fn="Sales">Sales</button>
-        <button class="fn-pill" data-fn="CS">CS</button>
-        <button class="fn-pill" data-fn="Engineering">Eng</button>
-        <button class="fn-pill" data-fn="Marketing">Mktg</button>
-        <button class="fn-pill" data-fn="Design">Design</button>
-        <button class="fn-pill" data-fn="Founder">Founder</button>
-        <button class="fn-pill" data-fn="Other">Other</button>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="field-label">Summary</label>
-      <textarea class="field-input" id="profile-summary" rows="4" placeholder="A brief summary of what you do..." style="resize:vertical;font-family:var(--font-sans);"></textarea>
-    </div>
-
-    <button class="submit-btn" onclick="handleLooksGood()">Looks good</button>
-    <div class="form-error" id="step2-error"></div>
   </div>
 
   <!-- STEP 3: Choose Handle -->
