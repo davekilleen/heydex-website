@@ -239,11 +239,13 @@
       font-family: var(--font-sans);
       font-size: 13px;
       color: var(--text-secondary);
-      padding-bottom: 10px;
+      padding: 0 0 10px 0;
       cursor: pointer;
       transition: color 80ms ease;
+      border: none;
       border-bottom: 2px solid transparent;
       margin-bottom: -1px;
+      background: none;
     }
 
     .tab:hover {
@@ -264,6 +266,10 @@
       margin-bottom: 20px;
     }
 
+    .filter-dropdown {
+      position: relative;
+    }
+
     .filter-btn {
       font-family: var(--font-sans);
       font-size: 12px;
@@ -276,9 +282,55 @@
       transition: border-color 80ms ease, color 80ms ease;
     }
 
-    .filter-btn:hover {
+    .filter-btn:hover,
+    .filter-btn.open {
       border-color: var(--text-secondary);
       color: var(--text-primary);
+    }
+
+    .filter-btn.has-value {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .filter-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 160px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: 2px;
+      z-index: 40;
+      padding: 4px 0;
+    }
+
+    .filter-menu.show {
+      display: block;
+    }
+
+    .filter-option {
+      display: block;
+      width: 100%;
+      padding: 6px 14px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      transition: background 60ms ease, color 60ms ease;
+    }
+
+    .filter-option:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .filter-option.active {
+      color: var(--accent);
     }
 
     .filter-search {
@@ -300,6 +352,92 @@
 
     .filter-search:focus {
       border-color: var(--text-secondary);
+    }
+
+    /* ── TAB PANELS ────────────────────────────────── */
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ── PEOPLE GRID ───────────────────────────────── */
+
+    .people-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .people-card {
+      background: #131313;
+      border: 1px solid var(--border-default);
+      border-radius: 2px;
+      padding: 20px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: border-color 80ms ease;
+    }
+
+    .people-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .people-card-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FF3870 0%, #992244 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #fff;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .people-card-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .people-card-name {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .people-card-role {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .people-card-stat {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 10px;
+    }
+
+    .people-card-link {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      transition: opacity 80ms ease;
+    }
+
+    .people-card-link:hover {
+      opacity: 0.8;
     }
 
     /* ── DIFF CARD GRID ────────────────────────────── */
@@ -612,75 +750,115 @@
 
       <!-- Tabs -->
       <div class="tabs">
-        <div class="tab active">Diffs</div>
-        <div class="tab">People</div>
+        <button class="tab active" onclick="switchTab('diffs', this)">Diffs</button>
+        <button class="tab" onclick="switchTab('people', this)">People</button>
       </div>
 
-      <!-- Search -->
-      <div class="filter-row">
-        <input type="text" class="filter-search" placeholder="Search diffs...">
-      </div>
+      <!-- DIFFS PANEL -->
+      <div class="tab-panel active" id="panel-diffs">
 
-      <!-- Diff Card Grid -->
-      <div class="diff-grid">
-
-        <!-- 1. Meeting Intelligence -->
-        <div class="diff-card">
-          <div class="diff-card-title">Meeting Intelligence</div>
-          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
-          <div class="diff-card-desc">90-second meeting prep. Full context on every attendee. Never walk in cold again.</div>
-          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
+        <!-- Filters -->
+        <div class="filter-row">
+          <div class="filter-dropdown">
+            <button class="filter-btn" onclick="toggleFilter(this)" data-filter="role">Role &#9662;</button>
+            <div class="filter-menu">
+              <button class="filter-option active" onclick="applyFilter('role', '', this)">All Roles</button>
+              <button class="filter-option" onclick="applyFilter('role', 'Field CPO', this)">Field CPO</button>
+              <button class="filter-option" onclick="applyFilter('role', 'Product Manager', this)">Product Manager</button>
+              <button class="filter-option" onclick="applyFilter('role', 'Account Executive', this)">Account Executive</button>
+              <button class="filter-option" onclick="applyFilter('role', 'Customer Success', this)">Customer Success</button>
+              <button class="filter-option" onclick="applyFilter('role', 'Engineering', this)">Engineering</button>
+            </div>
+          </div>
+          <div class="filter-dropdown">
+            <button class="filter-btn" onclick="toggleFilter(this)" data-filter="seniority">Seniority &#9662;</button>
+            <div class="filter-menu">
+              <button class="filter-option active" onclick="applyFilter('seniority', '', this)">All Levels</button>
+              <button class="filter-option" onclick="applyFilter('seniority', 'Executive', this)">Executive</button>
+              <button class="filter-option" onclick="applyFilter('seniority', 'Senior', this)">Senior</button>
+              <button class="filter-option" onclick="applyFilter('seniority', 'Mid', this)">Mid-Level</button>
+              <button class="filter-option" onclick="applyFilter('seniority', 'Junior', this)">Junior</button>
+            </div>
+          </div>
+          <input type="text" class="filter-search" placeholder="Search diffs..." oninput="filterDiffs()">
         </div>
 
-        <!-- 2. Deal Intelligence -->
-        <div class="diff-card">
-          <div class="diff-card-title">Deal Intelligence</div>
-          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
-          <div class="diff-card-desc">Pipeline health without the spreadsheet. Know which deals need attention before your manager does.</div>
-          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
+        <!-- Diff Card Grid -->
+        <div class="diff-grid" id="diff-grid">
+
+          <div class="diff-card" data-role="Field CPO" data-seniority="Executive">
+            <div class="diff-card-title">Meeting Intelligence</div>
+            <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+            <div class="diff-card-desc">90-second meeting prep. Full context on every attendee. Never walk in cold again.</div>
+            <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
+          </div>
+
+          <div class="diff-card" data-role="Field CPO" data-seniority="Executive">
+            <div class="diff-card-title">Deal Intelligence</div>
+            <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+            <div class="diff-card-desc">Pipeline health without the spreadsheet. Know which deals need attention before your manager does.</div>
+            <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
+          </div>
+
+          <div class="diff-card" data-role="Field CPO" data-seniority="Executive">
+            <div class="diff-card-title">Weekly Rhythm</div>
+            <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+            <div class="diff-card-desc">Monday plans, Friday reviews. Nothing falls through the cracks.</div>
+            <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
+          </div>
+
+          <div class="diff-card" data-role="Field CPO" data-seniority="Executive">
+            <div class="diff-card-title">Relationship Compounding</div>
+            <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+            <div class="diff-card-desc">Every interaction makes the next one better. Context compounds.</div>
+            <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
+          </div>
+
+          <div class="diff-card" data-role="Field CPO" data-seniority="Executive">
+            <div class="diff-card-title">Thought Leadership</div>
+            <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+            <div class="diff-card-desc">Content pipeline from idea to published. LinkedIn, podcast, conference prep.</div>
+            <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
+          </div>
+
+          <div class="diff-card" data-role="Field CPO" data-seniority="Executive">
+            <div class="diff-card-title">Accountability</div>
+            <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+            <div class="diff-card-desc">Track commitments across people and projects. Nothing slips through.</div>
+            <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
+          </div>
+
+          <div class="diff-card" data-role="Field CPO" data-seniority="Executive">
+            <div class="diff-card-title">Self-Improving System</div>
+            <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+            <div class="diff-card-desc">Your Dex gets smarter every session. Mistakes become learnings, learnings become prevention.</div>
+            <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
+          </div>
+
+        </div><!-- /diff-grid -->
+
+      </div><!-- /panel-diffs -->
+
+      <!-- PEOPLE PANEL -->
+      <div class="tab-panel" id="panel-people">
+
+        <div class="filter-row">
+          <input type="text" class="filter-search" placeholder="Search people...">
         </div>
 
-        <!-- 3. Weekly Rhythm -->
-        <div class="diff-card">
-          <div class="diff-card-title">Weekly Rhythm</div>
-          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
-          <div class="diff-card-desc">Monday plans, Friday reviews. Nothing falls through the cracks.</div>
-          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
+        <div class="people-grid">
+          <div class="people-card">
+            <div class="people-card-avatar">DK</div>
+            <div class="people-card-info">
+              <div class="people-card-name">Dave Killeen</div>
+              <div class="people-card-role">Field CPO &middot; Pendo</div>
+              <div class="people-card-stat">7 diffs &middot; Executive</div>
+              <a href="/diff/@dave/" class="people-card-link">View profile &rarr;</a>
+            </div>
+          </div>
         </div>
 
-        <!-- 4. Relationship Compounding -->
-        <div class="diff-card">
-          <div class="diff-card-title">Relationship Compounding</div>
-          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
-          <div class="diff-card-desc">Every interaction makes the next one better. Context compounds.</div>
-          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
-        </div>
-
-        <!-- 5. Thought Leadership -->
-        <div class="diff-card">
-          <div class="diff-card-title">Thought Leadership</div>
-          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
-          <div class="diff-card-desc">Content pipeline from idea to published. LinkedIn, podcast, conference prep.</div>
-          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
-        </div>
-
-        <!-- 6. Accountability -->
-        <div class="diff-card">
-          <div class="diff-card-title">Accountability</div>
-          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
-          <div class="diff-card-desc">Track commitments across people and projects. Nothing slips through.</div>
-          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
-        </div>
-
-        <!-- 7. Self-Improving System -->
-        <div class="diff-card">
-          <div class="diff-card-title">Self-Improving System</div>
-          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
-          <div class="diff-card-desc">Your Dex gets smarter every session. Mistakes become learnings, learnings become prevention.</div>
-          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
-        </div>
-
-      </div><!-- /diff-grid -->
+      </div><!-- /panel-people -->
 
     </main>
 
@@ -742,6 +920,68 @@
   </footer>
 
   <script>
+    // ── Tabs ──────────────────────────────────────────
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + tabId).classList.add('active');
+    }
+
+    // ── Filter dropdowns ──────────────────────────────
+    const activeFilters = { role: '', seniority: '' };
+
+    function toggleFilter(btn) {
+      const menu = btn.nextElementSibling;
+      const wasOpen = menu.classList.contains('show');
+      // Close all menus first
+      document.querySelectorAll('.filter-menu').forEach(m => m.classList.remove('show'));
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('open'));
+      if (!wasOpen) {
+        menu.classList.add('show');
+        btn.classList.add('open');
+      }
+    }
+
+    function applyFilter(type, value, optBtn) {
+      activeFilters[type] = value;
+      // Update active state in menu
+      const menu = optBtn.closest('.filter-menu');
+      menu.querySelectorAll('.filter-option').forEach(o => o.classList.remove('active'));
+      optBtn.classList.add('active');
+      // Update button label
+      const filterBtn = menu.previousElementSibling;
+      const label = type.charAt(0).toUpperCase() + type.slice(1);
+      filterBtn.textContent = value ? value + ' \u25BE' : label + ' \u25BE';
+      filterBtn.classList.toggle('has-value', !!value);
+      // Close menu
+      menu.classList.remove('show');
+      filterBtn.classList.remove('open');
+      // Re-filter
+      filterDiffs();
+    }
+
+    function filterDiffs() {
+      const search = document.querySelector('#panel-diffs .filter-search').value.toLowerCase();
+      document.querySelectorAll('#diff-grid .diff-card').forEach(card => {
+        const role = card.dataset.role || '';
+        const seniority = card.dataset.seniority || '';
+        const text = card.textContent.toLowerCase();
+        const matchRole = !activeFilters.role || role === activeFilters.role;
+        const matchSeniority = !activeFilters.seniority || seniority === activeFilters.seniority;
+        const matchSearch = !search || text.includes(search);
+        card.style.display = (matchRole && matchSeniority && matchSearch) ? '' : 'none';
+      });
+    }
+
+    // Close filter menus on outside click
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.filter-dropdown')) {
+        document.querySelectorAll('.filter-menu').forEach(m => m.classList.remove('show'));
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('open'));
+      }
+    });
+
     // ── Convex config ──────────────────────────────────
     const CONVEX_URL = 'https://focused-mouse-723.eu-west-1.convex.cloud';
     const TOKEN_KEY = 'dexdiff-auth';
