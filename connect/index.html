@@ -222,6 +222,83 @@
       padding: 16px 0;
     }
 
+    /* ── FUNCTION PILLS ───────────────────────────── */
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .fn-pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: transparent;
+      border: 1px solid var(--border-default);
+      border-radius: 2px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: all 80ms ease;
+    }
+
+    .fn-pill:hover {
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+    }
+
+    .fn-pill.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--text-inverse);
+    }
+
+    /* ── SENIORITY RADIOS ────────────────────────── */
+
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .radio-opt {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .radio-opt input[type="radio"] {
+      accent-color: var(--accent);
+    }
+
+    /* ── HANDLE SUGGESTIONS ──────────────────────── */
+
+    .suggestion-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .suggestion-chip {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-border);
+      border-radius: 2px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: background 80ms ease;
+    }
+
+    .suggestion-chip:hover {
+      background: rgba(255, 56, 112, 0.15);
+    }
+
     /* ── HIDDEN SCREENS ──────────────────────────── */
 
     .screen { display: none; }
@@ -390,60 +467,110 @@
   </div>
 
   <!-- PROFILE COMPLETION VIEW -->
-  <div class="page screen" id="profile-view">
+  <!-- STEP 1: LinkedIn Import -->
+  <div class="page screen" id="step-linkedin">
     <div class="page-meta">heydex.ai</div>
-    <h1 class="page-title">Complete your profile</h1>
-    <p class="page-subtitle">Import from LinkedIn to pre-fill your details, or enter them manually.</p>
+    <h1 class="page-title">Let's get to know you.</h1>
 
-    <!-- LinkedIn enrichment -->
-    <div id="linkedin-section">
+    <div class="field" style="margin-top:24px;">
+      <label class="field-label">LinkedIn URL</label>
+      <div style="position:relative;">
+        <svg width="18" height="18" viewBox="0 0 18 18" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);flex-shrink:0;" fill="#0A66C2"><path d="M15.34 1H2.66A1.65 1.65 0 001 2.66v12.68A1.65 1.65 0 002.66 17h12.68A1.65 1.65 0 0017 15.34V2.66A1.65 1.65 0 0015.34 1zM5.8 14.5H3.56V7.2H5.8v7.3zM4.68 6.22a1.3 1.3 0 110-2.6 1.3 1.3 0 010 2.6zM14.5 14.5h-2.24v-3.55c0-.85-.01-1.93-1.18-1.93s-1.36.92-1.36 1.87v3.61H7.48V7.2h2.15v1h.03a2.36 2.36 0 012.13-1.17c2.27 0 2.69 1.5 2.69 3.44v4.03z"/></svg>
+        <input type="url" class="field-input" id="linkedin-url" placeholder="linkedin.com/in/yourprofile" style="padding-left:38px;">
+      </div>
+    </div>
+
+    <p style="font-family:var(--font-sans);font-size:13px;color:var(--text-secondary);margin:16px 0 24px;line-height:1.6;">Dex uses your profile to build initial context about your company, role, and industry. No data is stored on our servers.</p>
+
+    <button class="submit-btn" id="find-me-btn" onclick="handleFindMe()">Find me &nbsp;&#x1F50D;</button>
+
+    <div class="loading-text" id="linkedin-loading" style="display:none;">
+      <span class="loading-spinner"></span> Fetching profile data...
+    </div>
+
+    <div class="form-error" id="step1-error"></div>
+
+    <p style="font-family:var(--font-sans);font-size:13px;color:var(--text-tertiary);text-align:center;margin-top:24px;cursor:pointer;" onclick="showStep2({})">I'd rather fill this in myself</p>
+
+    <div class="page-footer"><a href="/privacy/">Privacy policy</a></div>
+  </div>
+
+  <!-- STEP 2: Profile Confirmation -->
+  <div class="page screen" id="step-confirm">
+    <div class="page-meta">heydex.ai</div>
+    <h1 class="page-title" id="step2-title">Here's what we found.</h1>
+    <p class="page-subtitle">Dex uses this to personalise your briefings, meeting prep, and intelligence. Edit anything that doesn't look right.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div class="field">
-        <label class="field-label">LinkedIn URL</label>
-        <input type="url" class="field-input" id="linkedin-url" placeholder="https://linkedin.com/in/yourprofile">
+        <label class="field-label">Name</label>
+        <input type="text" class="field-input" id="profile-name" placeholder="Your name" autocomplete="name">
       </div>
-      <button class="oauth-btn" id="linkedin-import-btn" onclick="handleLinkedInImport()" style="margin-bottom:24px;">
-        <svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0;" fill="#0A66C2"><path d="M15.34 1H2.66A1.65 1.65 0 001 2.66v12.68A1.65 1.65 0 002.66 17h12.68A1.65 1.65 0 0017 15.34V2.66A1.65 1.65 0 0015.34 1zM5.8 14.5H3.56V7.2H5.8v7.3zM4.68 6.22a1.3 1.3 0 110-2.6 1.3 1.3 0 010 2.6zM14.5 14.5h-2.24v-3.55c0-.85-.01-1.93-1.18-1.93s-1.36.92-1.36 1.87v3.61H7.48V7.2h2.15v1h.03a2.36 2.36 0 012.13-1.17c2.27 0 2.69 1.5 2.69 3.44v4.03z"/></svg>
-        Import from LinkedIn
-      </button>
-      <div class="loading-text" id="linkedin-loading" style="display:none;">
-        <span class="loading-spinner"></span> Fetching profile data...
+      <div class="field">
+        <label class="field-label">Seniority</label>
+        <div class="radio-group" id="seniority-group">
+          <label class="radio-opt"><input type="radio" name="seniority" value="Manager"> Manager</label>
+          <label class="radio-opt"><input type="radio" name="seniority" value="Director"> Director</label>
+          <label class="radio-opt"><input type="radio" name="seniority" value="VP"> VP</label>
+          <label class="radio-opt"><input type="radio" name="seniority" value="C-Suite"> C-Suite</label>
+          <label class="radio-opt"><input type="radio" name="seniority" value="Founder"> Founder</label>
+        </div>
       </div>
     </div>
 
-    <!-- Editable profile fields -->
     <div class="field">
-      <label class="field-label">Name</label>
-      <input type="text" class="field-input" id="profile-name" placeholder="Your name" autocomplete="name">
+      <label class="field-label">Title &amp; Company</label>
+      <input type="text" class="field-input" id="profile-title-company" placeholder="e.g., Product Manager at Acme Corp">
     </div>
+
     <div class="field">
-      <label class="field-label">Title</label>
-      <input type="text" class="field-input" id="profile-title" placeholder="e.g., Product Manager">
+      <label class="field-label">Function</label>
+      <div class="pill-group" id="function-group">
+        <button class="fn-pill" data-fn="Product">Product</button>
+        <button class="fn-pill" data-fn="Sales">Sales</button>
+        <button class="fn-pill" data-fn="CS">CS</button>
+        <button class="fn-pill" data-fn="Engineering">Eng</button>
+        <button class="fn-pill" data-fn="Marketing">Mktg</button>
+        <button class="fn-pill" data-fn="Design">Design</button>
+        <button class="fn-pill" data-fn="Founder">Founder</button>
+        <button class="fn-pill" data-fn="Other">Other</button>
+      </div>
     </div>
+
     <div class="field">
-      <label class="field-label">Company</label>
-      <input type="text" class="field-input" id="profile-company" placeholder="e.g., Acme Corp">
+      <label class="field-label">Summary</label>
+      <textarea class="field-input" id="profile-summary" rows="4" placeholder="A brief summary of what you do..." style="resize:vertical;font-family:var(--font-sans);"></textarea>
     </div>
-    <div class="field">
-      <label class="field-label">Seniority</label>
-      <input type="text" class="field-input" id="profile-seniority" placeholder="e.g., Senior, Director, VP">
-    </div>
-    <div class="field">
+
+    <button class="submit-btn" onclick="handleLooksGood()">Looks good</button>
+    <div class="form-error" id="step2-error"></div>
+  </div>
+
+  <!-- STEP 3: Choose Handle -->
+  <div class="page screen" id="step-handle">
+    <div class="page-meta">heydex.ai</div>
+    <h1 class="page-title">Claim your handle.</h1>
+    <p class="page-subtitle">Your handle is your identity on DexDiff &mdash; it's how colleagues and the community find your workflows. When you share how you use AI, they'll find you at heydex.ai/@yourhandle</p>
+
+    <div class="field" style="margin-top:24px;">
       <label class="field-label">Handle</label>
-      <input type="text" class="field-input" id="profile-handle" placeholder="yourhandle (used in @handle/diff-id)">
+      <div style="position:relative;">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:14px;color:var(--text-tertiary);">@</span>
+        <input type="text" class="field-input" id="profile-handle" placeholder="yourhandle" style="padding-left:28px;" oninput="onHandleInput(this.value)">
+      </div>
+      <div id="handle-status" style="font-family:var(--font-mono);font-size:12px;margin-top:6px;min-height:18px;"></div>
+      <div id="handle-suggestions" style="display:none;margin-top:8px;"></div>
     </div>
 
-    <!-- Marketing consent -->
-    <div class="checkbox-field">
+    <div class="checkbox-field" style="margin-top:20px;">
       <input type="checkbox" id="marketing-consent">
       <label for="marketing-consent">Keep me posted on Dex updates and new features</label>
     </div>
 
-    <button class="submit-btn" id="profile-submit-btn" onclick="handleProfileSubmit()">Create account</button>
-    <div class="form-error" id="profile-error"></div>
+    <button class="submit-btn" id="create-account-btn" onclick="handleCreateAccount()">Create account</button>
+    <div class="form-error" id="step3-error"></div>
 
-    <div class="page-footer">
-      <a href="/privacy/">Privacy policy</a>
-    </div>
+    <div class="page-footer"><a href="/privacy/">Privacy policy</a></div>
   </div>
 
   <!-- CONNECTION CODE -->
@@ -682,21 +809,34 @@
     }
 
     // ── Show profile completion view ──────────────
+    // ── Profile data collected across steps ─────────
+    let profileData = {};
+    let selectedFunction = null;
+
     function showProfileView() {
       document.getElementById('auth-view').style.display = 'none';
-      document.getElementById('profile-view').classList.add('active');
-      applyConsentDefault();
+      showStep1();
     }
 
-    // ── LinkedIn enrichment ───────────────────────
-    async function handleLinkedInImport() {
+    // ── Step 1: LinkedIn Import ───────────────────
+    function showStep1() {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('step-linkedin').classList.add('active');
+    }
+
+    async function handleFindMe() {
       const urlInput = document.getElementById('linkedin-url');
-      const linkedinUrl = urlInput.value.trim();
-      const btn = document.getElementById('linkedin-import-btn');
+      let linkedinUrl = urlInput.value.trim();
+      const btn = document.getElementById('find-me-btn');
       const loading = document.getElementById('linkedin-loading');
-      const errorEl = document.getElementById('profile-error');
+      const errorEl = document.getElementById('step1-error');
 
       errorEl.textContent = '';
+
+      // Auto-prefix https if missing
+      if (linkedinUrl && !linkedinUrl.startsWith('http')) {
+        linkedinUrl = 'https://' + linkedinUrl;
+      }
 
       if (!linkedinUrl || !linkedinUrl.includes('linkedin.com/in/')) {
         errorEl.textContent = 'Please enter a valid LinkedIn profile URL';
@@ -708,12 +848,8 @@
 
       try {
         const enriched = await callAction("enrichment:enrichProfile", { linkedinUrl });
-
-        // Pre-fill editable fields with enriched data
-        if (enriched.name) document.getElementById('profile-name').value = enriched.name;
-        if (enriched.title) document.getElementById('profile-title').value = enriched.title;
-        if (enriched.company) document.getElementById('profile-company').value = enriched.company;
-        if (enriched.seniority) document.getElementById('profile-seniority').value = enriched.seniority;
+        profileData = { ...enriched, linkedinUrl };
+        showStep2(enriched);
       } catch (err) {
         errorEl.textContent = err.message || 'Failed to import LinkedIn profile';
       } finally {
@@ -722,17 +858,52 @@
       }
     }
 
-    // ── Profile submission (new user registration) ─
-    async function handleProfileSubmit() {
-      const name = document.getElementById('profile-name').value.trim();
-      const title = document.getElementById('profile-title').value.trim();
-      const company = document.getElementById('profile-company').value.trim();
-      const seniority = document.getElementById('profile-seniority').value.trim();
-      const handle = document.getElementById('profile-handle').value.trim().toLowerCase();
-      const marketingConsent = document.getElementById('marketing-consent').checked;
-      const errorEl = document.getElementById('profile-error');
-      const btn = document.getElementById('profile-submit-btn');
+    // ── Step 2: Profile Confirmation ──────────────
+    function showStep2(data) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('step-confirm').classList.add('active');
 
+      // Update title based on whether we have enrichment data
+      const hasData = data && (data.name || data.title);
+      document.getElementById('step2-title').textContent = hasData ? "Here's what we found." : "Complete your profile.";
+
+      // Pre-fill fields
+      if (data.name) document.getElementById('profile-name').value = data.name;
+
+      const titleCompany = [data.title, data.company].filter(Boolean).join(' at ');
+      if (titleCompany) document.getElementById('profile-title-company').value = titleCompany;
+
+      if (data.summary) document.getElementById('profile-summary').value = data.summary;
+
+      // Pre-select seniority radio
+      if (data.seniority) {
+        const radios = document.querySelectorAll('input[name="seniority"]');
+        radios.forEach(r => {
+          if (r.value.toLowerCase() === data.seniority.toLowerCase()) r.checked = true;
+        });
+      }
+
+      // Pre-select function pill
+      if (data.function_) {
+        selectFunction(data.function_);
+      }
+
+      // Wire up function pill clicks
+      document.querySelectorAll('.fn-pill').forEach(pill => {
+        pill.addEventListener('click', () => selectFunction(pill.dataset.fn));
+      });
+    }
+
+    function selectFunction(fn) {
+      selectedFunction = fn;
+      document.querySelectorAll('.fn-pill').forEach(p => {
+        p.classList.toggle('selected', p.dataset.fn === fn);
+      });
+    }
+
+    function handleLooksGood() {
+      const name = document.getElementById('profile-name').value.trim();
+      const errorEl = document.getElementById('step2-error');
       errorEl.textContent = '';
 
       if (!name) {
@@ -740,7 +911,133 @@
         return;
       }
 
-      if (handle && !/^[a-z0-9-]+$/.test(handle)) {
+      // Parse title & company
+      const titleCompany = document.getElementById('profile-title-company').value.trim();
+      let title = '', company = '';
+      if (titleCompany.includes(' at ')) {
+        const parts = titleCompany.split(' at ');
+        title = parts[0].trim();
+        company = parts.slice(1).join(' at ').trim();
+      } else {
+        title = titleCompany;
+      }
+
+      const seniorityRadio = document.querySelector('input[name="seniority"]:checked');
+      const summary = document.getElementById('profile-summary').value.trim();
+
+      profileData = {
+        ...profileData,
+        name,
+        title,
+        company,
+        seniority: seniorityRadio ? seniorityRadio.value : '',
+        function_: selectedFunction || '',
+        summary,
+      };
+
+      showStep3();
+    }
+
+    // ── Step 3: Choose Handle ─────────────────────
+    let handleCheckTimeout = null;
+
+    function showStep3() {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('step-handle').classList.add('active');
+      applyConsentDefault();
+
+      // Auto-suggest a handle from name
+      if (profileData.name) {
+        const suggested = profileData.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        document.getElementById('profile-handle').value = suggested;
+        onHandleInput(suggested);
+      }
+    }
+
+    function onHandleInput(value) {
+      const handle = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+      document.getElementById('profile-handle').value = handle;
+
+      const statusEl = document.getElementById('handle-status');
+      const suggestEl = document.getElementById('handle-suggestions');
+
+      if (!handle || handle.length < 2) {
+        statusEl.textContent = '';
+        suggestEl.style.display = 'none';
+        return;
+      }
+
+      statusEl.innerHTML = '<span style="color:var(--text-tertiary);">Checking...</span>';
+
+      clearTimeout(handleCheckTimeout);
+      handleCheckTimeout = setTimeout(async () => {
+        try {
+          const result = await callQuery("users:checkHandle", { handle });
+          if (result.available) {
+            statusEl.innerHTML = '<span style="color:#22c55e;">&#10003; Available</span>';
+            suggestEl.style.display = 'none';
+          } else {
+            statusEl.innerHTML = '<span style="color:#ef4444;">Already taken</span>';
+            showHandleSuggestions(profileData.name || handle);
+          }
+        } catch (err) {
+          statusEl.innerHTML = '<span style="color:var(--text-tertiary);">Could not check</span>';
+        }
+      }, 400);
+    }
+
+    async function showHandleSuggestions(name) {
+      const suggestEl = document.getElementById('handle-suggestions');
+      const parts = name.toLowerCase().replace(/[^a-z ]/g, '').split(' ').filter(Boolean);
+      if (parts.length < 1) return;
+
+      const first = parts[0];
+      const last = parts[parts.length - 1] || '';
+      const candidates = [
+        first + last,
+        first + '-' + last,
+        first[0] + last,
+        first + '-' + (last[0] || ''),
+        last,
+      ].filter((v, i, a) => v && v.length >= 2 && a.indexOf(v) === i);
+
+      const available = [];
+      for (const c of candidates) {
+        if (available.length >= 3) break;
+        try {
+          const r = await callQuery("users:checkHandle", { handle: c });
+          if (r.available) available.push(c);
+        } catch {}
+      }
+
+      if (available.length > 0) {
+        suggestEl.innerHTML = '<span style="font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);margin-bottom:4px;display:block;">Try one of these:</span><div class="suggestion-chips">' +
+          available.map(h => `<span class="suggestion-chip" onclick="pickHandle('${h}')">${h}</span>`).join('') +
+          '</div>';
+        suggestEl.style.display = 'block';
+      }
+    }
+
+    function pickHandle(handle) {
+      document.getElementById('profile-handle').value = handle;
+      onHandleInput(handle);
+    }
+
+    // ── Create Account (final step) ──────────────
+    async function handleCreateAccount() {
+      const handle = document.getElementById('profile-handle').value.trim().toLowerCase();
+      const marketingConsent = document.getElementById('marketing-consent').checked;
+      const errorEl = document.getElementById('step3-error');
+      const btn = document.getElementById('create-account-btn');
+
+      errorEl.textContent = '';
+
+      if (!handle || handle.length < 2) {
+        errorEl.textContent = 'Please choose a handle';
+        return;
+      }
+
+      if (!/^[a-z0-9-]+$/.test(handle)) {
         errorEl.textContent = 'Handle must be lowercase letters, numbers, and hyphens only';
         return;
       }
@@ -750,13 +1047,16 @@
 
       try {
         const registerArgs = {
-          displayName: name,
-          marketingOptOut: !marketingConsent
+          displayName: profileData.name || '',
+          handle,
+          marketingOptOut: !marketingConsent,
         };
-        if (handle) registerArgs.handle = handle;
-        if (title) registerArgs.role = title;
-        if (company) registerArgs.company = company;
-        if (seniority) registerArgs.seniority = seniority;
+        if (profileData.title) registerArgs.role = profileData.title;
+        if (profileData.company) registerArgs.company = profileData.company;
+        if (profileData.seniority) registerArgs.seniority = profileData.seniority;
+        if (profileData.function_) registerArgs.function_ = profileData.function_;
+        if (profileData.summary) registerArgs.summary = profileData.summary;
+        if (profileData.linkedinUrl) registerArgs.linkedinUrl = profileData.linkedinUrl;
 
         await callMutation("users:register", registerArgs);
 
