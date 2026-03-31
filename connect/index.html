@@ -256,9 +256,9 @@
     /* ── SENIORITY RADIOS ────────────────────────── */
 
     .radio-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
     }
 
     .radio-opt {
@@ -269,6 +269,10 @@
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+
+    .radio-opt.full-width {
+      grid-column: 1 / -1;
     }
 
     .radio-opt input[type="radio"] {
@@ -292,6 +296,8 @@
     .confirm-right {
       display: flex;
       flex-direction: column;
+      border-left: 2px solid var(--accent);
+      padding-left: 20px;
     }
 
     .summary-accent textarea {
@@ -570,7 +576,7 @@
               <label class="radio-opt"><input type="radio" name="seniority" value="Director"> Director</label>
               <label class="radio-opt"><input type="radio" name="seniority" value="VP"> VP</label>
               <label class="radio-opt"><input type="radio" name="seniority" value="C-Suite"> C-Suite</label>
-              <label class="radio-opt"><input type="radio" name="seniority" value="Founder"> Founder</label>
+              <label class="radio-opt full-width"><input type="radio" name="seniority" value="Founder"> Founder</label>
             </div>
           </div>
 
@@ -935,9 +941,11 @@
     }
 
     function selectFunction(fn) {
-      selectedFunction = fn;
+      const fnLower = fn ? fn.toLowerCase() : null;
       document.querySelectorAll('.fn-pill').forEach(p => {
-        p.classList.toggle('selected', p.dataset.fn === fn);
+        const matches = p.dataset.fn.toLowerCase() === fnLower;
+        p.classList.toggle('selected', matches);
+        if (matches) selectedFunction = p.dataset.fn;
       });
     }
 
