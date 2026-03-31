@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — heydex.ai</title>
+  <style>
+    @font-face {
+      font-family: 'Geist';
+      src: url('https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/Geist-Variable.woff2') format('woff2');
+      font-weight: 100 900;
+      font-display: swap;
+    }
+
+    :root {
+      --bg-base: #0a0a0a;
+      --bg-surface: #111111;
+      --border-default: #222222;
+      --text-primary: #f0f0f0;
+      --text-secondary: #888888;
+      --text-tertiary: #555555;
+      --accent: #FF3870;
+      --font-sans: 'Geist', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border-default);
+      padding: 20px 0;
+    }
+
+    header .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header a {
+      color: var(--text-primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    header a:hover {
+      color: var(--accent);
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    main {
+      padding: 64px 0 96px;
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .last-updated {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-top: 48px;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    ul {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    strong {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .section {
+      border-bottom: 1px solid var(--border-default);
+      padding-bottom: 32px;
+    }
+
+    .section:last-child {
+      border-bottom: none;
+    }
+
+    footer {
+      border-top: 1px solid var(--border-default);
+      padding: 32px 0;
+      text-align: center;
+    }
+
+    footer a {
+      color: var(--text-tertiary);
+      font-size: 14px;
+    }
+
+    footer a:hover {
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <a href="https://heydex.ai">heydex.ai</a>
+    <span style="color: var(--text-tertiary); font-size: 14px;">Privacy Policy</span>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <p class="last-updated">Last updated: March 2026</p>
+
+    <div class="section">
+      <h2>Who We Are</h2>
+      <p>
+        heydex.ai ("Dex") is operated by Dave Killeen, based in the European Union.
+        For any privacy-related questions, you can reach us at
+        <a href="mailto:dave@heydex.ai">dave@heydex.ai</a>.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>What We Collect</h2>
+      <p>We collect the following information when you use Dex:</p>
+      <ul>
+        <li><strong>OAuth profile data</strong> — your name, email address, and profile photo, provided by your identity provider (Google, Microsoft, or Apple) when you sign in.</li>
+        <li><strong>LinkedIn data</strong> — job title, company, industry, seniority level, and professional summary, only when you voluntarily provide or authorise access to this information.</li>
+        <li><strong>Email domain</strong> — extracted from your verified email address and used for automatic company grouping.</li>
+        <li><strong>Usage data</strong> — the diffs you publish or adopt, adoption status, and related activity within the platform.</li>
+        <li><strong>Marketing preference</strong> — your opt-in or opt-out choice for marketing communications.</li>
+        <li><strong>Registration source</strong> — how you arrived at Dex (e.g. referral, direct, CLI).</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>Why We Process Your Data</h2>
+      <ul>
+        <li><strong>Service provision (contractual basis)</strong> — to operate your account, store your diffs, and deliver the core Dex service.</li>
+        <li><strong>Company grouping (legitimate interest)</strong> — to organise users by verified work email domain so teams at the same company can discover shared methodologies.</li>
+        <li><strong>Marketing (consent)</strong> — to send product updates and relevant communications. For users in the EU, marketing is strictly opt-in.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>Our Processors</h2>
+      <p>We use the following third-party services to operate Dex:</p>
+      <ul>
+        <li><strong>Convex</strong> — database and backend infrastructure, hosted in EU West 1.</li>
+        <li><strong>Exa AI</strong> — LinkedIn profile enrichment, used only when you provide LinkedIn data.</li>
+        <li><strong>Google, Microsoft, Apple</strong> — OAuth identity providers for sign-in.</li>
+      </ul>
+      <p>We do not sell your data to anyone.</p>
+    </div>
+
+    <div class="section">
+      <h2>Data Retention</h2>
+      <p>
+        We retain your data for as long as your account is active. When you delete your account,
+        all associated data is permanently deleted — including your profile, published diffs,
+        adoption records, and any company grouping information.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>Your Rights (GDPR Articles 15-22)</h2>
+      <p>If you are in the EU or EEA, you have the right to:</p>
+      <ul>
+        <li><strong>Access</strong> — request a copy of the personal data we hold about you.</li>
+        <li><strong>Rectification</strong> — correct any inaccurate or incomplete data.</li>
+        <li><strong>Erasure</strong> — request deletion of your personal data.</li>
+        <li><strong>Portability</strong> — receive your data in a structured, machine-readable format.</li>
+        <li><strong>Restriction</strong> — request that we limit how we process your data.</li>
+        <li><strong>Withdraw consent</strong> — withdraw any consent you have given at any time.</li>
+        <li><strong>Lodge a complaint</strong> — file a complaint with your local supervisory authority.</li>
+      </ul>
+      <p>To exercise any of these rights, contact us at <a href="mailto:dave@heydex.ai">dave@heydex.ai</a>.</p>
+    </div>
+
+    <div class="section">
+      <h2>Local Storage</h2>
+      <p>
+        We store only an authentication token and your consent preference in your browser's local storage.
+        We do not use tracking cookies or any third-party analytics cookies.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>International Transfers</h2>
+      <p>
+        Dex is hosted in the European Union (Convex EU West 1). Exa AI may process data
+        outside the EU under standard contractual clauses. OAuth providers (Google, Microsoft, Apple)
+        operate globally and are subject to their own privacy policies and transfer mechanisms.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>Changes to This Policy</h2>
+      <p>
+        If we make material changes to this privacy policy, we will notify registered users by email.
+        We encourage you to review this page periodically.
+      </p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <a href="https://heydex.ai">&larr; Back to heydex.ai</a>
+  </div>
+</footer>
+
+</body>
+</html>
