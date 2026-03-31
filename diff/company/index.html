@@ -36,7 +36,7 @@
       --border-strong: #333333;
       --text-primary: #f0f0f0;
       --text-secondary: #888888;
-      --text-tertiary: #555555;
+      --text-tertiary: #777777;
       --text-inverse: #0a0a0a;
       --accent: #FF3870;
       --accent-dim: #992244;
@@ -78,14 +78,14 @@
     .top-nav-brand {
       font-family: var(--font-mono);
       font-size: 13px;
-      color: var(--text-tertiary);
+      color: #aaaaaa;
       text-decoration: none;
       letter-spacing: 0.02em;
       transition: color 80ms ease;
     }
 
     .top-nav-brand:hover {
-      color: var(--text-secondary);
+      color: var(--text-primary);
     }
 
     .top-nav-links {
@@ -97,7 +97,7 @@
     .top-nav-link {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: #aaaaaa;
       text-decoration: none;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -106,7 +106,7 @@
     }
 
     .top-nav-link:hover {
-      color: var(--text-secondary);
+      color: var(--text-primary);
     }
 
     .top-nav-link.active {
@@ -152,7 +152,7 @@
     .hero-note {
       font-family: var(--font-sans);
       font-size: 13px;
-      color: var(--text-tertiary);
+      color: #777777;
       margin-bottom: 28px;
     }
 
@@ -195,7 +195,7 @@
     .preview-tab {
       font-family: var(--font-mono);
       font-size: 12px;
-      color: var(--text-tertiary);
+      color: #888888;
       letter-spacing: 0.04em;
       padding-bottom: 8px;
     }
@@ -300,6 +300,42 @@
 
     /* ── RESPONSIVE ────────────────────────────────── */
 
+    /* ── FOOTER ────────────────────────────────────── */
+
+    .site-footer {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 24px 48px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer-link {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color 80ms ease;
+    }
+
+    .site-footer-link:hover { color: var(--text-secondary); }
+
+    .site-footer-note {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
     @media (max-width: 640px) {
       #content {
         padding: 32px 16px 64px;
@@ -348,15 +384,16 @@
 </head>
 <body>
 
-  <div id="content">
+  <main id="content">
 
     <!-- TOP NAV -->
-    <nav class="top-nav">
+    <nav class="top-nav" aria-label="Main navigation">
       <a href="/diff/" class="top-nav-brand">&#9670; dexdiff</a>
       <div class="top-nav-links">
         <a href="/diff/community/" class="top-nav-link">Community</a>
         <a href="/diff/company/" class="top-nav-link active">Your Company</a>
         <a href="/diff/love-letters/" class="top-nav-link">Love Letters</a>
+        <a href="/connect/" style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #0a0a0a; background: #FF3870; border: none; padding: 6px 14px; border-radius: 2px; text-decoration: none; font-weight: 500;">Get Dexed Up</a>
       </div>
     </nav>
 
@@ -366,7 +403,7 @@
       <h1 class="hero-headline">See how your team uses Dex.</h1>
       <p class="hero-description">Which workflows your colleagues have built. What tools they've connected. How they're using AI to work smarter. Learn from each other and grow together.</p>
       <p class="hero-note">Free for the first 5 people at your company.</p>
-      <button class="hero-cta" onclick="window.location.href='mailto:?subject=Sign in to DexDiff'">Sign in with work email</button>
+      <button class="hero-cta" onclick="window.location.href='/connect/'">Sign in with work email</button>
     </section>
 
     <!-- BLURRED PREVIEW -->
@@ -412,10 +449,20 @@
       <div class="teams-label">For teams and leadership</div>
       <h2 class="teams-headline">Understand how Dex is used across your organisation.</h2>
       <p class="teams-description">Which tools are connected. What jobs people are solving. Pre-configured integrations and packages your team can share. Org-wide context that makes every Dex instance smarter.</p>
-      <a href="#" class="teams-cta">Learn about Dex for Teams &rarr;</a>
+      <a href="/connect/" class="teams-cta">Learn about Dex for Teams &rarr;</a>
     </div>
 
-  </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-links">
+      <a href="https://heydex.ai" class="site-footer-link">Get Dex</a>
+      <a href="/diff/community/" class="site-footer-link">Community</a>
+      <a href="https://github.com/davekilleen/dex" class="site-footer-link">GitHub</a>
+      <a href="/privacy/" class="site-footer-link">Privacy</a>
+    </div>
+    <div class="site-footer-note">Your data never leaves your machine</div>
+  </footer>
 
   <!-- Convex config -->
   <script>

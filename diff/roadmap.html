@@ -34,7 +34,7 @@
       --border-default: #222222;
       --text-primary: #f0f0f0;
       --text-secondary: #888888;
-      --text-tertiary: #555555;
+      --text-tertiary: #777777;
       --accent: #FF3870;
       --accent-dim: #992244;
       --accent-bg: #1f0f15;
@@ -205,6 +205,61 @@
       color: var(--text-tertiary);
     }
 
+    /* ── TOP NAV ───────────────────────────────────── */
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px 24px 0;
+      margin-bottom: 0;
+    }
+
+    .top-nav-brand {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #aaaaaa;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: color 80ms ease;
+    }
+
+    .top-nav-brand:hover { color: var(--text-primary); }
+
+    .top-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .top-nav-link {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #aaaaaa;
+      text-decoration: none;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: color 80ms ease;
+    }
+
+    .top-nav-link:hover { color: var(--text-primary); }
+
+    .top-nav-cta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #0a0a0a;
+      background: #FF3870;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 2px;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
     @media (max-width: 480px) {
       .page { padding: 32px 16px 64px; }
       .page-title { font-size: 18px; }
@@ -213,9 +268,19 @@
 </head>
 <body>
 
-  <div class="page">
+  <nav class="top-nav" aria-label="Main navigation">
+    <a href="/diff/" class="top-nav-brand">&#9670; dexdiff</a>
+    <div class="top-nav-links">
+      <a href="/diff/community/" class="top-nav-link">Community</a>
+      <a href="/diff/company/" class="top-nav-link">Your Company</a>
+      <a href="/diff/love-letters/" class="top-nav-link">Love Letters</a>
+      <a href="/connect/" class="top-nav-cta">Get Dexed Up</a>
+    </div>
+  </nav>
 
-    <a href="index.html" class="back-link">&larr; Back to Dave's profile</a>
+  <main class="page">
+
+    <a href="/diff/@dave/" class="back-link">&larr; Back to Dave's profile</a>
 
     <div class="page-meta">DexDiff / Roadmap</div>
     <h1 class="page-title">What's Next for DexDiff</h1>
@@ -285,14 +350,16 @@
 
     <footer class="footer">
       <div class="footer-links">
-        <a href="index.html" class="footer-link">Dave's profile</a>
+        <a href="/diff/@dave/" class="footer-link">Dave's profile</a>
         <a href="https://heydex.ai" class="footer-link">Get Dex</a>
+        <a href="/diff/community/" class="footer-link">Community</a>
         <a href="https://github.com/davekilleen/dex" class="footer-link">GitHub</a>
+        <a href="/privacy/" class="footer-link">Privacy</a>
       </div>
-      <div class="footer-note">DexDiff Beta &mdash; invite only</div>
+      <div class="footer-note">Your data never leaves your machine</div>
     </footer>
 
-  </div>
+  </main>
 
 </body>
 </html>

@@ -37,7 +37,7 @@
       --border-strong: #333333;
       --text-primary: #f0f0f0;
       --text-secondary: #888888;
-      --text-tertiary: #555555;
+      --text-tertiary: #777777;
       --text-inverse: #0a0a0a;
       --accent: #FF3870;
       --accent-dim: #992244;
@@ -73,25 +73,56 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 24px;
+      margin-bottom: 48px;
     }
 
-    .top-nav-left {
+    .top-nav-brand {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #aaaaaa;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: color 80ms ease;
+    }
+
+    .top-nav-brand:hover {
+      color: var(--text-primary);
+    }
+
+    .top-nav-links {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 24px;
     }
 
     .top-nav-link {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: #aaaaaa;
       text-decoration: none;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       transition: color 80ms ease;
+      padding-bottom: 4px;
     }
 
     .top-nav-link:hover {
-      color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .top-nav-cta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #0a0a0a;
+      background: #FF3870;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 2px;
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
     }
 
     .auth-indicator {
@@ -325,10 +356,22 @@
       padding: 12px 16px;
       cursor: pointer;
       user-select: none;
+      /* button reset */
+      width: 100%;
+      background: none;
+      border: none;
+      font: inherit;
+      color: inherit;
+      text-align: left;
     }
 
     .diff-header:hover {
       background: var(--bg-hover);
+    }
+
+    .diff-header:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
     }
 
     .diff-expand {
@@ -732,19 +775,20 @@
 </head>
 <body>
 
-  <!-- MAIN CONTENT -->
-  <div id="content">
+  <!-- TOP NAV -->
+  <nav class="top-nav" aria-label="Main navigation">
+    <a href="/diff/" class="top-nav-brand">&#9670; dexdiff</a>
+    <div class="top-nav-links">
+      <a href="/diff/community/" class="top-nav-link">Community</a>
+      <a href="/diff/company/" class="top-nav-link">Your Company</a>
+      <a href="/diff/love-letters/" class="top-nav-link">Love Letters</a>
+      <div class="auth-indicator" id="auth-indicator"></div>
+      <a href="/connect/" class="top-nav-cta">Get Dexed Up</a>
+    </div>
+  </nav>
 
-    <!-- TOP NAV -->
-    <nav class="top-nav">
-      <div class="top-nav-left">
-        <span class="profile-meta">DexDiff / Profile</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:16px;">
-        <div class="auth-indicator" id="auth-indicator"></div>
-        <a href="roadmap.html" class="top-nav-link">What's next for DexDiff &rarr;</a>
-      </div>
-    </nav>
+  <!-- MAIN CONTENT -->
+  <main id="content">
 
     <!-- PROFILE HEADER -->
     <header class="profile-header">
@@ -778,12 +822,12 @@
 
       <!-- 1. Meeting Intelligence -->
       <div class="diff-card open" data-diff="meeting-intelligence">
-        <div class="diff-header" onclick="toggleDiff(this)">
-          <span class="diff-expand">&#9656;</span>
+        <button class="diff-header" onclick="toggleDiff(this)" aria-expanded="true" aria-controls="diff-body-meeting-intelligence">
+          <span class="diff-expand" aria-hidden="true">&#9656;</span>
           <span class="diff-title">Meeting Intelligence</span>
           <span class="diff-tagline">recordings &rarr; compounding intel</span>
-        </div>
-        <div class="diff-body">
+        </button>
+        <div class="diff-body" id="diff-body-meeting-intelligence">
           <div class="diff-body-inner">
             <div class="diff-section-label">Problem</div>
             <p class="diff-problem">You finish a call, scribble some notes, and move on. A week later you can't remember what was agreed. Every meeting generates context that could make your next meeting better &mdash; but it sits in a recording nobody will re-listen to.</p>
@@ -810,12 +854,12 @@
 
       <!-- 2. Deal Intelligence -->
       <div class="diff-card open" data-diff="deal-intelligence">
-        <div class="diff-header" onclick="toggleDiff(this)">
-          <span class="diff-expand">&#9656;</span>
+        <button class="diff-header" onclick="toggleDiff(this)" aria-expanded="true" aria-controls="diff-body-deal-intelligence">
+          <span class="diff-expand" aria-hidden="true">&#9656;</span>
           <span class="diff-title">Deal Intelligence</span>
           <span class="diff-tagline">portfolio health + coaching</span>
-        </div>
-        <div class="diff-body">
+        </button>
+        <div class="diff-body" id="diff-body-deal-intelligence">
           <div class="diff-body-inner">
             <div class="diff-section-label">Problem</div>
             <p class="diff-problem">You're across 30 deals. You can't hold the status of each one in your head. By the time you realise a champion has gone quiet, it's been three weeks. You find out about competitive threats during forecast reviews &mdash; not when they first appear in a transcript.</p>
@@ -841,12 +885,12 @@
 
       <!-- 3. Relationship Compounding -->
       <div class="diff-card open" data-diff="relationship-compounding">
-        <div class="diff-header" onclick="toggleDiff(this)">
-          <span class="diff-expand">&#9656;</span>
+        <button class="diff-header" onclick="toggleDiff(this)" aria-expanded="true" aria-controls="diff-body-relationship-compounding">
+          <span class="diff-expand" aria-hidden="true">&#9656;</span>
           <span class="diff-title">Relationship Compounding</span>
           <span class="diff-tagline">every interaction &rarr; smarter next one</span>
-        </div>
-        <div class="diff-body">
+        </button>
+        <div class="diff-body" id="diff-body-relationship-compounding">
           <div class="diff-body-inner">
             <div class="diff-section-label">Problem</div>
             <p class="diff-problem">You meet someone at a conference, have a great conversation, and three months later can't remember what you discussed. Every relationship starts from scratch because nothing connects.</p>
@@ -872,12 +916,12 @@
 
       <!-- 4. Weekly Operating Rhythm -->
       <div class="diff-card open" data-diff="weekly-rhythm">
-        <div class="diff-header" onclick="toggleDiff(this)">
-          <span class="diff-expand">&#9656;</span>
+        <button class="diff-header" onclick="toggleDiff(this)" aria-expanded="true" aria-controls="diff-body-weekly-rhythm">
+          <span class="diff-expand" aria-hidden="true">&#9656;</span>
           <span class="diff-title">Weekly Operating Rhythm</span>
           <span class="diff-tagline">clarity Mon &rarr; evidence Fri</span>
-        </div>
-        <div class="diff-body">
+        </button>
+        <div class="diff-body" id="diff-body-weekly-rhythm">
           <div class="diff-body-inner">
             <div class="diff-section-label">Problem</div>
             <p class="diff-problem">Monday morning: you react to whatever's in front of you. Friday evening: someone asks what you shipped and you can't articulate it. Your quarterly goals exist in a document you haven't looked at in three weeks.</p>
@@ -904,12 +948,12 @@
 
       <!-- 5. Accountability & Cracks Detection -->
       <div class="diff-card open" data-diff="accountability">
-        <div class="diff-header" onclick="toggleDiff(this)">
-          <span class="diff-expand">&#9656;</span>
+        <button class="diff-header" onclick="toggleDiff(this)" aria-expanded="true" aria-controls="diff-body-accountability">
+          <span class="diff-expand" aria-hidden="true">&#9656;</span>
           <span class="diff-title">Accountability &amp; Cracks Detection</span>
           <span class="diff-tagline">nothing falls through</span>
-        </div>
-        <div class="diff-body">
+        </button>
+        <div class="diff-body" id="diff-body-accountability">
           <div class="diff-body-inner">
             <div class="diff-section-label">Problem</div>
             <p class="diff-problem">You promised someone you'd send something by Thursday. It's now the following Tuesday and you've forgotten. A project has quietly stalled. Performance review season arrives and you spend 3 hours reconstructing your impact from memory.</p>
@@ -934,12 +978,12 @@
 
       <!-- 6. Thought Leadership Pipeline -->
       <div class="diff-card open" data-diff="thought-leadership">
-        <div class="diff-header" onclick="toggleDiff(this)">
-          <span class="diff-expand">&#9656;</span>
+        <button class="diff-header" onclick="toggleDiff(this)" aria-expanded="true" aria-controls="diff-body-thought-leadership">
+          <span class="diff-expand" aria-hidden="true">&#9656;</span>
           <span class="diff-title">Thought Leadership Pipeline</span>
           <span class="diff-tagline">expertise &rarr; published content</span>
-        </div>
-        <div class="diff-body">
+        </button>
+        <div class="diff-body" id="diff-body-thought-leadership">
           <div class="diff-body-inner">
             <div class="diff-section-label">Problem</div>
             <p class="diff-problem">You have strong opinions and give great talks. But between having the thought and publishing it, there's a 4-hour gap. Most ideas die in your head. Meanwhile, you're not tracking competitors systematically.</p>
@@ -965,12 +1009,12 @@
 
       <!-- 7. Self-Improving System -->
       <div class="diff-card open" data-diff="self-improving-system">
-        <div class="diff-header" onclick="toggleDiff(this)">
-          <span class="diff-expand">&#9656;</span>
+        <button class="diff-header" onclick="toggleDiff(this)" aria-expanded="true" aria-controls="diff-body-self-improving-system">
+          <span class="diff-expand" aria-hidden="true">&#9656;</span>
           <span class="diff-title">Self-Improving System</span>
           <span class="diff-tagline">every session &rarr; smarter next one</span>
-        </div>
-        <div class="diff-body">
+        </button>
+        <div class="diff-body" id="diff-body-self-improving-system">
           <div class="diff-body-inner">
             <div class="diff-section-label">Problem</div>
             <p class="diff-problem">You correct your AI. Next session, it makes the same mistake. Over time, you repeat the same instructions hundreds of times. Your AI never learns your preferences and never gets better at working with you specifically.</p>
@@ -1008,17 +1052,18 @@
       </ul>
     </div>
 
-    <!-- FOOTER -->
-    <footer class="footer">
-      <div class="footer-links">
-        <a href="https://heydex.ai" class="footer-link">Get Dex</a>
-        <a href="https://github.com/davekilleen/dex" class="footer-link">GitHub</a>
-        <a href="roadmap.html" class="footer-link">What's next</a>
-      </div>
-      <div class="footer-note">DexDiff Beta</div>
-    </footer>
+  </main><!-- /content -->
 
-  </div><!-- /content -->
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="https://heydex.ai" class="footer-link">Get Dex</a>
+      <a href="/diff/community/" class="footer-link">Community</a>
+      <a href="https://github.com/davekilleen/dex" class="footer-link">GitHub</a>
+      <a href="/privacy/" class="footer-link">Privacy</a>
+    </div>
+    <div class="footer-note">Your data never leaves your machine</div>
+  </footer>
 
   <!-- TOAST -->
   <div class="toast" id="toast">Copied to clipboard</div>
@@ -1241,6 +1286,7 @@
       const card = header.closest('.diff-card');
       const wasOpen = card.classList.contains('open');
       card.classList.toggle('open');
+      header.setAttribute('aria-expanded', wasOpen ? 'false' : 'true');
 
       if (window.pendo) {
         const diffId = card.dataset.diff;

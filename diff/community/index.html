@@ -36,7 +36,7 @@
       --border-strong: #333333;
       --text-primary: #f0f0f0;
       --text-secondary: #888888;
-      --text-tertiary: #555555;
+      --text-tertiary: #777777;
       --text-inverse: #0a0a0a;
       --accent: #FF3870;
       --accent-dim: #992244;
@@ -167,7 +167,7 @@
     .header-count {
       font-family: var(--font-sans);
       font-size: 12px;
-      color: var(--text-tertiary);
+      color: #777777;
     }
 
     /* ── TABS ──────────────────────────────────────── */
@@ -318,7 +318,7 @@
     .rail-label {
       font-family: var(--font-mono);
       font-size: 10px;
-      color: var(--text-tertiary);
+      color: #888888;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       margin-bottom: 12px;
@@ -377,7 +377,7 @@
     .person-diffs {
       font-family: var(--font-mono);
       font-size: 10px;
-      color: var(--text-tertiary);
+      color: #777777;
       margin-bottom: 8px;
     }
 
@@ -429,7 +429,7 @@
     .love-letter-attr {
       font-family: var(--font-mono);
       font-size: 10px;
-      color: var(--text-tertiary);
+      color: #888888;
     }
 
     /* ── COMPANY CARD ──────────────────────────────── */
@@ -494,18 +494,54 @@
         flex-wrap: wrap;
       }
     }
+
+    /* ── FOOTER ────────────────────────────────────── */
+
+    .site-footer {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 24px 48px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer-link {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color 80ms ease;
+    }
+
+    .site-footer-link:hover { color: var(--text-secondary); }
+
+    .site-footer-note {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
   </style>
 </head>
 <body>
 
   <!-- TOP NAV -->
-  <nav class="top-nav">
+  <nav class="top-nav" aria-label="Main navigation">
     <a href="/diff/" class="top-nav-logo"><span>&#9670;</span>dexdiff</a>
     <div class="top-nav-right">
       <a href="/diff/community/" class="top-nav-link active">Community</a>
       <a href="/diff/company/" class="top-nav-link">Your Company</a>
       <a href="/diff/love-letters/" class="top-nav-link">Love Letters</a>
-      <a href="https://heydex.ai" target="_blank" rel="noopener" class="top-nav-cta">Join the Waitlist</a>
+      <a href="/connect/" class="top-nav-cta">Get Dexed Up</a>
     </div>
   </nav>
 
@@ -517,7 +553,7 @@
 
       <!-- Header -->
       <div class="header-row">
-        <div class="header-label">Community</div>
+        <h1 class="header-label">Community</h1>
         <div class="header-count">7 diffs from 1 contributor</div>
       </div>
 
@@ -542,7 +578,7 @@
           <div class="diff-card-title">Meeting Intelligence</div>
           <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
           <div class="diff-card-desc">90-second meeting prep. Full context on every attendee. Never walk in cold again.</div>
-          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
         </div>
 
         <!-- 2. Deal Intelligence -->
@@ -550,7 +586,7 @@
           <div class="diff-card-title">Deal Intelligence</div>
           <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
           <div class="diff-card-desc">Pipeline health without the spreadsheet. Know which deals need attention before your manager does.</div>
-          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
         </div>
 
         <!-- 3. Weekly Rhythm -->
@@ -558,7 +594,7 @@
           <div class="diff-card-title">Weekly Rhythm</div>
           <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
           <div class="diff-card-desc">Monday plans, Friday reviews. Nothing falls through the cracks.</div>
-          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
         </div>
 
         <!-- 4. Relationship Compounding -->
@@ -566,7 +602,7 @@
           <div class="diff-card-title">Relationship Compounding</div>
           <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
           <div class="diff-card-desc">Every interaction makes the next one better. Context compounds.</div>
-          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
         </div>
 
         <!-- 5. Thought Leadership -->
@@ -574,7 +610,7 @@
           <div class="diff-card-title">Thought Leadership</div>
           <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
           <div class="diff-card-desc">Content pipeline from idea to published. LinkedIn, podcast, conference prep.</div>
-          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
         </div>
 
         <!-- 6. Accountability -->
@@ -582,7 +618,7 @@
           <div class="diff-card-title">Accountability</div>
           <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
           <div class="diff-card-desc">Track commitments across people and projects. Nothing slips through.</div>
-          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
         </div>
 
         <!-- 7. Self-Improving System -->
@@ -590,7 +626,7 @@
           <div class="diff-card-title">Self-Improving System</div>
           <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
           <div class="diff-card-desc">Your Dex gets smarter every session. Mistakes become learnings, learnings become prevention.</div>
-          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+          <a href="/diff/@dave/" class="diff-card-link">View &rarr;</a>
         </div>
 
       </div><!-- /diff-grid -->
@@ -602,7 +638,7 @@
 
       <!-- People Section -->
       <div class="rail-section">
-        <div class="rail-label">People</div>
+        <h2 class="rail-label">People</h2>
         <div class="rail-card">
           <div class="person-card">
             <div class="person-avatar">DK</div>
@@ -610,16 +646,16 @@
               <div class="person-name">Dave Killeen</div>
               <div class="person-role">Field CPO &middot; Pendo</div>
               <div class="person-diffs">7 diffs</div>
-              <a href="/diff/" class="person-link">View profile &rarr;</a>
+              <a href="/diff/@dave/" class="person-link">View profile &rarr;</a>
             </div>
           </div>
         </div>
-        <a href="#" class="rail-see-all">See all people &rarr;</a>
+        <span class="rail-see-all" aria-hidden="true"></span>
       </div>
 
       <!-- Love Letters Section -->
       <div class="rail-section">
-        <div class="rail-label">Love Letters</div>
+        <h2 class="rail-label">Love Letters</h2>
         <div class="love-letter">
           <div class="love-letter-quote">"I never walk into a meeting cold anymore. That alone changed how my team sees me."</div>
           <div class="love-letter-attr">&mdash; Dave K., Pendo</div>
@@ -633,7 +669,7 @@
 
       <!-- Your Company Section -->
       <div class="rail-section">
-        <div class="rail-label">Your Company</div>
+        <h2 class="rail-label">Your Company</h2>
         <div class="rail-card">
           <div class="company-card-text">See how your colleagues use Dex.</div>
           <a href="/diff/company/" class="company-card-link">Sign in &rarr;</a>
@@ -643,6 +679,16 @@
     </aside>
 
   </div><!-- /page-layout -->
+
+  <footer class="site-footer">
+    <div class="site-footer-links">
+      <a href="https://heydex.ai" class="site-footer-link">Get Dex</a>
+      <a href="/diff/community/" class="site-footer-link">Community</a>
+      <a href="https://github.com/davekilleen/dex" class="site-footer-link">GitHub</a>
+      <a href="/privacy/" class="site-footer-link">Privacy</a>
+    </div>
+    <div class="site-footer-note">Your data never leaves your machine</div>
+  </footer>
 
   <script>
     // ── Convex config ──────────────────────────────────

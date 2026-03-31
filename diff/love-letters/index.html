@@ -36,7 +36,7 @@
       --border-strong: #333333;
       --text-primary: #f0f0f0;
       --text-secondary: #888888;
-      --text-tertiary: #555555;
+      --text-tertiary: #777777;
       --text-inverse: #0a0a0a;
       --accent: #FF3870;
       --accent-dim: #992244;
@@ -110,7 +110,7 @@
     .top-nav-link {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: #aaaaaa;
       text-decoration: none;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -120,7 +120,7 @@
     }
 
     .top-nav-link:hover {
-      color: var(--text-secondary);
+      color: var(--text-primary);
     }
 
     .top-nav-link.active {
@@ -244,12 +244,12 @@
 
     .letter-quote::before {
       content: '\201C';
-      color: var(--text-tertiary);
+      color: #777777;
     }
 
     .letter-quote::after {
       content: '\201D';
-      color: var(--text-tertiary);
+      color: #777777;
     }
 
     .letter-author {
@@ -269,7 +269,7 @@
     .letter-author-sep {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: #666666;
     }
 
     .letter-author-role {
@@ -300,7 +300,7 @@
     .rail-label {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: #888888;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       margin-bottom: 12px;
@@ -354,20 +354,20 @@
     .rail-person-stat {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: #777777;
       margin-top: 2px;
     }
 
     .rail-link {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: #888888;
       text-decoration: none;
       transition: color 80ms ease;
     }
 
     .rail-link:hover {
-      color: var(--text-secondary);
+      color: var(--text-primary);
     }
 
     .rail-link-accent {
@@ -418,7 +418,7 @@
     .rail-diff-author {
       font-family: var(--font-mono);
       font-size: 10px;
-      color: var(--text-tertiary);
+      color: #777777;
       margin-left: 6px;
     }
 
@@ -475,35 +475,72 @@
         font-size: 15px;
       }
     }
+
+    /* ── FOOTER ────────────────────────────────────── */
+
+    .site-footer {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 24px 48px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer-links {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer-link {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color 80ms ease;
+    }
+
+    .site-footer-link:hover { color: var(--text-secondary); }
+
+    .site-footer-note {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
   </style>
 </head>
 <body>
 
-  <div id="page">
+  <main id="page">
 
     <!-- MAIN CONTENT -->
     <div id="content">
 
       <!-- TOP NAV -->
-      <nav class="top-nav">
+      <nav class="top-nav" aria-label="Main navigation">
         <a href="/diff/" class="top-nav-brand">&#9670; dexdiff</a>
         <div class="top-nav-links">
           <a href="/diff/community/" class="top-nav-link">Community</a>
           <a href="/diff/company/" class="top-nav-link">Your Company</a>
           <a href="/diff/love-letters/" class="top-nav-link active">Love Letters</a>
+          <a href="/connect/" style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #0a0a0a; background: #FF3870; border: none; padding: 6px 14px; border-radius: 2px; text-decoration: none; font-weight: 500;">Get Dexed Up</a>
         </div>
       </nav>
 
       <!-- PAGE HEADER -->
       <div class="page-header">
-        <div class="page-label">Love Letters</div>
+        <h1 class="page-label">Love Letters</h1>
         <p class="page-description">Real reactions from real people. Captured in the moment, not written on demand.</p>
       </div>
 
       <!-- TABS -->
       <div class="tabs">
         <button class="tab active" onclick="setTab('all', this)">All</button>
-        <button class="tab" onclick="setTab('company', this)">My Company</button>
+        <a href="/diff/company/" class="tab" style="text-decoration:none;cursor:pointer;">My Company</a>
       </div>
 
       <!-- LOVE LETTER STACK -->
@@ -594,7 +631,7 @@
 
       <!-- PEOPLE -->
       <div class="rail-section">
-        <div class="rail-label">People</div>
+        <h2 class="rail-label">People</h2>
         <div class="rail-person">
           <div class="rail-person-avatar">
             <span class="rail-person-avatar-initials">DK</span>
@@ -611,7 +648,7 @@
 
       <!-- POPULAR DIFFS -->
       <div class="rail-section">
-        <div class="rail-label">Popular Diffs</div>
+        <h2 class="rail-label">Popular Diffs</h2>
         <div class="rail-diff-list">
           <a href="/diff/@dave" class="rail-diff-card">
             <div>
@@ -640,16 +677,26 @@
 
       <!-- YOUR COMPANY -->
       <div class="rail-section">
-        <div class="rail-label">Your Company</div>
+        <h2 class="rail-label">Your Company</h2>
         <div class="rail-company-box">
           <p class="rail-company-text">See love letters from your colleagues.</p>
-          <a href="#" class="rail-link-accent" onclick="handleSignIn(event)">Sign in &rarr;</a>
+          <a href="/connect/" class="rail-link-accent">Sign in &rarr;</a>
         </div>
       </div>
 
     </div><!-- /rail -->
 
-  </div><!-- /page -->
+  </main><!-- /page -->
+
+  <footer class="site-footer">
+    <div class="site-footer-links">
+      <a href="https://heydex.ai" class="site-footer-link">Get Dex</a>
+      <a href="/diff/community/" class="site-footer-link">Community</a>
+      <a href="https://github.com/davekilleen/dex" class="site-footer-link">GitHub</a>
+      <a href="/privacy/" class="site-footer-link">Privacy</a>
+    </div>
+    <div class="site-footer-note">Your data never leaves your machine</div>
+  </footer>
 
   <script>
     // ── Convex config ──────────────────────────────────

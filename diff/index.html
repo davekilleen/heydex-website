@@ -37,7 +37,7 @@
       --border-strong: #333333;
       --text-primary: #f0f0f0;
       --text-secondary: #888888;
-      --text-tertiary: #555555;
+      --text-tertiary: #777777;
       --text-inverse: #0a0a0a;
       --accent: #FF3870;
       --accent-dim: #992244;
@@ -101,7 +101,7 @@
     .nav-link {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: #aaaaaa;
       text-decoration: none;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -109,7 +109,7 @@
     }
 
     .nav-link:hover {
-      color: var(--text-secondary);
+      color: var(--text-primary);
     }
 
     .nav-cta {
@@ -225,7 +225,7 @@
     .section-label {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: #888888;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       margin-bottom: 8px;
@@ -379,7 +379,7 @@
     .carousel-counter {
       font-family: var(--font-mono);
       font-size: 12px;
-      color: var(--text-tertiary);
+      color: #777777;
     }
 
     /* ── FIRST MOVERS ─────────────────────────────── */
@@ -437,7 +437,7 @@
     .contributor-stat {
       font-family: var(--font-mono);
       font-size: 11px;
-      color: var(--text-tertiary);
+      color: #888888;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       margin-bottom: 12px;
@@ -472,7 +472,7 @@
     }
 
     .contributor-tag.more {
-      color: var(--text-tertiary);
+      color: #777777;
       border-color: var(--border-default);
     }
 
@@ -736,7 +736,7 @@
     }
 
     .hiw-terminal .dim {
-      color: var(--text-tertiary);
+      color: #777777;
     }
 
     .hiw-desc {
@@ -804,7 +804,7 @@
 <body>
 
   <!-- NAV -->
-  <nav class="nav">
+  <nav class="nav" aria-label="Main navigation">
     <div class="nav-inner">
       <a href="/diff/" class="nav-logo">&#9670; dexdiff</a>
       <div class="nav-links">
@@ -816,7 +816,7 @@
     </div>
   </nav>
 
-  <div class="content">
+  <main class="content">
 
     <!-- HERO -->
     <section class="hero">
@@ -831,7 +831,7 @@
 
     <!-- LOVE LETTER CAROUSEL -->
     <section class="section">
-      <div class="section-label">Love Letters</div>
+      <h2 class="section-label">Love Letters</h2>
       <div class="section-sub">Real reactions from real people.</div>
 
       <div class="carousel-wrapper">
@@ -849,7 +849,7 @@
 
     <!-- FIRST MOVERS -->
     <section class="section">
-      <div class="section-label">First Movers</div>
+      <h2 class="section-label">First Movers</h2>
       <div class="section-sub">The first people brave enough to share how they actually work.</div>
 
       <div class="contributor-card">
@@ -877,13 +877,13 @@
       <div class="ghost-card">
         <div class="ghost-text">Help others become more AI-fluent. Share how you work.</div>
         <div class="ghost-cmd">/diff-profile</div>
-        <div style="font-family: var(--font-sans); font-size: 13px; color: var(--text-tertiary); margin-top: 8px; text-align: center; line-height: 1.6;">Type this into your Dex. It scans your vault, finds your custom workflows, and generates a shareable profile in 30 seconds. <a href="#how-it-works" style="color: var(--text-secondary); text-decoration: underline; text-underline-offset: 2px;">See how it works &darr;</a></div>
+        <div style="font-family: var(--font-sans); font-size: 13px; color: #777777; margin-top: 8px; text-align: center; line-height: 1.6;">Type this into your Dex. It scans your vault, finds your custom workflows, and generates a shareable profile in 30 seconds. <a href="#how-it-works" style="color: var(--text-secondary); text-decoration: underline; text-underline-offset: 2px;">See how it works &darr;</a></div>
       </div>
     </section>
 
     <!-- BROWSE DIFFS -->
     <section class="section">
-      <div class="section-label">Browse Diffs</div>
+      <h2 class="section-label">Browse Diffs</h2>
 
       <div class="tabs">
         <button class="tab active">All Diffs</button>
@@ -926,7 +926,7 @@
 
     <!-- LOVE LETTERS WALL -->
     <section class="section">
-      <div class="section-label">Love Letters</div>
+      <h2 class="section-label">More Love Letters</h2>
       <div class="section-sub">Real reactions from real people. Not written on demand.</div>
 
       <div class="love-letters-stack">
@@ -949,7 +949,7 @@
 
     <!-- HOW IT WORKS -->
     <section class="section" id="how-it-works">
-      <div class="section-label">How It Works</div>
+      <h2 class="section-label">How It Works</h2>
 
       <div class="hiw-stack">
         <!-- 01 SHARE -->
@@ -1029,7 +1029,7 @@ Want to make it permanent? <span class="accent">[Yes]</span></pre>
       <div class="footer-right">Your data never leaves your machine &middot; <a href="/privacy/" style="color: var(--text-secondary); text-decoration: underline; text-underline-offset: 2px;">Privacy</a></div>
     </footer>
 
-  </div><!-- /content -->
+  </main><!-- /content -->
 
   <script>
     // ── Convex config ──────────────────────────────────
