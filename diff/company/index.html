@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Company — DexDiff</title>
+  <meta name="description" content="See how your team uses Dex. Which workflows your colleagues have built, what tools they've connected, and how they're using AI to work smarter.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9670;</text></svg>">
+  <!-- Pendo Analytics -->
+  <script>
+    (function(publicAppId){
+      (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+      v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
+      for(w=0,x=v.length;w<x;++w)(function(m){
+        o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+      y=e.createElement(n);y.async=!0;
+      y.src='https://cdn.pendo.io/agent/static/'+publicAppId+'/pendo.js';
+      z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);}
+      )(window,document,'script','pendo');
+      pendo.initialize({ visitor: { id: 'anonymous-diff' }, account: { id: 'heydex-dexdiff' } });
+    })('c23ee23e-f3e6-4a1f-81a8-d19a3a85fe2b');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-base: #0a0a0a;
+      --bg-surface: #111111;
+      --bg-elevated: #161616;
+      --bg-hover: #1a1a1a;
+      --border-subtle: #1c1c1c;
+      --border-default: #222222;
+      --border-strong: #333333;
+      --text-primary: #f0f0f0;
+      --text-secondary: #888888;
+      --text-tertiary: #555555;
+      --text-inverse: #0a0a0a;
+      --accent: #FF3870;
+      --accent-dim: #992244;
+      --accent-bg: #1f0f15;
+      --accent-border: #3d0a1e;
+      --font-mono: 'Geist Mono', 'Berkeley Mono', 'JetBrains Mono', monospace;
+      --font-sans: 'Geist', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    }
+
+    /* ── MAIN CONTENT ──────────────────────────────── */
+
+    #content {
+      display: block;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    /* ── TOP NAV ───────────────────────────────────── */
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 48px;
+    }
+
+    .top-nav-brand {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: color 80ms ease;
+    }
+
+    .top-nav-brand:hover {
+      color: var(--text-secondary);
+    }
+
+    .top-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .top-nav-link {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: color 80ms ease;
+      padding-bottom: 4px;
+    }
+
+    .top-nav-link:hover {
+      color: var(--text-secondary);
+    }
+
+    .top-nav-link.active {
+      color: var(--text-primary);
+      border-bottom: 2px solid var(--accent);
+    }
+
+    /* ── HERO ──────────────────────────────────────── */
+
+    .hero {
+      max-width: 680px;
+      margin: 0 auto 56px;
+      text-align: center;
+    }
+
+    .hero-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .hero-headline {
+      font-family: var(--font-sans);
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+      line-height: 1.3;
+    }
+
+    .hero-description {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .hero-note {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 28px;
+    }
+
+    .hero-cta {
+      display: inline-block;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-inverse);
+      background: var(--accent);
+      border: none;
+      padding: 12px 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 120ms ease;
+    }
+
+    .hero-cta:hover {
+      opacity: 0.9;
+    }
+
+    /* ── BLURRED PREVIEW ───────────────────────────── */
+
+    .preview-gate {
+      opacity: 0.25;
+      pointer-events: none;
+      user-select: none;
+      margin-bottom: 56px;
+    }
+
+    .preview-tabs {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    .preview-tab {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.04em;
+      padding-bottom: 8px;
+    }
+
+    .preview-tab.active {
+      color: var(--text-primary);
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .preview-card {
+      background: #131313;
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      padding: 20px;
+    }
+
+    .skeleton-bar {
+      border-radius: 2px;
+      margin-bottom: 10px;
+    }
+
+    .skeleton-bar:last-child {
+      margin-bottom: 0;
+    }
+
+    .skeleton-title {
+      height: 14px;
+      background: var(--border-default);
+      margin-bottom: 12px;
+    }
+
+    .skeleton-author {
+      height: 10px;
+      background: #1a1a1a;
+      margin-bottom: 14px;
+    }
+
+    .skeleton-desc {
+      height: 10px;
+      background: #1a1a1a;
+    }
+
+    /* ── TEAMS TEASER ──────────────────────────────── */
+
+    .teams-teaser {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      padding: 28px;
+    }
+
+    .teams-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .teams-headline {
+      font-family: var(--font-sans);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .teams-description {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: #aaaaaa;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .teams-cta {
+      display: inline-block;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-primary);
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      padding: 10px 20px;
+      border-radius: 4px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color 120ms ease, background 120ms ease;
+    }
+
+    .teams-cta:hover {
+      border-color: var(--text-tertiary);
+      background: var(--bg-hover);
+    }
+
+    /* ── RESPONSIVE ────────────────────────────────── */
+
+    @media (max-width: 640px) {
+      #content {
+        padding: 32px 16px 64px;
+      }
+
+      .top-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 36px;
+      }
+
+      .top-nav-links {
+        gap: 16px;
+      }
+
+      .top-nav-link {
+        font-size: 10px;
+      }
+
+      .hero {
+        margin-bottom: 40px;
+      }
+
+      .hero-headline {
+        font-size: 22px;
+      }
+
+      .hero-description {
+        font-size: 14px;
+      }
+
+      .preview-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .teams-teaser {
+        padding: 20px;
+      }
+
+      .teams-headline {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="content">
+
+    <!-- TOP NAV -->
+    <nav class="top-nav">
+      <a href="/diff/" class="top-nav-brand">&#9670; dexdiff</a>
+      <div class="top-nav-links">
+        <a href="/diff/community/" class="top-nav-link">Community</a>
+        <a href="/diff/company/" class="top-nav-link active">Your Company</a>
+        <a href="/diff/love-letters/" class="top-nav-link">Love Letters</a>
+      </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-label">Diffs at your company</div>
+      <h1 class="hero-headline">See how your team uses Dex.</h1>
+      <p class="hero-description">Which workflows your colleagues have built. What tools they've connected. How they're using AI to work smarter. Learn from each other and grow together.</p>
+      <p class="hero-note">Free for the first 5 people at your company.</p>
+      <button class="hero-cta" onclick="window.location.href='mailto:?subject=Sign in to DexDiff'">Sign in with work email</button>
+    </section>
+
+    <!-- BLURRED PREVIEW -->
+    <div class="preview-gate">
+      <div class="preview-tabs">
+        <span class="preview-tab active">Diffs</span>
+        <span class="preview-tab">People</span>
+      </div>
+      <div class="preview-grid">
+        <!-- Card 1 -->
+        <div class="preview-card">
+          <div class="skeleton-bar skeleton-title" style="width: 62%;"></div>
+          <div class="skeleton-bar skeleton-author" style="width: 38%;"></div>
+          <div class="skeleton-bar skeleton-desc" style="width: 90%;"></div>
+          <div class="skeleton-bar skeleton-desc" style="width: 75%;"></div>
+        </div>
+        <!-- Card 2 -->
+        <div class="preview-card">
+          <div class="skeleton-bar skeleton-title" style="width: 55%;"></div>
+          <div class="skeleton-bar skeleton-author" style="width: 42%;"></div>
+          <div class="skeleton-bar skeleton-desc" style="width: 85%;"></div>
+          <div class="skeleton-bar skeleton-desc" style="width: 95%;"></div>
+        </div>
+        <!-- Card 3 -->
+        <div class="preview-card">
+          <div class="skeleton-bar skeleton-title" style="width: 50%;"></div>
+          <div class="skeleton-bar skeleton-author" style="width: 35%;"></div>
+          <div class="skeleton-bar skeleton-desc" style="width: 92%;"></div>
+          <div class="skeleton-bar skeleton-desc" style="width: 78%;"></div>
+        </div>
+        <!-- Card 4 -->
+        <div class="preview-card">
+          <div class="skeleton-bar skeleton-title" style="width: 65%;"></div>
+          <div class="skeleton-bar skeleton-author" style="width: 45%;"></div>
+          <div class="skeleton-bar skeleton-desc" style="width: 80%;"></div>
+          <div class="skeleton-bar skeleton-desc" style="width: 88%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEAMS TEASER -->
+    <div class="teams-teaser">
+      <div class="teams-label">For teams and leadership</div>
+      <h2 class="teams-headline">Understand how Dex is used across your organisation.</h2>
+      <p class="teams-description">Which tools are connected. What jobs people are solving. Pre-configured integrations and packages your team can share. Org-wide context that makes every Dex instance smarter.</p>
+      <a href="#" class="teams-cta">Learn about Dex for Teams &rarr;</a>
+    </div>
+
+  </div>
+
+  <!-- Convex config -->
+  <script>
+    const CONVEX_URL = 'https://focused-mouse-723.eu-west-1.convex.cloud';
+  </script>
+
+</body>
+</html>

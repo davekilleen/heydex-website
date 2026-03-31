@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DexDiff Community</title>
+  <meta name="description" content="Browse community-built Dex workflows. See how people use Dex across roles and seniorities.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9670;</text></svg>">
+  <!-- Pendo Analytics -->
+  <script>
+    (function(publicAppId){
+      (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+      v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
+      for(w=0,x=v.length;w<x;++w)(function(m){
+        o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+      y=e.createElement(n);y.async=!0;
+      y.src='https://cdn.pendo.io/agent/static/'+publicAppId+'/pendo.js';
+      z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);}
+      )(window,document,'script','pendo');
+      pendo.initialize({ visitor: { id: 'anonymous-diff' }, account: { id: 'heydex-dexdiff' } });
+    })('c23ee23e-f3e6-4a1f-81a8-d19a3a85fe2b');
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-base: #0a0a0a;
+      --bg-surface: #111111;
+      --bg-elevated: #161616;
+      --bg-hover: #1a1a1a;
+      --border-subtle: #1c1c1c;
+      --border-default: #222222;
+      --border-strong: #333333;
+      --text-primary: #f0f0f0;
+      --text-secondary: #888888;
+      --text-tertiary: #555555;
+      --text-inverse: #0a0a0a;
+      --accent: #FF3870;
+      --accent-dim: #992244;
+      --accent-bg: #1f0f15;
+      --accent-border: #3d0a1e;
+      --font-mono: 'Geist Mono', 'Berkeley Mono', 'JetBrains Mono', monospace;
+      --font-sans: 'Geist', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ── TOP NAV ───────────────────────────────────── */
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .top-nav-logo {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .top-nav-logo span {
+      color: var(--accent);
+      margin-right: 6px;
+    }
+
+    .top-nav-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .top-nav-link {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: color 80ms ease;
+    }
+
+    .top-nav-link:hover {
+      color: var(--text-primary);
+    }
+
+    .top-nav-link.active {
+      color: var(--text-primary);
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 2px;
+    }
+
+    .top-nav-cta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-inverse);
+      background: var(--accent);
+      padding: 6px 14px;
+      border-radius: 2px;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: opacity 80ms ease;
+    }
+
+    .top-nav-cta:hover {
+      opacity: 0.9;
+    }
+
+    /* ── PAGE LAYOUT ───────────────────────────────── */
+
+    .page-layout {
+      display: flex;
+      gap: 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 96px;
+    }
+
+    .main-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .right-rail {
+      width: 260px;
+      flex-shrink: 0;
+    }
+
+    /* ── HEADER ROW ────────────────────────────────── */
+
+    .header-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .header-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .header-count {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* ── TABS ──────────────────────────────────────── */
+
+    .tabs {
+      display: flex;
+      gap: 24px;
+      border-bottom: 1px solid var(--border-default);
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding-bottom: 10px;
+      cursor: pointer;
+      transition: color 80ms ease;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+    }
+
+    .tab.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── FILTER ROW ────────────────────────────────── */
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .filter-btn {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: #ccc;
+      background: transparent;
+      border: 1px solid #444;
+      border-radius: 2px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: border-color 80ms ease, color 80ms ease;
+    }
+
+    .filter-btn:hover {
+      border-color: var(--text-secondary);
+      color: var(--text-primary);
+    }
+
+    .filter-search {
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-primary);
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      border-radius: 2px;
+      padding: 5px 12px;
+      outline: none;
+      transition: border-color 80ms ease;
+    }
+
+    .filter-search::placeholder {
+      color: #666;
+    }
+
+    .filter-search:focus {
+      border-color: var(--text-secondary);
+    }
+
+    /* ── DIFF CARD GRID ────────────────────────────── */
+
+    .diff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .diff-card {
+      background: #131313;
+      border: 1px solid var(--border-default);
+      border-radius: 2px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 80ms ease;
+    }
+
+    .diff-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .diff-card-title {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .diff-card-author {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .diff-card-desc {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: #aaa;
+      line-height: 1.6;
+      flex: 1;
+    }
+
+    .diff-card-link {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      text-align: right;
+      margin-top: 14px;
+      transition: opacity 80ms ease;
+    }
+
+    .diff-card-link:hover {
+      opacity: 0.8;
+    }
+
+    /* ── RIGHT RAIL ────────────────────────────────── */
+
+    .rail-section {
+      padding-top: 24px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .rail-section + .rail-section {
+      margin-top: 24px;
+    }
+
+    .rail-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .rail-card {
+      background: #131313;
+      border: 1px solid var(--border-default);
+      border-radius: 2px;
+      padding: 16px;
+    }
+
+    /* ── PEOPLE CARD ───────────────────────────────── */
+
+    .person-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .person-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FF3870 0%, #992244 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+      flex-shrink: 0;
+    }
+
+    .person-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .person-name {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .person-role {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .person-diffs {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+
+    .person-link {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      transition: opacity 80ms ease;
+    }
+
+    .person-link:hover {
+      opacity: 0.8;
+    }
+
+    .rail-see-all {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 12px;
+      transition: color 80ms ease;
+    }
+
+    .rail-see-all:hover {
+      color: var(--text-primary);
+    }
+
+    /* ── LOVE LETTERS ──────────────────────────────── */
+
+    .love-letter {
+      border-left: 2px solid rgba(255, 56, 112, 0.3);
+      padding-left: 12px;
+      margin-bottom: 16px;
+    }
+
+    .love-letter:last-child {
+      margin-bottom: 0;
+    }
+
+    .love-letter-quote {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-style: italic;
+      line-height: 1.5;
+      margin-bottom: 4px;
+    }
+
+    .love-letter-attr {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-tertiary);
+    }
+
+    /* ── COMPANY CARD ──────────────────────────────── */
+
+    .company-card-text {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .company-card-link {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      transition: opacity 80ms ease;
+    }
+
+    .company-card-link:hover {
+      opacity: 0.8;
+    }
+
+    /* ── RESPONSIVE ─────────────────────────────────── */
+
+    @media (max-width: 768px) {
+      .page-layout {
+        flex-direction: column;
+      }
+
+      .right-rail {
+        width: 100%;
+      }
+
+      .diff-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .top-nav {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .top-nav-right {
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .page-layout {
+        padding: 24px 16px 64px;
+      }
+
+      .header-row {
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .filter-row {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP NAV -->
+  <nav class="top-nav">
+    <a href="/diff/" class="top-nav-logo"><span>&#9670;</span>dexdiff</a>
+    <div class="top-nav-right">
+      <a href="/diff/community/" class="top-nav-link active">Community</a>
+      <a href="/diff/company/" class="top-nav-link">Your Company</a>
+      <a href="/diff/love-letters/" class="top-nav-link">Love Letters</a>
+      <a href="https://heydex.ai" target="_blank" rel="noopener" class="top-nav-cta">Join the Waitlist</a>
+    </div>
+  </nav>
+
+  <!-- PAGE LAYOUT -->
+  <div class="page-layout">
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+      <!-- Header -->
+      <div class="header-row">
+        <div class="header-label">Community</div>
+        <div class="header-count">7 diffs from 1 contributor</div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active">Diffs</div>
+        <div class="tab">People</div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-row">
+        <button class="filter-btn">Role &#9662;</button>
+        <button class="filter-btn">Seniority &#9662;</button>
+        <input type="text" class="filter-search" placeholder="Search diffs...">
+      </div>
+
+      <!-- Diff Card Grid -->
+      <div class="diff-grid">
+
+        <!-- 1. Meeting Intelligence -->
+        <div class="diff-card">
+          <div class="diff-card-title">Meeting Intelligence</div>
+          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+          <div class="diff-card-desc">90-second meeting prep. Full context on every attendee. Never walk in cold again.</div>
+          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+        </div>
+
+        <!-- 2. Deal Intelligence -->
+        <div class="diff-card">
+          <div class="diff-card-title">Deal Intelligence</div>
+          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+          <div class="diff-card-desc">Pipeline health without the spreadsheet. Know which deals need attention before your manager does.</div>
+          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+        </div>
+
+        <!-- 3. Weekly Rhythm -->
+        <div class="diff-card">
+          <div class="diff-card-title">Weekly Rhythm</div>
+          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+          <div class="diff-card-desc">Monday plans, Friday reviews. Nothing falls through the cracks.</div>
+          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+        </div>
+
+        <!-- 4. Relationship Compounding -->
+        <div class="diff-card">
+          <div class="diff-card-title">Relationship Compounding</div>
+          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+          <div class="diff-card-desc">Every interaction makes the next one better. Context compounds.</div>
+          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+        </div>
+
+        <!-- 5. Thought Leadership -->
+        <div class="diff-card">
+          <div class="diff-card-title">Thought Leadership</div>
+          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+          <div class="diff-card-desc">Content pipeline from idea to published. LinkedIn, podcast, conference prep.</div>
+          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+        </div>
+
+        <!-- 6. Accountability -->
+        <div class="diff-card">
+          <div class="diff-card-title">Accountability</div>
+          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+          <div class="diff-card-desc">Track commitments across people and projects. Nothing slips through.</div>
+          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+        </div>
+
+        <!-- 7. Self-Improving System -->
+        <div class="diff-card">
+          <div class="diff-card-title">Self-Improving System</div>
+          <div class="diff-card-author">@dave &middot; Field CPO &middot; Pendo</div>
+          <div class="diff-card-desc">Your Dex gets smarter every session. Mistakes become learnings, learnings become prevention.</div>
+          <a href="/diff/" class="diff-card-link">View &rarr;</a>
+        </div>
+
+      </div><!-- /diff-grid -->
+
+    </main>
+
+    <!-- RIGHT RAIL -->
+    <aside class="right-rail">
+
+      <!-- People Section -->
+      <div class="rail-section">
+        <div class="rail-label">People</div>
+        <div class="rail-card">
+          <div class="person-card">
+            <div class="person-avatar">DK</div>
+            <div class="person-info">
+              <div class="person-name">Dave Killeen</div>
+              <div class="person-role">Field CPO &middot; Pendo</div>
+              <div class="person-diffs">7 diffs</div>
+              <a href="/diff/" class="person-link">View profile &rarr;</a>
+            </div>
+          </div>
+        </div>
+        <a href="#" class="rail-see-all">See all people &rarr;</a>
+      </div>
+
+      <!-- Love Letters Section -->
+      <div class="rail-section">
+        <div class="rail-label">Love Letters</div>
+        <div class="love-letter">
+          <div class="love-letter-quote">"I never walk into a meeting cold anymore. That alone changed how my team sees me."</div>
+          <div class="love-letter-attr">&mdash; Dave K., Pendo</div>
+        </div>
+        <div class="love-letter">
+          <div class="love-letter-quote">"Monday planning takes 4 minutes now."</div>
+          <div class="love-letter-attr">&mdash; Dave K., Pendo</div>
+        </div>
+        <a href="/diff/love-letters/" class="rail-see-all">See all love letters &rarr;</a>
+      </div>
+
+      <!-- Your Company Section -->
+      <div class="rail-section">
+        <div class="rail-label">Your Company</div>
+        <div class="rail-card">
+          <div class="company-card-text">See how your colleagues use Dex.</div>
+          <a href="/diff/company/" class="company-card-link">Sign in &rarr;</a>
+        </div>
+      </div>
+
+    </aside>
+
+  </div><!-- /page-layout -->
+
+  <script>
+    // ── Convex config ──────────────────────────────────
+    const CONVEX_URL = 'https://focused-mouse-723.eu-west-1.convex.cloud';
+    const TOKEN_KEY = 'dexdiff-auth';
+
+    // ── Token storage helpers ──────────────────────────
+    function getStoredAuth() {
+      const raw = localStorage.getItem(TOKEN_KEY);
+      if (!raw) return null;
+      try { return JSON.parse(raw); }
+      catch { return null; }
+    }
+
+    function getAccessToken() {
+      const auth = getStoredAuth();
+      if (!auth) return null;
+      return auth?.token || auth?.tokens?.token || null;
+    }
+
+    // ── Pendo identity upgrade ─────────────────────────
+    (async function init() {
+      const token = getAccessToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(CONVEX_URL + '/api/query', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ path: 'users:me', args: {}, format: 'json' })
+        });
+
+        const result = await res.json();
+        if (result.status === 'success' && result.value?.handle) {
+          pendo.identify({
+            visitor: { id: result.value.handle },
+            account: { id: 'heydex-dexdiff' }
+          });
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+      }
+    })();
+
+    // ── Pendo tracking ─────────────────────────────────
+    document.querySelectorAll('.diff-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const title = card.querySelector('.diff-card-title')?.textContent;
+        if (window.pendo && title) {
+          pendo.track('community_diff_clicked', { diff: title });
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

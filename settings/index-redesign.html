@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dex Settings Redesign</title>
+  <meta
+    name="description"
+    content="A Dex-app-aligned settings surface for profile sync, with selectable visual themes."
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <script>
+    (() => {
+      const storedTheme = localStorage.getItem("dex-settings-theme");
+      document.documentElement.dataset.theme = storedTheme || "porcelain";
+    })();
+  </script>
+  <link rel="stylesheet" href="./styles-redesign.css">
+</head>
+<body data-page="settings" data-theme="porcelain">
+  <main class="settings-app-shell">
+    <header class="settings-header">
+      <div class="settings-header-title">
+        <h1>Settings</h1>
+        <div class="header-meta">
+          <span id="authStatusMessage">Checking sign-in…</span>
+          <span id="saveStatusInline">Nothing saved yet.</span>
+        </div>
+      </div>
+      <div class="settings-header-actions">
+        <label class="theme-control" for="appearanceMode">
+          <span>Theme</span>
+          <select id="appearanceMode">
+            <option value="porcelain">Dex Light</option>
+            <option value="linear">Linear Dark</option>
+            <option value="ocean">Ocean</option>
+          </select>
+        </label>
+        <button id="authAction" class="button button-secondary hidden" type="button"></button>
+        <button id="refreshData" class="button button-secondary hidden" type="button">Refresh</button>
+        <div id="userButton"></div>
+      </div>
+    </header>
+
+    <section id="configGate" class="auth-gate hidden">
+      <h2>Missing configuration</h2>
+      <p>
+        Sign-in still needs a Clerk publishable key in <span class="inline-code">/settings/config.js</span>
+        before the live auth flow can run here.
+      </p>
+    </section>
+
+    <section id="authGate" class="auth-gate hidden">
+      <h2>Sign in to manage your roaming Dex profile</h2>
+      <p>
+        Once signed in, you can edit the profile Dex should use everywhere, approve <span class="inline-code">./dex login</span>,
+        and revoke linked devices.
+      </p>
+      <div class="gate-actions">
+        <button id="signInGateButton" class="button button-primary" type="button">Sign in</button>
+        <a class="button button-secondary" href="/">Back to heydex.io</a>
+      </div>
+    </section>
+
+    <div id="appShell" class="settings-body">
+      <aside class="settings-sidebar">
+        <div class="sidebar-vitals">
+          <div class="sidebar-vitals-row">
+            <span class="sidebar-vitals-label">PROFILE</span>
+            <span class="sidebar-vitals-value">Sync beta</span>
+          </div>
+          <div class="sidebar-vitals-row">
+            <span class="sidebar-vitals-label">SCOPE</span>
+            <span class="sidebar-vitals-value">Portable only</span>
+          </div>
+          <p class="sidebar-note">
+            API keys, MCP setup, hooks, vault paths, and local UI state stay on your machine.
+          </p>
+        </div>
+
+        <nav class="sidebar-nav">
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Setup</div>
+            <a class="sidebar-item is-active" href="#section-profile">Profile</a>
+            <a class="sidebar-item" href="#section-sync">Linked devices</a>
+          </div>
+
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Customize</div>
+            <a class="sidebar-item" href="#section-communication">Communication</a>
+            <a class="sidebar-item" href="#section-meetings">Meeting Intel</a>
+            <a class="sidebar-item" href="#section-rituals">Rituals</a>
+            <a class="sidebar-item" href="#section-planning">Planning</a>
+          </div>
+
+          <div class="sidebar-group">
+            <div class="sidebar-group-label">Trust</div>
+            <a class="sidebar-item" href="#section-overview">Overview</a>
+            <a class="sidebar-item" href="#section-boundaries">Privacy & Scope</a>
+            <a class="sidebar-item" href="#section-linking">How linking works</a>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="sidebar-footer-label">Visual mode</div>
+          <p class="sidebar-note">Theme is local-only so you can preview the page in different moods without syncing appearance state.</p>
+        </div>
+      </aside>
+
+      <section class="settings-content">
+        <article id="section-overview" class="settings-section section-overview">
+          <div class="section-header">
+            <div>
+              <h2>Overview</h2>
+              <p class="section-copy">
+                This page controls the part of Dex that follows you across machines: who you are, how Dex should sound,
+                what it should look for in meetings, and a few planning defaults.
+              </p>
+            </div>
+            <div class="overview-actions">
+              <button id="bannerPrimaryAction" class="button button-primary" type="button">Download Dex</button>
+              <button id="bannerSecondaryAction" class="button button-secondary" type="button">Copy ./dex login</button>
+            </div>
+          </div>
+
+          <div class="overview-status">
+            <strong id="bannerTitle">Loading your Dex settings…</strong>
+            <p id="bannerBody" class="section-copy">Checking your sign-in and linked devices.</p>
+          </div>
+
+          <div id="summaryStrip" class="summary-strip"></div>
+          <p id="saveStatusBlock" class="save-note">Loading your current profile…</p>
+        </article>
+
+        <article id="section-profile" class="settings-section">
+          <div class="section-header">
+            <div>
+              <h2>Profile</h2>
+              <p class="section-copy">Tell Dex who you are so it can personalize tone, meeting context, and suggestions everywhere.</p>
+            </div>
+          </div>
+
+          <div class="form-stack">
+            <label class="field-label">Name
+              <span class="field-help">So Dex knows which person in a meeting or workflow is you.</span>
+              <input data-path="name" id="profile-name" type="text" autocomplete="name" placeholder="Dave Killeen">
+            </label>
+
+            <label class="field-label">Role
+              <span class="field-help">Your job title helps Dex bias insight, examples, and suggestions to your job.</span>
+              <input data-path="role" id="profile-role" type="text" autocomplete="organization-title" placeholder="Field CPO">
+            </label>
+
+            <label class="field-label">Company
+              <span class="field-help">Used in summaries and context where organization-specific framing matters.</span>
+              <input data-path="company" id="profile-company" type="text" autocomplete="organization" placeholder="Pendo">
+            </label>
+
+            <label class="field-label">Email domain
+              <span class="field-help">Dex uses this to tell colleagues from external contacts.</span>
+              <input data-path="email_domain" id="profile-email-domain" type="text" inputmode="email" placeholder="pendo.io">
+            </label>
+
+            <div class="field-grid two">
+              <label class="field-label">Role group
+                <span class="field-help">Lets Dex adapt suggestions based on the kind of role you have.</span>
+                <select data-path="role_group" id="profile-role-group"></select>
+              </label>
+
+              <label class="field-label">Company size
+                <span class="field-help">Helps Dex calibrate advice to your organization’s scale.</span>
+                <select data-path="company_size" id="profile-company-size"></select>
+              </label>
+            </div>
+          </div>
+        </article>
+
+        <article id="section-communication" class="settings-section">
+          <div class="section-header">
+            <div>
+              <h2>Communication</h2>
+              <p class="section-copy">This is the plain-English layer for fixing “Dex sounds wrong.”</p>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <div class="option-label">
+              <span>Directness</span>
+              <p class="field-help">How blunt or gentle Dex should be when giving feedback.</p>
+              <div class="option-row" data-chip-group="communication.directness">
+                <button class="chip" type="button" data-value="supportive">Supportive</button>
+                <button class="chip" type="button" data-value="balanced">Balanced</button>
+                <button class="chip" type="button" data-value="very_direct">Very direct</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <div class="option-label">
+              <span>Detail level</span>
+              <p class="field-help">Choose whether Dex should stay crisp or go deeper by default.</p>
+              <div class="option-row" data-chip-group="communication.detail_level">
+                <button class="chip" type="button" data-value="concise">Concise</button>
+                <button class="chip" type="button" data-value="balanced">Balanced</button>
+                <button class="chip" type="button" data-value="comprehensive">Comprehensive</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <div class="option-label">
+              <span>Formality</span>
+              <p class="field-help">Use this when Dex feels too casual or too corporate.</p>
+              <div class="option-row" data-chip-group="communication.formality">
+                <button class="chip" type="button" data-value="casual">Casual</button>
+                <button class="chip" type="button" data-value="professional_casual">Professional casual</button>
+                <button class="chip" type="button" data-value="formal">Formal</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-grid two">
+            <label class="field-label">Coaching style
+              <span class="field-help">How you want Dex to challenge or support your thinking.</span>
+              <select data-path="communication.coaching_style" id="profile-coaching-style"></select>
+            </label>
+            <label class="field-label">Career level
+              <span class="field-help">Used to calibrate advice, examples, and expectations.</span>
+              <select data-path="communication.career_level" id="profile-career-level"></select>
+            </label>
+          </div>
+        </article>
+
+        <article id="section-meetings" class="settings-section">
+          <div class="section-header">
+            <div>
+              <h2>Meeting Intel</h2>
+              <p class="section-copy">Pick the default lens Dex should use when turning a meeting into something useful.</p>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <p class="field-help">Presets are the fast path. Advanced toggles are there if you need to fine-tune extraction.</p>
+            <div class="preset-grid">
+              <button class="preset" type="button" data-meeting-preset="customer">
+                <h4>Customer-facing</h4>
+                <p>Action items, decisions, customer intel, stakeholder dynamics, budget and timeline signals.</p>
+              </button>
+              <button class="preset" type="button" data-meeting-preset="leadership">
+                <h4>Internal leadership</h4>
+                <p>Decisions, owners, blockers, and alignment without over-extracting.</p>
+              </button>
+              <button class="preset" type="button" data-meeting-preset="product">
+                <h4>Product collaboration</h4>
+                <p>Action items, decisions, customer context, and technical decisions.</p>
+              </button>
+              <button class="preset" type="button" data-meeting-preset="minimal">
+                <h4>Minimal</h4>
+                <p>Just the basics that make later review easier.</p>
+              </button>
+            </div>
+          </div>
+
+          <details id="meetingAdvanced" class="advanced">
+            <summary>Customize extraction toggles</summary>
+            <div class="advanced-inner">
+              <div class="toggle-grid">
+                <label class="toggle"><input data-path="meeting_intelligence.extract_action_items" type="checkbox"> Action items</label>
+                <label class="toggle"><input data-path="meeting_intelligence.extract_decisions" type="checkbox"> Decisions</label>
+                <label class="toggle"><input data-path="meeting_intelligence.extract_customer_intel" type="checkbox"> Customer intel</label>
+                <label class="toggle"><input data-path="meeting_intelligence.extract_stakeholder_dynamics" type="checkbox"> Stakeholder dynamics</label>
+                <label class="toggle"><input data-path="meeting_intelligence.extract_competitive_intel" type="checkbox"> Competitive intel</label>
+                <label class="toggle"><input data-path="meeting_intelligence.extract_budget_timeline" type="checkbox"> Budget and timeline</label>
+                <label class="toggle"><input data-path="meeting_intelligence.extract_technical_decisions" type="checkbox"> Technical decisions</label>
+              </div>
+            </div>
+          </details>
+        </article>
+
+        <article id="section-rituals" class="settings-section">
+          <div class="section-header">
+            <div>
+              <h2>Rituals</h2>
+              <p class="section-copy">These are simple work-rhythm defaults that make sense to carry between devices.</p>
+            </div>
+          </div>
+
+          <div class="toggle-stack">
+            <label class="toggle"><input data-path="journaling.morning" type="checkbox"> Morning reflection</label>
+            <label class="toggle"><input data-path="journaling.evening" type="checkbox"> Evening reflection</label>
+            <label class="toggle"><input data-path="journaling.weekly" type="checkbox"> Weekly reflection</label>
+          </div>
+        </article>
+
+        <article id="section-planning" class="settings-section">
+          <div class="section-header">
+            <div>
+              <h2>Planning</h2>
+              <p class="section-copy">Keep planning portable, but small. Enough to set the quarter cadence without turning this into an admin panel.</p>
+            </div>
+          </div>
+
+          <div class="field-grid two">
+            <label class="field-label">Quarterly planning
+              <span class="field-help">Turns quarterly planning prompts on or off for Dex.</span>
+              <select data-path="quarterly_planning.enabled" id="profile-quarterly-enabled">
+                <option value="false">Off</option>
+                <option value="true">On</option>
+              </select>
+            </label>
+            <label class="field-label">Q1 starts in
+              <span class="field-help">Useful if your planning year does not start in January.</span>
+              <select data-path="quarterly_planning.q1_start_month" id="profile-quarterly-month"></select>
+            </label>
+          </div>
+        </article>
+
+        <article id="section-sync" class="settings-section">
+          <div class="section-header">
+            <div>
+              <h2>Linked devices</h2>
+              <p class="section-copy">See which Dex machines are connected to this profile and what this browser can inspect.</p>
+            </div>
+            <div class="status-row">
+              <span id="syncChip" class="status-chip neutral">Checking…</span>
+              <p id="syncNote" class="section-copy compact">Loading linked devices and sync details.</p>
+            </div>
+          </div>
+
+          <div id="devicesCard" class="subpanel">
+            <h3>Sync status</h3>
+            <div id="devicesList" class="device-list"></div>
+          </div>
+
+          <div class="subpanel">
+            <h3>This browser can inspect</h3>
+            <p class="section-copy compact">
+              The web page can see linked devices and sync behavior. It cannot see API keys, local integrations, or machine permissions.
+            </p>
+            <ul id="deviceFacts" class="rail-list"></ul>
+          </div>
+        </article>
+
+        <article id="section-boundaries" class="settings-section">
+          <div class="section-header">
+            <div>
+              <h2>Privacy & scope</h2>
+              <p class="section-copy">Be explicit about the sync boundary so the user does not need to guess what Dex is doing.</p>
+            </div>
+          </div>
+
+          <div class="subpanel-grid">
+            <section class="subpanel">
+              <h3>What syncs</h3>
+              <ul id="syncScopeList" class="rail-list"></ul>
+            </section>
+
+            <section id="localOnlyCard" class="subpanel">
+              <h3>What stays local</h3>
+              <ul id="localOnlyList" class="rail-list"></ul>
+            </section>
+          </div>
+        </article>
+
+        <article id="section-linking" class="settings-section">
+          <div class="section-header">
+            <div>
+              <h2>How linking works</h2>
+              <p class="section-copy">The first link should feel obvious: save here, connect a machine with <span class="inline-code">./dex login</span>, then let Dex reconcile if profiles differ.</p>
+            </div>
+            <button id="copyLoginInline" class="button button-secondary" type="button">Copy ./dex login</button>
+          </div>
+          <div id="flowSteps" class="steps"></div>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const body = document.body;
+      const select = document.getElementById("appearanceMode");
+      const applyTheme = (theme) => {
+        root.dataset.theme = theme;
+        body.dataset.theme = theme;
+        localStorage.setItem("dex-settings-theme", theme);
+      };
+
+      const initialTheme = root.dataset.theme || "porcelain";
+      body.dataset.theme = initialTheme;
+      if (select) {
+        select.value = initialTheme;
+        select.addEventListener("change", () => applyTheme(select.value));
+      }
+    })();
+  </script>
+  <script>
+    (() => {
+      const items = [...document.querySelectorAll(".sidebar-item")];
+      const sections = items
+        .map((item) => {
+          const id = item.getAttribute("href");
+          return id ? document.querySelector(id) : null;
+        })
+        .filter(Boolean);
+
+      const setActive = (id) => {
+        items.forEach((item) => {
+          item.classList.toggle("is-active", item.getAttribute("href") === `#${id}`);
+        });
+      };
+
+      items.forEach((item) => {
+        item.addEventListener("click", () => {
+          const href = item.getAttribute("href");
+          if (href) {
+            setActive(href.slice(1));
+          }
+        });
+      });
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+          if (visible?.target?.id) {
+            setActive(visible.target.id);
+          }
+        },
+        {
+          rootMargin: "-20% 0px -60% 0px",
+          threshold: [0.2, 0.5, 0.8],
+        }
+      );
+
+      sections.forEach((section) => observer.observe(section));
+    })();
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" crossorigin="anonymous"></script>
+  <script defer src="./config.js"></script>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
