@@ -1,21 +1,14 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import { getViewerOrNull } from "./viewer";
 
 // Get company view for the authenticated user's domain
 export const myCompany = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
-
-    if (!user || !user.companyId) return null;
+    const viewer = await getViewerOrNull(ctx);
+    if (!viewer || !viewer.user.companyId) return null;
+    const user = viewer.user;
 
     const company = await ctx.db.get(user.companyId);
     if (!company) return null;

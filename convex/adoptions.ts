@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { getViewerOrNull, requireViewerForMutation } from "./viewer";
 
 // Record an adoption (requires auth)
 export const record = mutation({
@@ -8,21 +9,7 @@ export const record = mutation({
     diffSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found — register first");
-    }
+    const { user } = await requireViewerForMutation(ctx);
 
     // Find the diff
     const diff = await ctx.db
@@ -95,21 +82,7 @@ export const remove = mutation({
     diffSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const { user } = await requireViewerForMutation(ctx);
 
     const diff = await ctx.db
       .query("diffs")
@@ -145,21 +118,12 @@ export const remove = mutation({
 export const mine = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
-
-    if (!user) return [];
+    const viewer = await getViewerOrNull(ctx);
+    if (!viewer) return [];
 
     const adoptions = await ctx.db
       .query("adoptions")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q) => q.eq("userId", viewer.userId))
       .take(100);
 
     return adoptions

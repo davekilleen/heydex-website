@@ -1,133 +1,201 @@
 # heydex-website
 
-Marketing website and DexDiff platform for heydex.ai.
+Hosted web + backend home for `heydex.ai`.
 
-## Structure
+This repo owns the DexDiff hosted contract:
+- browser auth and registration
+- Dex Pi linking
+- review sessions and publish
+- public profiles and public diff browse
+- adoption metadata APIs
 
-```
-heydex-website/
-├── src/              # Main website (React + Vite)
-├── diff/             # DexDiff static pages
-├── connect/          # Connect page
-├── convex/           # Backend (Convex serverless)
-└── dist/             # Build output
-```
+It does **not** own the long-term portable `/diff-*` command runtime. That belongs in `dex-core`. `dex-pi` is reference material for the current Dex Pi bridge, not the final runtime owner.
+
+## Canonical Surfaces
+
+React-owned routes:
+- `/connect/`
+- `/diff/`
+- `/diff/profile/`
+- `/diff/review/`
+- `/diff/@:handle/`
+
+Static/editorial routes still served from repo HTML:
+- `/`
+- `/privacy/`
+- `/diff/community/`
+- `/diff/company/`
+- `/diff/love-letters/`
+- `/diff/roadmap/`
+- `/diff/welcome/`
+- `/diff/admin/`
+- `/diff/@dave/` snapshot
+
+Read `docs/ROUTES.md` before changing route ownership.
+
+## Actual Architecture
+
+Frontend:
+- Vite + React app mounted from `index.html`
+- Browser router handles the exact product paths above
+- unknown paths intentionally render nothing so static surfaces can own them
+- live edge routing is Caddy, mirrored in `ops/Caddyfile.heydex`
+
+Backend:
+- Convex auth + database in `convex/`
+- browser auth uses hosted OAuth providers
+- the website lives on `https://heydex.ai`
+- Convex HTTP actions are exposed on `https://api.heydex.ai`
+- Dex Pi auth uses `https://api.heydex.ai/api/connect/redeem` to exchange a short sign-in code for a **session token**
+- Dex Pi review publish uses that session token via `https://api.heydex.ai/api/review/create`
+
+Identity model:
+- Convex `tokenIdentifier` remains the canonical backend identity key
+- CLI clients no longer carry raw `tokenIdentifier`
+- mutations now resolve the viewer from server-side auth and sync `tokenIdentifier` on the stored user record when needed
+
+Read `docs/ARCHITECTURE.md` for the end-to-end flow.
 
 ## Development
 
-### Prerequisites
-
-- Node.js 18+
+Prereqs:
+- Node 18+
 - npm
 
-### Setup
+Env:
 
 ```bash
-# Install dependencies
-npm install
-
-# Start Convex dev server (watches convex/ directory)
-npm run convex:dev
-
-# In another terminal: start frontend dev server
-npm run dev
+VITE_CONVEX_URL=https://<your-convex-deployment>.convex.cloud
+CONVEX_DEPLOYMENT=dev:<your-deployment-name>
+CONVEX_URL=https://<your-convex-deployment>.convex.cloud
+CONVEX_SITE_URL=https://<your-convex-site>.convex.site
 ```
 
-The frontend will be available at `http://localhost:5173` (or next available port).
+Recommended local setup:
 
-### Convex Backend
+- `.env.local` is for normal local development
+- point it at the dev Convex deployment, not production
 
-The `convex/` directory contains the serverless backend for DexDiff:
-
-- **schema.ts** - Database tables (diffs, users, companies, adoptions, etc.)
-- **auth.ts** - Email + Google OAuth authentication
-- **diffs.ts** - Diff publishing, fetching, search
-- **users.ts** - User registration and profiles
-- **companies.ts** - Domain-based company grouping
-- **profiles.ts** - Author profile queries
-
-**Commands:**
+Example:
 
 ```bash
-# Start local dev server (auto-deploys to dev environment)
-npm run convex:dev
-
-# Deploy to production
-npm run convex:deploy
-
-# Open Convex dashboard
-npm run convex:dashboard
-```
-
-**Environment Variables:**
-
-Create `.env.local` (gitignored) with:
-
-```bash
-# Convex deployment
 CONVEX_DEPLOYMENT=dev:brave-ibex-877
 CONVEX_URL=https://brave-ibex-877.eu-west-1.convex.cloud
 CONVEX_SITE_URL=https://brave-ibex-877.eu-west-1.convex.site
-
-# For Vite frontend
 VITE_CONVEX_URL=https://brave-ibex-877.eu-west-1.convex.cloud
 ```
 
-## Deployment
+Do not point local Vite at production unless you explicitly want to test against live data.
 
-### Frontend (Static Pages)
-
-Deploy `/diff` and `/connect` pages to VPS:
+Run:
 
 ```bash
-./deploy.sh          # Deploy to production
-./deploy.sh --dry-run  # Preview changes
+npm install
+npm run convex:dev
+npm run dev
 ```
 
-This rsync's static HTML pages to the VPS at `heydex.ai/diff/`.
+Vite runs on `http://localhost:3000`.
 
-### Backend (Convex)
+## Deploy
+
+Hosted backend:
 
 ```bash
 npm run convex:deploy
 ```
 
-Deploys serverless functions to Convex cloud. Frontend and backend deploy independently.
-
-### Full Stack Build
+Hosted frontend routes on the VPS:
 
 ```bash
-# Build frontend
-npm run build
-
-# Deploy Convex backend
-npm run convex:deploy
-
-# Deploy static pages
 ./deploy.sh
+./deploy.sh --dry-run
+./deploy.sh --skip-tests
 ```
 
-## Migration Notes
+What `deploy.sh` actually does:
+1. Runs `./test-production.sh` unless skipped
+2. Builds the React app
+3. Creates separate `/diff/` and `/connect/` copies with route-scoped `<base href>` values
+4. Rsyncs those builds to staging
+5. Promotes the built app into both `/diff/` and `/connect/`
+6. Overlays the static editorial subdirectories listed in `deploy.sh`
+7. Runs `npm run db:ensure`
 
-**2026-04-05:** Consolidated DexDiff backend from `dexdiff-platform` repo into this repo. See `MIGRATION.md` for details.
+It does **not** deploy the root marketing landing.
 
-Previously, Convex backend lived in a separate `dexdiff-platform` repository. Now all heydex.ai surfaces (marketing, /diff, /connect) and their shared backend live in one repository.
+The live edge host is currently `ubuntu@57.129.134.24`.
 
-## Scripts Reference
+The checked-in mirror of the live route precedence is:
 
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Start Vite dev server (frontend) |
-| `npm run build` | Build frontend for production |
-| `npm run preview` | Preview production build locally |
-| `npm run convex:dev` | Start Convex dev server (backend) |
-| `npm run convex:deploy` | Deploy Convex to production |
-| `npm run convex:dashboard` | Open Convex web dashboard |
-| `./deploy.sh` | Deploy static pages to VPS |
+```text
+ops/Caddyfile.heydex
+```
 
-## Tech Stack
+Read `docs/DEPLOYMENT.md` before touching deploy behavior.
 
-- **Frontend:** React 18 + Vite 5 + React Router
-- **Backend:** Convex (TypeScript serverless)
-- **Auth:** Convex Auth (email + Google OAuth)
-- **Deployment:** VPS (nginx) + Convex Cloud
+## Validation
+
+Quick hosted smoke check:
+
+```bash
+./test-production.sh https://heydex.ai
+```
+
+This currently verifies:
+- `/connect/`
+- `/diff/`
+- `/diff/profile/`
+- `/diff/review/`
+- `/diff/@route-smoke/`
+
+`TEST_SETUP.md` covers the real remaining gaps.
+
+Browser E2E harness:
+
+```bash
+npm run e2e:install
+npm run e2e
+```
+
+The seeded Playwright flow expects:
+- `E2E_BASE_URL`
+- `E2E_API_BASE_URL`
+- `E2E_TEST_SECRET`
+
+The optional live Google auth smoke also expects:
+- `E2E_GOOGLE_EMAIL`
+- `E2E_GOOGLE_PASSWORD`
+- optional `E2E_GOOGLE_AUTH_STATE_PATH`
+
+Refresh the saved Google auth session:
+
+```bash
+npm run e2e:google:setup
+```
+
+Run the reusable Google auth smoke:
+
+```bash
+npm run e2e:google
+```
+
+## Important Files
+
+- `src/App.jsx` - canonical React route map
+- `src/pages/ConnectPage.jsx` - web auth + CLI linking UI
+- `src/pages/ReviewPage.jsx` - review/publish flow
+- `src/pages/PublicProfilePage.jsx` - dynamic public profile route
+- `convex/connect.ts` - code exchange + CLI session token issuance
+- `convex/review.ts` - review session lifecycle
+- `convex/users.ts` - registration/profile/account lifecycle
+- `convex/viewer.ts` - server-side viewer resolution helpers
+- `deploy.sh` - VPS deploy logic
+
+## Docs
+
+- `AGENTS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/ROUTES.md`
+- `docs/DEPLOYMENT.md`
+- `docs/KNOWN_DEBT.md`

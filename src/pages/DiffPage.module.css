@@ -1,0 +1,229 @@
+:root {
+  --bg-base: #0a0a0a;
+  --bg-surface: #111111;
+  --bg-elevated: #161616;
+  --border-default: #222222;
+  --border-strong: #333333;
+  --text-primary: #f0f0f0;
+  --text-secondary: #888888;
+  --text-tertiary: #555555;
+  --text-inverse: #0a0a0a;
+  --accent: #FF3870;
+  --accent-dim: #992244;
+  --accent-bg: #1f0f15;
+  --accent-border: #3d0a1e;
+  --error: #ef4444;
+  --success: #22c55e;
+  --font-mono: 'Geist Mono', 'Berkeley Mono', 'JetBrains Mono', monospace;
+  --font-sans: 'Geist', system-ui, sans-serif;
+}
+
+.page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 80px 24px;
+}
+
+.pageMeta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.pageTitle {
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.pageSubtitle {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+.filterLabel {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.clearFilter {
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent-border);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 80ms ease;
+}
+
+.clearFilter:hover {
+  background: var(--accent-bg);
+}
+
+.error {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--error);
+  padding: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 2px;
+  margin-bottom: 24px;
+}
+
+.emptyState {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 60px 24px;
+}
+
+.diffsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.diffCard {
+  display: block;
+  padding: 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 80ms ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.diffCard:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent);
+}
+
+.diffHeader {
+  margin-bottom: 12px;
+}
+
+.diffMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.authorInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.avatar.avatarSm {
+  width: 32px;
+  height: 32px;
+  font-size: 10px;
+}
+
+.authorHandle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.diffName {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.adoptCount {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.diffDescription {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 2px;
+  padding: 4px 8px;
+}
+
+.footer {
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-default);
+}
+
+.footer a {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 80ms ease;
+}
+
+.footer a:hover {
+  color: var(--accent-dim);
+}
+
+.loadingText {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 32px;
+  text-align: center;
+}

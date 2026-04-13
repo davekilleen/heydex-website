@@ -2,6 +2,14 @@ import Google from "@auth/core/providers/google";
 import Apple from "@auth/core/providers/apple";
 import { convexAuth } from "@convex-dev/auth/server";
 
+const GoogleProvider = Google({
+  authorization: {
+    params: {
+      prompt: "select_account",
+    },
+  },
+});
+
 // Microsoft Entra ID configured manually to work around profilePhotoSize bug in @auth/core 0.37.4
 const MicrosoftEntraId = {
   id: "microsoft-entra-id",
@@ -24,7 +32,7 @@ const MicrosoftEntraId = {
 };
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [Google, Apple, MicrosoftEntraId],
+  providers: [GoogleProvider, Apple, MicrosoftEntraId],
   jwt: {
     async customClaims(ctx, { userId }) {
       const user = await ctx.db.get(userId);

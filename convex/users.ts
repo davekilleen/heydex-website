@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
+import { getViewerOrNull, requireViewerForMutation } from "./viewer";
 
 // Blocklist of generic email providers that don't indicate a company
 const GENERIC_DOMAINS = new Set([
@@ -34,6 +34,15 @@ function isWorkDomain(domain: string): boolean {
   return domain.length > 0 && !GENERIC_DOMAINS.has(domain);
 }
 
+function getCanonicalTitle(input: {
+  title?: string;
+  role?: string;
+}): string | undefined {
+  if (input.title !== undefined) return input.title;
+  if (input.role !== undefined) return input.role;
+  return undefined;
+}
+
 // Register or complete profile for a user (called after auth).
 // @convex-dev/auth creates the user record during OAuth. This mutation
 // patches that record with profile fields (handle, role, company, etc.).
@@ -50,85 +59,82 @@ export const register = mutation({
     seniority: v.optional(v.string()),
     summary: v.optional(v.string()),
     linkedinUrl: v.optional(v.string()),
+    photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     source: v.optional(v.string()),
     marketingOptOut: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // getAuthUserId gives us the _id of the record @convex-dev/auth created
-    const userId = await getAuthUserId(ctx);
-    if (!userId) {
-      throw new Error("Not authenticated");
-    }
+    const { user, identity } = await requireViewerForMutation(ctx);
 
-    const user = await ctx.db.get(userId as Id<"users">);
-
-    if (user) {
-      // User exists — if they already have a handle, they're fully registered.
-      if (user.handle) {
-        return user._id;
-      }
-
-      // User exists from auth but hasn't completed profile — patch with profile fields.
-      const handleTaken = await ctx.db
-        .query("users")
-        .withIndex("by_handle", (q) => q.eq("handle", args.handle))
-        .unique();
-
-      if (handleTaken && handleTaken._id !== user._id) {
-        throw new Error("Handle already taken");
-      }
-
-      const email = user.email ?? "";
-      const rawDomain = extractDomain(email);
-      const domain = normalizeDomain(rawDomain);
-
-      let companyId = user.companyId;
-      if (!companyId && isWorkDomain(domain)) {
-        const existingCompany = await ctx.db
-          .query("companies")
-          .withIndex("by_domain", (q) => q.eq("domain", domain))
-          .unique();
-
-        if (existingCompany) {
-          companyId = existingCompany._id;
-          await ctx.db.patch(existingCompany._id, {
-            memberCount: existingCompany.memberCount + 1,
-          });
-        } else {
-          companyId = await ctx.db.insert("companies", {
-            domain,
-            displayName: args.company ?? undefined,
-            memberCount: 1,
-          });
-        }
-      }
-
-      await ctx.db.patch(user._id, {
-        domain,
-        displayName: args.displayName,
-        handle: args.handle,
-        role: args.role,
-        function_: args.function_,
-        company: args.company,
-        companyId,
-        title: args.title,
-        industry: args.industry,
-        seniority: args.seniority,
-        summary: args.summary,
-        linkedinUrl: args.linkedinUrl,
-        integrations: args.integrations,
-        source: args.source,
-        onboardingCompleted: true,
-        marketingOptOut: args.marketingOptOut ?? false,
-      });
-
+    // User exists — if they already have a handle, they're fully registered.
+    if (user.handle) {
       return user._id;
     }
 
-    // No user found at all — this shouldn't happen with @convex-dev/auth
-    // (it creates the record during OAuth), but handle it as a safety net.
-    throw new Error("User record not found — please sign out and sign in again");
+    // User exists from auth but hasn't completed profile — patch with profile fields.
+    const handleTaken = await ctx.db
+      .query("users")
+      .withIndex("by_handle", (q) => q.eq("handle", args.handle))
+      .unique();
+
+    if (handleTaken && handleTaken._id !== user._id) {
+      throw new Error("Handle already taken");
+    }
+
+    const email = user.email ?? identity.email ?? "";
+    const rawDomain = extractDomain(email);
+    const domain = normalizeDomain(rawDomain);
+    const canonicalTitle = getCanonicalTitle(args);
+    const canonicalPhotoUrl = args.photoUrl ?? user.image;
+
+    let companyId = user.companyId;
+    if (!companyId && isWorkDomain(domain)) {
+      const existingCompany = await ctx.db
+        .query("companies")
+        .withIndex("by_domain", (q) => q.eq("domain", domain))
+        .unique();
+
+      if (existingCompany) {
+        companyId = existingCompany._id;
+        await ctx.db.patch(existingCompany._id, {
+          memberCount: existingCompany.memberCount + 1,
+        });
+      } else {
+        companyId = await ctx.db.insert("companies", {
+          domain,
+          displayName: args.company ?? undefined,
+          memberCount: 1,
+        });
+      }
+    }
+
+    await ctx.db.patch(user._id, {
+      email: user.email ?? identity.email,
+      name: user.name ?? identity.name ?? args.displayName,
+      domain,
+      displayName: args.displayName,
+      handle: args.handle,
+      role: canonicalTitle,
+      function_: args.function_,
+      company: args.company,
+      companyId,
+      title: canonicalTitle,
+      industry: args.industry,
+      seniority: args.seniority,
+      summary: args.summary,
+      linkedinUrl: args.linkedinUrl,
+      photoUrl: canonicalPhotoUrl,
+      integrations: args.integrations,
+      source: args.source,
+      onboardingCompleted: true,
+      marketingOptOut: args.marketingOptOut ?? false,
+      isPublic: false, // Private by default - user must explicitly make public
+      visibility: "private",
+      tokenIdentifier: identity.tokenIdentifier,
+    });
+
+    return user._id;
   },
 });
 
@@ -155,24 +161,43 @@ export const checkHandle = query({
   },
 });
 
+// Check multiple handle suggestions and return only availability metadata.
+export const checkHandles = query({
+  args: { handles: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const uniqueHandles = [...new Set(args.handles.map((handle) => handle.trim().toLowerCase()))]
+      .filter((handle) => handle.length >= 2);
+
+    const results = await Promise.all(
+      uniqueHandles.map(async (handle) => {
+        const existing = await ctx.db
+          .query("users")
+          .withIndex("by_handle", (q) => q.eq("handle", handle))
+          .unique();
+        return {
+          handle,
+          available: existing === null,
+        };
+      })
+    );
+
+    return results;
+  },
+});
+
 // Get current authenticated user
 export const me = query({
   args: {},
   handler: async (ctx) => {
-    // getAuthUserId extracts the user ID directly from the JWT subject claim.
-    // This is the _id of the record that @convex-dev/auth created in the users table.
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId as Id<"users">);
-    if (!user) return null;
+    const viewer = await getViewerOrNull(ctx);
+    if (!viewer) return null;
 
     // Only return the user if they've completed profile setup (have a handle).
     // If they only have the auth-created stub, return null so the frontend
     // shows the registration/profile-completion flow.
-    if (!user.handle) return null;
+    if (!viewer.user.handle) return null;
 
-    return user;
+    return viewer.user;
   },
 });
 
@@ -192,7 +217,7 @@ export const syncToken = mutation({
 });
 
 // Admin: Delete user by email (for testing/maintenance)
-export const adminDeleteByEmail = mutation({
+export const adminDeleteByEmail = internalMutation({
   args: { email: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -211,7 +236,7 @@ export const adminDeleteByEmail = mutation({
 });
 
 // Admin: Delete user by handle (for testing/maintenance)
-export const adminDeleteByHandle = mutation({
+export const adminDeleteByHandle = internalMutation({
   args: { handle: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -272,6 +297,15 @@ async function deleteUserData(ctx: any, user: any) {
     }
   }
 
+  // Delete auth accounts
+  const authAccounts = await ctx.db
+    .query("authAccounts")
+    .filter((q) => q.eq(q.field("userId"), user._id))
+    .collect();
+  for (const account of authAccounts) {
+    await ctx.db.delete(account._id);
+  }
+
   // Delete user
   await ctx.db.delete(user._id);
 }
@@ -293,28 +327,17 @@ export const updateProfile = mutation({
     integrations: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const { user } = await requireViewerForMutation(ctx);
 
     const updates: Record<string, unknown> = {};
+    const canonicalTitle = getCanonicalTitle(args);
     if (args.displayName !== undefined) updates.displayName = args.displayName;
-    if (args.role !== undefined) updates.role = args.role;
     if (args.function_ !== undefined) updates.function_ = args.function_;
     if (args.company !== undefined) updates.company = args.company;
-    if (args.title !== undefined) updates.title = args.title;
+    if (canonicalTitle !== undefined) {
+      updates.title = canonicalTitle;
+      updates.role = canonicalTitle;
+    }
     if (args.industry !== undefined) updates.industry = args.industry;
     if (args.seniority !== undefined) updates.seniority = args.seniority;
     if (args.summary !== undefined) updates.summary = args.summary;
@@ -331,21 +354,7 @@ export const updateProfile = mutation({
 export const deleteAccount = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const { user } = await requireViewerForMutation(ctx);
 
     // Delete all adoptions by this user
     const adoptions = await ctx.db
@@ -388,9 +397,56 @@ export const deleteAccount = mutation({
       }
     }
 
+    // Delete auth accounts associated with this user
+    const authAccounts = await ctx.db
+      .query("authAccounts")
+      .filter((q) => q.eq(q.field("userId"), user._id))
+      .collect();
+    for (const account of authAccounts) {
+      await ctx.db.delete(account._id);
+    }
+
     // Delete the user record
     await ctx.db.delete(user._id);
 
     return { deleted: true };
+  },
+});
+
+export const setVisibility = mutation({
+  args: {
+    visibility: v.union(
+      v.literal("private"),
+      v.literal("colleagues"),
+      v.literal("public")
+    ),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireViewerForMutation(ctx);
+
+    await ctx.db.patch(user._id, {
+      visibility: args.visibility,
+      isPublic: args.visibility === "public",
+    });
+
+    return { visibility: args.visibility };
+  },
+});
+
+// Backward-compatible wrapper for existing callers.
+export const togglePublic = mutation({
+  args: { isPublic: v.boolean() },
+  handler: async (ctx, args) => {
+    const { user } = await requireViewerForMutation(ctx);
+
+    await ctx.db.patch(user._id, {
+      visibility: args.isPublic ? "public" : "private",
+      isPublic: args.isPublic,
+    });
+
+    return {
+      visibility: args.isPublic ? "public" : "private",
+      isPublic: args.isPublic,
+    };
   },
 });

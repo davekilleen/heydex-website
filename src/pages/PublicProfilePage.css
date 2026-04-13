@@ -1,0 +1,421 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Manrope:wght@500;700;800&display=swap');
+
+.public-profile-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #070709 0%, #0b0b10 100%);
+  color: #faf7fb;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.public-profile-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(7, 7, 9, 0.92);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+.public-profile-nav-inner,
+.public-profile-shell {
+  max-width: 1456px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.public-profile-nav-inner {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.public-profile-logo,
+.public-profile-link,
+.public-profile-linkedin,
+.public-profile-cta,
+.public-profile-cta-big,
+.public-profile-command-link {
+  text-decoration: none;
+}
+
+.public-profile-logo {
+  color: #faf7fb;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.public-profile-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.public-profile-link {
+  color: #a69ca7;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.public-profile-cta,
+.public-profile-cta-big,
+.public-profile-command-action {
+  border-radius: 0;
+  font: inherit;
+}
+
+.public-profile-cta,
+.public-profile-cta-big {
+  background: #ff4fa6;
+  color: #170912;
+  font-weight: 700;
+}
+
+.public-profile-cta {
+  padding: 10px 16px;
+}
+
+.public-profile-shell {
+  padding-top: 48px;
+  padding-bottom: 80px;
+}
+
+.public-profile-loading {
+  padding: 120px 0;
+  color: #cbc2ca;
+  text-align: center;
+}
+
+.public-profile-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.public-profile-hero-card,
+.public-profile-adopt-card,
+.public-profile-section,
+.public-profile-diff-card {
+  background: #0f0f14;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+}
+
+.public-profile-hero-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 32px;
+}
+
+.public-profile-identity {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.public-profile-photo,
+.public-profile-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.public-profile-photo {
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.public-profile-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 79, 166, 0.3), rgba(255, 79, 166, 0.8));
+  color: white;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.8rem;
+}
+
+.public-profile-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.public-profile-meta,
+.public-profile-label,
+.public-profile-diff-top span,
+.public-profile-side-note {
+  color: #aa94a3;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.public-profile-copy h1 {
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 2.8rem;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.public-profile-role,
+.public-profile-summary,
+.public-profile-sidecard p,
+.public-profile-section-note,
+.public-profile-diff-card p,
+.public-profile-cta-section p {
+  color: #cbc2ca;
+  line-height: 1.65;
+}
+
+.public-profile-role,
+.public-profile-summary {
+  margin: 0;
+}
+
+.public-profile-linkedin {
+  align-self: flex-start;
+  color: #e06399;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+}
+
+.public-profile-sidecard {
+  width: 280px;
+  flex-shrink: 0;
+  padding-left: 24px;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.public-profile-sidecard strong {
+  font-size: 1.1rem;
+}
+
+.public-profile-adopt-card,
+.public-profile-section {
+  padding: 28px;
+}
+
+.public-profile-adopt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.public-profile-adopt-card h2 {
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.6rem;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.public-profile-adopt-copy {
+  margin: 0;
+  color: #cbc2ca;
+  line-height: 1.65;
+}
+
+.public-profile-command-surface {
+  display: grid;
+  gap: 10px;
+}
+
+.public-profile-command-label {
+  color: #aa94a3;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.public-profile-command-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 79, 166, 0.25);
+  background: rgba(255, 79, 166, 0.05);
+}
+
+.public-profile-command-text {
+  color: #ff8aba;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.public-profile-command-action {
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #faf7fb;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.public-profile-command-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.public-profile-command-status,
+.public-profile-adopted {
+  flex-shrink: 0;
+  padding: 10px 12px;
+  background: rgba(122, 225, 143, 0.08);
+  border: 1px solid rgba(122, 225, 143, 0.22);
+  color: #7ae18f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  border-radius: 999px;
+}
+
+.public-profile-love-letter {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.public-profile-quote-feature {
+  margin: 0;
+  padding: 24px;
+  border-radius: 14px;
+  background: rgba(255, 79, 166, 0.05);
+  border: 1px solid rgba(255, 79, 166, 0.18);
+  font-family: 'Manrope', sans-serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+.public-profile-section-note {
+  margin: 0;
+}
+
+.public-profile-diffs {
+  display: grid;
+  gap: 16px;
+}
+
+.public-profile-diff-card {
+  padding: 24px;
+}
+
+.public-profile-diff-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.public-profile-diff-top h2 {
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.55rem;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+.public-profile-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.public-profile-tags span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  border-radius: 999px;
+}
+
+.public-profile-tags span {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #b8afb8;
+}
+
+.public-profile-cta-section {
+  margin-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+}
+
+.public-profile-cta-section h2 {
+  margin: 8px 0 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 2rem;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.public-profile-cta-section p {
+  margin: 10px 0 0;
+  max-width: 760px;
+}
+
+.public-profile-cta-big {
+  flex-shrink: 0;
+  padding: 16px 22px;
+}
+
+@media (max-width: 980px) {
+  .public-profile-hero-card,
+  .public-profile-cta-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .public-profile-sidecard {
+    width: auto;
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 20px;
+  }
+}
+
+@media (max-width: 720px) {
+  .public-profile-nav-inner,
+  .public-profile-shell {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .public-profile-identity,
+  .public-profile-diff-top,
+  .public-profile-command-row {
+    flex-direction: column;
+  }
+
+  .public-profile-command-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}

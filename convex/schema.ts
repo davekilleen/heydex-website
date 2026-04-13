@@ -28,6 +28,12 @@ export default defineSchema({
     onboardingCompleted: v.optional(v.boolean()),
     marketingOptOut: v.optional(v.boolean()),
     welcomeEmailSent: v.optional(v.boolean()),
+    isPublic: v.optional(v.boolean()),
+    visibility: v.optional(v.union(
+      v.literal("private"),
+      v.literal("colleagues"),
+      v.literal("public")
+    )),
     tokenIdentifier: v.optional(v.string()),
   })
     .index("by_handle", ["handle"])
@@ -90,11 +96,55 @@ export default defineSchema({
   connectionCodes: defineTable({
     code: v.string(),
     userId: v.id("users"),
-    userHandle: v.string(),
+    userHandle: v.optional(v.string()),
     expiresAt: v.number(),
     redeemed: v.boolean(),
   })
     .index("by_code", ["code"]),
+
+  cliSessions: defineTable({
+    sessionToken: v.string(),
+    userId: v.id("users"),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    lastUsedAt: v.number(),
+  })
+    .index("by_sessionToken", ["sessionToken"])
+    .index("by_userId", ["userId"]),
+
+  codeApprovals: defineTable({
+    code: v.string(),
+    approved: v.boolean(),
+    timestamp: v.number(),
+  })
+    .index("by_code", ["code"]),
+
+  reviewSessions: defineTable({
+    sessionCode: v.string(),
+    userId: v.id("users"),
+    userHandle: v.optional(v.string()),
+    diffsData: v.array(v.object({
+      diffId: v.string(),
+      name: v.string(),
+      description: v.string(),
+      methodology: v.string(),
+      tags: v.array(v.string()),
+      roles: v.array(v.string()),
+      integrations: v.array(v.string()),
+    })),
+    visibility: v.optional(v.union(
+      v.literal("private"),
+      v.literal("colleagues"),
+      v.literal("public")
+    )),
+    loveLetterDraft: v.optional(v.string()),
+    makePublic: v.boolean(),
+    published: v.boolean(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_sessionCode", ["sessionCode"])
+    .index("by_userId", ["userId"]),
 
   loveLetters: defineTable({
     userId: v.id("users"),

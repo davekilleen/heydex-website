@@ -1,5 +1,7 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
+import { sanitizeContent } from "./sanitization";
+import { requireViewerForMutation } from "./viewer";
 
 // Fetch a single diff by @author/diff-id
 export const get = query({
@@ -131,9 +133,9 @@ export const publishViaCode = mutation({
 
     if (existing) {
       await ctx.db.patch(existing._id, {
-        name: args.name,
-        description: args.description,
-        methodology: args.methodology,
+        name: sanitizeContent(args.name),
+        description: sanitizeContent(args.description),
+        methodology: sanitizeContent(args.methodology),
         tags: args.tags,
         roles: args.roles,
         integrations: args.integrations,
@@ -147,9 +149,9 @@ export const publishViaCode = mutation({
       diffId: args.diffId,
       authorId: user._id,
       authorHandle: args.userHandle,
-      name: args.name,
-      description: args.description,
-      methodology: args.methodology,
+      name: sanitizeContent(args.name),
+      description: sanitizeContent(args.description),
+      methodology: sanitizeContent(args.methodology),
       tags: args.tags,
       roles: args.roles,
       integrations: args.integrations,
@@ -176,20 +178,9 @@ export const publish = mutation({
     basedOn: v.optional(v.id("diffs")),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found — register first");
+    const { user } = await requireViewerForMutation(ctx);
+    if (!user.handle) {
+      throw new Error("Complete registration first");
     }
 
     // Check for existing diff with same ID by this author
@@ -203,9 +194,9 @@ export const publish = mutation({
     if (existing) {
       // Update existing diff
       await ctx.db.patch(existing._id, {
-        name: args.name,
-        description: args.description,
-        methodology: args.methodology,
+        name: sanitizeContent(args.name),
+        description: sanitizeContent(args.description),
+        methodology: sanitizeContent(args.methodology),
         tags: args.tags,
         roles: args.roles,
         integrations: args.integrations,
@@ -221,9 +212,9 @@ export const publish = mutation({
       diffId: args.diffId,
       authorId: user._id,
       authorHandle: user.handle,
-      name: args.name,
-      description: args.description,
-      methodology: args.methodology,
+      name: sanitizeContent(args.name),
+      description: sanitizeContent(args.description),
+      methodology: sanitizeContent(args.methodology),
       tags: args.tags,
       roles: args.roles,
       integrations: args.integrations,
@@ -240,7 +231,7 @@ export const publish = mutation({
 
 // Migration helper: Insert a diff directly (for dev→prod migration)
 // Only callable by admin/backend scripts
-export const migrateFromDev = mutation({
+export const migrateFromDev = internalMutation({
   args: {
     diffId: v.string(),
     authorHandle: v.string(),

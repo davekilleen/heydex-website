@@ -1,0 +1,9 @@
+{
+  "diffId": "meeting-intelligence",
+  "name": "Meeting Intelligence",
+  "description": "Turn recordings into structured notes, auto-update contact pages, catch missed commitments",
+  "methodology": "Records meetings, transcribes with Granola, extracts action items, updates contact vault pages",
+  "tags": ["meetings", "notes", "crm"],
+  "roles": ["Sales", "Customer Success"],
+  "integrations": ["granola", "calendar"]
+}

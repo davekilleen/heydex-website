@@ -1,0 +1,332 @@
+.hadex-page {
+  min-height: 100vh;
+  padding: 40px 32px 72px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 79, 166, 0.14), transparent 24%),
+    radial-gradient(circle at top right, rgba(120, 98, 255, 0.12), transparent 20%),
+    #070709;
+  color: #f6f3f6;
+  font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+}
+
+.hadex-header {
+  max-width: 1200px;
+  margin: 0 auto 24px;
+  padding: 24px 0 8px;
+}
+
+.hadex-header-label,
+.hadex-eyebrow,
+.hadex-panel-label,
+.hadex-sidecard-label {
+  margin-bottom: 12px;
+  color: #f2a0cf;
+  font-family:
+    "Space Mono",
+    monospace;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hadex-header h1 {
+  margin: 0 0 12px;
+  font-family:
+    Geist,
+    sans-serif;
+  font-size: clamp(42px, 7vw, 72px);
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+
+.hadex-header p {
+  max-width: 760px;
+  margin: 0;
+  color: #c0b7bf;
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+.hadex-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+  max-width: 1200px;
+  margin: 0 auto 24px;
+  padding: 14px;
+  background: rgba(12, 12, 14, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+}
+
+.hadex-tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f6f3f6;
+  font:
+    600 14px/1 Geist,
+    sans-serif;
+  cursor: pointer;
+}
+
+.hadex-tab.is-active {
+  background: #ff4fa6;
+  color: #111111;
+}
+
+.hadex-concept {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 32px;
+  background: rgba(16, 16, 18, 0.72);
+}
+
+.hadex-concept--credibility {
+  background: linear-gradient(180deg, rgba(244, 239, 232, 0.96), rgba(236, 228, 219, 0.94));
+  color: #151214;
+}
+
+.hadex-concept--approved {
+  background:
+    radial-gradient(circle at top right, rgba(255, 79, 166, 0.14), transparent 24%),
+    radial-gradient(circle at top left, rgba(117, 99, 255, 0.12), transparent 22%),
+    linear-gradient(180deg, rgba(12, 12, 14, 0.96), rgba(8, 8, 10, 0.94));
+}
+
+.hadex-concept--credibility .hadex-eyebrow,
+.hadex-concept--credibility .hadex-panel-label,
+.hadex-concept--credibility .hadex-sidecard-label {
+  color: #b11362;
+}
+
+.hadex-concept--network {
+  background: linear-gradient(180deg, rgba(18, 11, 20, 0.96), rgba(14, 9, 16, 0.94));
+}
+
+.hadex-concept--os {
+  background: linear-gradient(180deg, rgba(11, 14, 20, 0.96), rgba(8, 10, 14, 0.94));
+}
+
+.hadex-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+.hadex-hero-copy h1 {
+  margin: 0 0 14px;
+  font-family:
+    Geist,
+    sans-serif;
+  font-size: clamp(48px, 8vw, 90px);
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+}
+
+.hadex-hero-copy p,
+.hadex-panel p,
+.hadex-sidecard p {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.65;
+  color: inherit;
+  opacity: 0.82;
+}
+
+.hadex-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.hadex-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 18px;
+  font:
+    700 14px/1 Geist,
+    sans-serif;
+  cursor: pointer;
+}
+
+.hadex-btn--primary {
+  background: #111111;
+  color: #fff7fb;
+}
+
+.hadex-btn--ghost {
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.hadex-btn--secondary {
+  background: #ff4fa6;
+  color: #111111;
+}
+
+.hadex-concept--credibility .hadex-btn--primary {
+  background: #111111;
+  color: #fff8f2;
+}
+
+.hadex-concept--credibility .hadex-btn--ghost {
+  border-color: rgba(17, 17, 17, 0.12);
+}
+
+.hadex-sidecard,
+.hadex-panel {
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.hadex-concept--credibility .hadex-sidecard,
+.hadex-concept--credibility .hadex-panel {
+  border-color: rgba(17, 17, 17, 0.08);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.hadex-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.hadex-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: rgba(255, 79, 166, 0.14);
+  font:
+    600 13px/1 Geist,
+    sans-serif;
+}
+
+.hadex-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.hadex-panel h2 {
+  margin: 0 0 10px;
+  font-family:
+    Geist,
+    sans-serif;
+  font-size: 40px;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.hadex-list {
+  margin: 18px 0 0;
+  padding-left: 18px;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.hadex-list li + li {
+  margin-top: 10px;
+}
+
+.hadex-before-after {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.hadex-state {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.hadex-state span {
+  font:
+    600 12px/1 "Space Mono",
+    monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hadex-state strong {
+  font:
+    600 18px/1.35 Inter,
+    sans-serif;
+}
+
+.hadex-state--before {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hadex-state--after {
+  background: #ff4fa6;
+  color: #111111;
+}
+
+.hadex-concept--credibility .hadex-state--before {
+  background: #f2e5db;
+}
+
+.hadex-mini-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.hadex-mini-list span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  font:
+    600 13px/1 Geist,
+    sans-serif;
+}
+
+.hadex-concept--credibility .hadex-mini-list span {
+  background: rgba(17, 17, 17, 0.06);
+}
+
+@media (max-width: 900px) {
+  .hadex-page {
+    padding: 24px 16px 56px;
+  }
+
+  .hadex-tabs,
+  .hadex-hero,
+  .hadex-grid,
+  .hadex-before-after {
+    grid-template-columns: 1fr;
+  }
+
+  .hadex-tabs {
+    flex-wrap: wrap;
+  }
+
+  .hadex-concept {
+    padding: 18px;
+  }
+}

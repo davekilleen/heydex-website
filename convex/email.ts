@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalAction, internalMutation, internalQuery, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
+import { requireViewerForMutation } from "./viewer";
 
 export const getUser = internalQuery({
   args: { userId: v.id("users") },
@@ -140,21 +141,7 @@ export const sendWelcome = internalAction({
 export const requestWelcomeEmail = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const { user } = await requireViewerForMutation(ctx);
 
     await ctx.scheduler.runAfter(0, internal.email.sendWelcome, {
       userId: user._id,

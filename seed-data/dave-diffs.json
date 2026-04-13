@@ -1,0 +1,77 @@
+{
+  "user": {
+    "handle": "dave",
+    "email": "dave@pendo.io",
+    "displayName": "Dave Killeen",
+    "role": "Field CPO, EMEA",
+    "function": "Product",
+    "company": "Pendo",
+    "linkedinUrl": "https://linkedin.com/in/davekilleen",
+    "integrations": ["slack", "gmail", "calendar", "granola", "salesforce"]
+  },
+  "diffs": [
+    {
+      "diffId": "meeting-intelligence",
+      "name": "Meeting Intelligence",
+      "description": "Turn recordings into structured notes, auto-update contact pages, catch missed commitments",
+      "methodology": "Records meetings, transcribes with Granola, extracts action items, updates contact vault pages, flags uncommitted deliverables. Role-adaptive: AEs get deal stage updates, PMs get feature requests, CSMs get renewal risk signals.",
+      "tags": ["meetings", "notes", "crm", "granola"],
+      "roles": ["Sales", "Customer Success", "Product", "Account Executive"],
+      "integrations": ["granola", "calendar", "vault"]
+    },
+    {
+      "diffId": "deal-intelligence",
+      "name": "Deal Intelligence",
+      "description": "Portfolio health monitoring, transcript-based coaching, continuous account enrichment",
+      "methodology": "Scans deal notes, extracts champion strength, budget signals, competitive threats. Generates coaching suggestions for deal review prep. Role-adaptive: Field reps get territory health, SEs get technical blockers, managers get pipeline risk.",
+      "tags": ["sales", "deals", "coaching", "pipeline"],
+      "roles": ["Sales", "Account Executive", "Sales Engineer", "Sales Manager"],
+      "integrations": ["salesforce", "vault", "calendar"]
+    },
+    {
+      "diffId": "relationship-compounding",
+      "name": "Relationship Compounding",
+      "description": "Automatic cross-referencing, context-aware message drafting, stakeholder updates from real activity",
+      "methodology": "Links contact mentions across vault, surfaces shared history before calls, drafts follow-ups with project context. Role-adaptive: CSMs get renewal touchpoints, AEs get upsell timing, recruiters get candidate warmth scores.",
+      "tags": ["relationships", "crm", "networking", "context"],
+      "roles": ["Customer Success", "Account Executive", "Recruiting", "Partnerships"],
+      "integrations": ["vault", "linkedin", "gmail"]
+    },
+    {
+      "diffId": "weekly-operating-rhythm",
+      "name": "Weekly Operating Rhythm",
+      "description": "Deal-first planning, parallel intel pipelines, pillar balance tracking",
+      "methodology": "Monday review generates deal-first weekly plan, not task lists. Parallel agents run intel loops (competitive news, product updates, exec mentions). Tracks time across strategic pillars. Role-adaptive: PMs get feature velocity, ops get process health, execs get team balance.",
+      "tags": ["planning", "productivity", "strategy", "weekly-review"],
+      "roles": ["Executive", "Product Manager", "Sales Leader", "Operations"],
+      "integrations": ["vault", "calendar", "slack"]
+    },
+    {
+      "diffId": "accountability-cracks",
+      "name": "Accountability & Cracks Detection",
+      "description": "Scan for slipped commitments, project health dashboards, career evidence capture",
+      "methodology": "Daily scan for commitments made in meetings vs. delivered. Flags cracks (unmet promises, delayed follow-ups). Auto-captures wins for performance reviews. Role-adaptive: ICs get personal accountability, managers get team health, execs get organizational risk.",
+      "tags": ["accountability", "commitments", "performance", "risk"],
+      "roles": ["Individual Contributor", "Manager", "Executive", "Project Manager"],
+      "integrations": ["vault", "calendar", "email"]
+    },
+    {
+      "diffId": "thought-leadership",
+      "name": "Thought Leadership Pipeline",
+      "description": "Podcast-to-social, competitive intel scanning, 22-agent content review",
+      "methodology": "Transcribes podcast appearances, extracts quotable insights, generates LinkedIn posts. Scans competitor content for positioning gaps. 22-agent team reviews drafts for clarity, evidence, narrative. Role-adaptive: Founders get brand positioning, PMs get product narrative, sales leaders get battlecards.",
+      "tags": ["content", "marketing", "social", "competitive-intel"],
+      "roles": ["Founder", "Marketing", "Product Marketing", "Sales Leader"],
+      "integrations": ["linkedin", "vault", "web-scraping"]
+    },
+    {
+      "diffId": "self-improving-system",
+      "name": "Self-Improving System",
+      "description": "Learning capture, pattern detection, mistake prevention, usage analytics",
+      "methodology": "Logs every Dex interaction, clusters similar queries, surfaces patterns ('you ask about deal X every Monday'). Flags repeated mistakes, suggests workflow improvements. Role-adaptive: Power users get efficiency gains, new users get guided setup, admins get adoption metrics.",
+      "tags": ["analytics", "learning", "optimization", "meta"],
+      "roles": ["Power User", "Admin", "All Roles"],
+      "integrations": ["vault", "analytics", "self"]
+    }
+  ]
+}

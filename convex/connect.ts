@@ -1,6 +1,14 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { mutation, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { requireViewerForMutation } from "./viewer";
+
+const CLI_CODE_TTL_MS = 30 * 60 * 1000;
+const CLI_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function generateCliSessionToken(): string {
+  return crypto.randomUUID().replace(/-/g, "");
+}
 
 // Generate a one-time connection code for the CLI device flow.
 // Called from the web after the user logs in.
@@ -8,21 +16,7 @@ import { internal } from "./_generated/api";
 export const generateCode = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found — register first");
-    }
+    const { user } = await requireViewerForMutation(ctx);
 
     // Generate a random 6-character alphanumeric code
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I/O/0/1 to avoid confusion
@@ -31,19 +25,19 @@ export const generateCode = mutation({
       code += chars[Math.floor(Math.random() * chars.length)];
     }
 
-    // Store the code with 5-minute expiry
+    // Store the code with 30-minute expiry
     await ctx.db.insert("connectionCodes", {
       code,
       userId: user._id,
       userHandle: user.handle,
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      expiresAt: Date.now() + CLI_CODE_TTL_MS,
       redeemed: false,
     });
 
-    // Schedule cleanup after 5 minutes
-    await ctx.scheduler.runAfter(5 * 60 * 1000, internal.connect.expireCode, { code });
+    // Schedule cleanup after 30 minutes
+    await ctx.scheduler.runAfter(CLI_CODE_TTL_MS, internal.connect.expireCode, { code });
 
-    return { code, expiresInSeconds: 300 };
+    return { code, expiresInSeconds: CLI_CODE_TTL_MS / 1000 };
   },
 });
 
@@ -79,11 +73,45 @@ export const redeemCode = mutation({
       return { error: "User not found" };
     }
 
+    const sessionToken = generateCliSessionToken();
+    await ctx.db.insert("cliSessions", {
+      sessionToken,
+      userId: user._id,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + CLI_SESSION_TTL_MS,
+      lastUsedAt: Date.now(),
+    });
+
     return {
-      handle: user.handle,
+      handle: user.handle ?? null,
       displayName: user.displayName,
-      tokenIdentifier: user.tokenIdentifier,
+      sessionToken,
+      email: user.email,
     };
+  },
+});
+
+export const resolveCliSession = internalMutation({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    const session = await ctx.db
+      .query("cliSessions")
+      .withIndex("by_sessionToken", (q) =>
+        q.eq("sessionToken", args.sessionToken)
+      )
+      .unique();
+
+    if (!session) {
+      return null;
+    }
+
+    if (Date.now() > session.expiresAt) {
+      await ctx.db.delete(session._id);
+      return null;
+    }
+
+    await ctx.db.patch(session._id, { lastUsedAt: Date.now() });
+    return await ctx.db.get(session.userId);
   },
 });
 

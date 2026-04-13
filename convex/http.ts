@@ -5,6 +5,55 @@ import { auth } from "./auth";
 
 const http = httpRouter();
 
+// Simple in-memory rate limiter (resets on deploy)
+const redemptionAttempts = new Map<string, number[]>();
+const TEST_SECRET_HEADER = "x-heydex-test-secret";
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const attempts = redemptionAttempts.get(ip) || [];
+  
+  // Remove attempts older than 1 minute
+  const recentAttempts = attempts.filter(t => now - t < 60000);
+  
+  if (recentAttempts.length >= 10) {
+    return false; // Rate limited
+  }
+  
+  recentAttempts.push(now);
+  redemptionAttempts.set(ip, recentAttempts);
+  return true;
+}
+
+function jsonResponse(body: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      ...extraHeaders,
+    },
+  });
+}
+
+function getConfiguredTestSecret() {
+  return process.env.E2E_TEST_SECRET?.trim() || "";
+}
+
+function authorizeTestHarness(req: Request) {
+  const configuredSecret = getConfiguredTestSecret();
+  if (!configuredSecret) {
+    return jsonResponse({ error: "Not found" }, 404);
+  }
+
+  const providedSecret = req.headers.get(TEST_SECRET_HEADER);
+  if (providedSecret !== configuredSecret) {
+    return jsonResponse({ error: "Forbidden" }, 403);
+  }
+
+  return null;
+}
+
 // Convex Auth routes (sign-in, sign-out, OAuth callbacks)
 auth.addHttpRoutes(http);
 
@@ -70,13 +119,36 @@ http.route({
       );
     }
 
-    return new Response(JSON.stringify(profile), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    return jsonResponse(profile);
+  }),
+});
+
+// GET /api/profile-bundle?handle=dave — fetch the full profile clone payload
+// Used by the CLI: /diff-adopt-profile @handle
+http.route({
+  path: "/api/profile-bundle",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const url = new URL(req.url);
+    const handle = url.searchParams.get("handle");
+
+    if (!handle) {
+      return new Response(
+        JSON.stringify({ error: "Missing handle parameter" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const bundle = await ctx.runQuery(api.profiles.getBundle, { handle });
+
+    if (!bundle) {
+      return new Response(
+        JSON.stringify({ error: "Profile bundle not found" }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    return jsonResponse(bundle);
   }),
 });
 
@@ -90,13 +162,7 @@ http.route({
 
     const diffs = await ctx.runQuery(api.diffs.list, { role });
 
-    return new Response(JSON.stringify(diffs), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    return jsonResponse(diffs);
   }),
 });
 
@@ -106,6 +172,16 @@ http.route({
   path: "/api/connect/redeem",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
+    // Get IP from headers
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    
+    if (!checkRateLimit(ip)) {
+      return new Response(
+        JSON.stringify({ error: "Too many attempts. Try again in 1 minute." }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const body = await req.json();
     const code = body?.code;
 
@@ -125,13 +201,201 @@ http.route({
       );
     }
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
+    return jsonResponse(result);
+  }),
+});
+
+// POST /api/review/create - Create review session
+http.route({
+  path: "/api/review/create",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const body = await req.json();
+    const { sessionToken, tokenIdentifier, diffs } = body ?? {};
+
+    if ((!sessionToken && !tokenIdentifier) || !diffs) {
+      return new Response(
+        JSON.stringify({ error: "Missing sessionToken or diffs" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    let result;
+    try {
+      result = await ctx.runMutation(api.review.createSession, {
+        sessionToken,
+        tokenIdentifier,
+        diffs,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to create review session";
+      if (message.includes("User not found")) {
+        return new Response(JSON.stringify({ error: "Invalid or expired session" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ error: message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return jsonResponse(result);
+  }),
+});
+
+// GET /api/review/status - Check if session has been published
+http.route({
+  path: "/api/review/status",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const url = new URL(req.url);
+    const session = url.searchParams.get("session");
+
+    if (!session) {
+      return new Response(
+        JSON.stringify({ error: "Missing session parameter" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const result = await ctx.runQuery(api.review.checkPublished, {
+      sessionCode: session,
     });
+
+    return jsonResponse(result);
+  }),
+});
+
+http.route({
+  path: "/api/test/bootstrap-cli",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) {
+      return authError;
+    }
+
+    const body = await req.json();
+    const result = await ctx.runMutation(internal.testHarness.createCliSession, {
+      handle: typeof body?.handle === "string" ? body.handle : undefined,
+      displayName: typeof body?.displayName === "string" ? body.displayName : undefined,
+      title: typeof body?.title === "string" ? body.title : undefined,
+      company: typeof body?.company === "string" ? body.company : undefined,
+      summary: typeof body?.summary === "string" ? body.summary : undefined,
+      linkedinUrl: typeof body?.linkedinUrl === "string" ? body.linkedinUrl : undefined,
+      photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
+      expired: body?.expired === true,
+      visibility:
+        body?.visibility === "private" ||
+        body?.visibility === "colleagues" ||
+        body?.visibility === "public"
+          ? body.visibility
+          : undefined,
+    });
+
+    return jsonResponse(result);
+  }),
+});
+
+http.route({
+  path: "/api/test/bootstrap-connect-code",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) {
+      return authError;
+    }
+
+    const body = await req.json();
+    const result = await ctx.runMutation(internal.testHarness.createConnectionCode, {
+      handle: typeof body?.handle === "string" ? body.handle : undefined,
+      displayName: typeof body?.displayName === "string" ? body.displayName : undefined,
+      title: typeof body?.title === "string" ? body.title : undefined,
+      company: typeof body?.company === "string" ? body.company : undefined,
+      summary: typeof body?.summary === "string" ? body.summary : undefined,
+      linkedinUrl: typeof body?.linkedinUrl === "string" ? body.linkedinUrl : undefined,
+      photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
+      visibility:
+        body?.visibility === "private" ||
+        body?.visibility === "colleagues" ||
+        body?.visibility === "public"
+          ? body.visibility
+          : undefined,
+      expired: body?.expired === true,
+      redeemed: body?.redeemed === true,
+    });
+
+    return jsonResponse(result);
+  }),
+});
+
+http.route({
+  path: "/api/test/bootstrap-review",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) {
+      return authError;
+    }
+
+    const body = await req.json();
+    const result = await ctx.runMutation(internal.testHarness.createReviewSession, {
+      handle: typeof body?.handle === "string" ? body.handle : undefined,
+      displayName: typeof body?.displayName === "string" ? body.displayName : undefined,
+      title: typeof body?.title === "string" ? body.title : undefined,
+      company: typeof body?.company === "string" ? body.company : undefined,
+      summary: typeof body?.summary === "string" ? body.summary : undefined,
+      linkedinUrl: typeof body?.linkedinUrl === "string" ? body.linkedinUrl : undefined,
+      photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
+      visibility:
+        body?.visibility === "private" ||
+        body?.visibility === "colleagues" ||
+        body?.visibility === "public"
+          ? body.visibility
+          : undefined,
+      expired: body?.expired === true,
+      diffs: Array.isArray(body?.diffs) ? body.diffs : undefined,
+    });
+
+    return jsonResponse({
+      ...result,
+      reviewUrl: `/diff/review/?session=${result.sessionCode}`,
+    });
+  }),
+});
+
+http.route({
+  path: "/api/test/bootstrap-public-profile",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) {
+      return authError;
+    }
+
+    const body = await req.json();
+    const result = await ctx.runMutation(internal.testHarness.createPublicProfileBundle, {
+      handle: typeof body?.handle === "string" ? body.handle : undefined,
+      displayName: typeof body?.displayName === "string" ? body.displayName : undefined,
+      title: typeof body?.title === "string" ? body.title : undefined,
+      company: typeof body?.company === "string" ? body.company : undefined,
+      summary: typeof body?.summary === "string" ? body.summary : undefined,
+      linkedinUrl: typeof body?.linkedinUrl === "string" ? body.linkedinUrl : undefined,
+      photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
+      loveLetter: typeof body?.loveLetter === "string" ? body.loveLetter : undefined,
+      visibility:
+        body?.visibility === "private" ||
+        body?.visibility === "colleagues" ||
+        body?.visibility === "public"
+          ? body.visibility
+          : undefined,
+      diffs: Array.isArray(body?.diffs) ? body.diffs : undefined,
+    });
+
+    return jsonResponse(result);
   }),
 });
 
@@ -165,6 +429,13 @@ http.route({
       return new Response(
         JSON.stringify({ error: authResult.error }),
         { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!authResult.handle) {
+      return new Response(
+        JSON.stringify({ error: "Complete registration first" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -226,6 +497,13 @@ http.route({
       return new Response(
         JSON.stringify({ error: authResult.error }),
         { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!authResult.handle) {
+      return new Response(
+        JSON.stringify({ error: "Complete registration first" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -350,6 +628,72 @@ http.route({
   path: "/api/publish",
   method: "OPTIONS",
   handler: corsPreflightHandler,
+});
+
+http.route({
+  path: "/api/review/create",
+  method: "OPTIONS",
+  handler: corsPreflightHandler,
+});
+
+http.route({
+  path: "/api/test/bootstrap-cli",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": `Content-Type, ${TEST_SECRET_HEADER}`,
+      },
+    });
+  }),
+});
+
+http.route({
+  path: "/api/test/bootstrap-connect-code",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": `Content-Type, ${TEST_SECRET_HEADER}`,
+      },
+    });
+  }),
+});
+
+http.route({
+  path: "/api/test/bootstrap-review",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": `Content-Type, ${TEST_SECRET_HEADER}`,
+      },
+    });
+  }),
+});
+
+http.route({
+  path: "/api/test/bootstrap-public-profile",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": `Content-Type, ${TEST_SECRET_HEADER}`,
+      },
+    });
+  }),
 });
 
 export default http;

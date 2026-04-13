@@ -1,0 +1,53 @@
+heydex.ai, www.heydex.ai {
+	root * /var/www/heydex
+	encode gzip
+
+	# Redirect slashless product roots so relative asset paths resolve correctly.
+	redir /diff /diff/ 308
+	redir /connect /connect/ 308
+	redir /diff/profile /diff/profile/ 308
+	redir /diff/review /diff/review/ 308
+
+	# Exact/special-case React ownership must win before generic /diff/* handling.
+	@profile {
+		path /diff/profile /diff/profile/*
+	}
+	handle @profile {
+		root * /var/www/heydex/diff
+		try_files /index.html
+		file_server
+	}
+
+	@diffRoot {
+		path /diff /diff/
+	}
+	handle @diffRoot {
+		root * /var/www/heydex/diff
+		try_files /index.html
+		file_server
+	}
+
+	# Hybrid contract: real static subdirectories win when present, otherwise fall back
+	# to the React app. This is why /diff/@dave/ still resolves to the snapshot today.
+	@diffSubdirs {
+		path /diff/*
+	}
+	handle @diffSubdirs {
+		root * /var/www/heydex/diff
+		uri strip_prefix /diff
+		try_files {path}/index.html {path} /index.html
+		file_server
+	}
+
+	@connect {
+		path /connect /connect/*
+	}
+	handle @connect {
+		root * /var/www/heydex/connect
+		uri strip_prefix /connect
+		try_files {path}/index.html {path} /index.html
+		file_server
+	}
+
+	file_server
+}

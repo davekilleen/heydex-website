@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { getViewerOrNull } from "./viewer";
 
 const ADMIN_HANDLES = ["dave"];
 
@@ -116,6 +117,34 @@ export const list = query({
       createdAt: l.createdAt,
       hasDiffs: l.hasDiffs,
     }));
+  },
+});
+
+export const mine = query({
+  args: {},
+  handler: async (ctx) => {
+    const viewer = await getViewerOrNull(ctx);
+    if (!viewer) {
+      return null;
+    }
+
+    const letter = await ctx.db
+      .query("loveLetters")
+      .withIndex("by_userId", (q) => q.eq("userId", viewer.userId))
+      .unique();
+
+    if (!letter) {
+      return null;
+    }
+
+    return {
+      _id: letter._id,
+      text: letter.text,
+      status: letter.status,
+      createdAt: letter.createdAt,
+      hasDiffs: letter.hasDiffs,
+      diffSlugs: letter.diffSlugs,
+    };
   },
 });
 

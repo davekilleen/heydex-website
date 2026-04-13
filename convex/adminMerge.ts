@@ -28,6 +28,7 @@ export const mergeAndDeleteOrphan = internalMutation({
       seniority: orphan.seniority ?? authRecord.seniority,
       summary: orphan.summary ?? authRecord.summary,
       linkedinUrl: orphan.linkedinUrl ?? authRecord.linkedinUrl,
+      photoUrl: orphan.photoUrl ?? authRecord.photoUrl,
       integrations: orphan.integrations ?? authRecord.integrations,
       source: orphan.source ?? authRecord.source,
       onboardingCompleted: orphan.onboardingCompleted ?? authRecord.onboardingCompleted,
