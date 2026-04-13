@@ -48,7 +48,7 @@ Paste your Beehiiv publication ID when prompted (example: `pub_xxxxxxxx-xxxx-xxx
 
 ### 5. Update the website
 
-In `heydex-website/index.html`, find this line near the bottom:
+In the static marketing landing (`heydex-website/index-landing.html`), find this line near the bottom:
 
 ```js
 const SUBSCRIBE_URL = 'WORKER_URL_HERE';

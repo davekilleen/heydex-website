@@ -1,0 +1,15 @@
+.git
+.claude
+.gitignore
+.rsyncignore
+deploy.sh
+node_modules
+dist
+package.json
+package-lock.json
+vite.config.js
+.env.local
+.gitignore-react
+REACT_MIGRATION.md
+index.html.bak
+src

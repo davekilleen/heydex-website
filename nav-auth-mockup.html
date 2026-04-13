@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DexDiff Nav - Authenticated State Design</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-base: #0a0a0a;
+      --bg-surface: #111111;
+      --border-subtle: #1c1c1c;
+      --text-primary: #f0f0f0;
+      --text-secondary: #888888;
+      --text-tertiary: #777777;
+      --text-inverse: #0a0a0a;
+      --accent: #FF3870;
+      --font-mono: 'Geist Mono', monospace;
+      --font-sans: 'Geist', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      padding: 40px 24px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      margin-top: 48px;
+    }
+
+    .section-title:first-child {
+      margin-top: 0;
+    }
+
+    .nav {
+      background: rgba(10, 10, 10, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      margin-bottom: 24px;
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .nav-link {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #aaaaaa;
+      text-decoration: none;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: color 80ms ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-cta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-inverse);
+      background: var(--accent);
+      border: none;
+      padding: 6px 14px;
+      border-radius: 2px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 80ms ease;
+    }
+
+    .nav-cta:hover {
+      opacity: 0.85;
+    }
+
+    .auth-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .auth-indicator-handle {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 80ms ease;
+    }
+
+    .auth-indicator-handle:hover {
+      color: var(--text-primary);
+    }
+
+    .auth-logout {
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: color 80ms ease;
+      text-decoration: none;
+    }
+
+    .auth-logout:hover {
+      color: var(--text-secondary);
+    }
+
+    .note {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .highlight {
+      background: rgba(255, 56, 112, 0.1);
+      border: 1px solid rgba(255, 56, 112, 0.3);
+      border-radius: 2px;
+      padding: 2px 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .comparison-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 16px;
+    }
+
+    .comparison-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+      
+      .nav-links {
+        gap: 12px;
+      }
+      
+      .nav-link {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="font-size: 32px; margin-bottom: 8px; font-weight: 500;">DexDiff Nav - Authenticated State</h1>
+    <p class="note">Showing how the navigation changes when a user is logged in vs logged out.</p>
+
+    <!-- CURRENT STATE: Logged Out -->
+    <div class="section-title">Current (Logged Out)</div>
+    <p class="note">What anonymous visitors see. The <span class="highlight">GET DEXED UP</span> button invites them to register.</p>
+    
+    <nav class="nav">
+      <div class="nav-inner">
+        <a href="/diff/" class="nav-logo">◆ dexdiff</a>
+        <div class="nav-links">
+          <a href="/diff/community/" class="nav-link">Community</a>
+          <a href="/diff/company/" class="nav-link">Your Company</a>
+          <a href="/diff/love-letters/" class="nav-link">Love Letters</a>
+          <a href="/connect/" class="nav-cta">Get Dexed Up</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- PROPOSED STATE: Logged In -->
+    <div class="section-title" style="margin-top: 48px;">Proposed (Logged In)</div>
+    <p class="note">What authenticated users see. Their <span class="highlight">@handle</span> links to their profile, <span class="highlight">Log out</span> clears the session.</p>
+    
+    <nav class="nav">
+      <div class="nav-inner">
+        <a href="/diff/" class="nav-logo">◆ dexdiff</a>
+        <div class="nav-links">
+          <a href="/diff/community/" class="nav-link">Community</a>
+          <a href="/diff/company/" class="nav-link">Your Company</a>
+          <a href="/diff/love-letters/" class="nav-link">Love Letters</a>
+          
+          <div class="auth-indicator">
+            <a href="/diff/@dave/" class="auth-indicator-handle">@dave</a>
+            <a href="#" class="auth-logout">Log out</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- COMPARISON -->
+    <div class="section-title" style="margin-top: 48px;">Side-by-Side Comparison</div>
+    
+    <div class="comparison">
+      <div class="comparison-item">
+        <div class="comparison-label">Logged Out</div>
+        <nav class="nav" style="margin-bottom: 0;">
+          <div class="nav-inner">
+            <span class="nav-logo">◆ dexdiff</span>
+            <div class="nav-links">
+              <span class="nav-link">Community</span>
+              <span class="nav-link">Company</span>
+              <span class="nav-link">Letters</span>
+              <span class="nav-cta">Get Dexed Up</span>
+            </div>
+          </div>
+        </nav>
+        <p class="note" style="margin-top: 16px; margin-bottom: 0;">
+          → Prominent CTA to register<br>
+          → Consistent with marketing site
+        </p>
+      </div>
+
+      <div class="comparison-item">
+        <div class="comparison-label">Logged In (as @dave)</div>
+        <nav class="nav" style="margin-bottom: 0;">
+          <div class="nav-inner">
+            <span class="nav-logo">◆ dexdiff</span>
+            <div class="nav-links">
+              <span class="nav-link">Community</span>
+              <span class="nav-link">Company</span>
+              <span class="nav-link">Letters</span>
+              <div class="auth-indicator">
+                <span class="auth-indicator-handle">@dave</span>
+                <span class="auth-logout">Log out</span>
+              </div>
+            </div>
+          </div>
+        </nav>
+        <p class="note" style="margin-top: 16px; margin-bottom: 0;">
+          → Quick access to your profile<br>
+          → Clear logout option<br>
+          → Minimal, not distracting
+        </p>
+      </div>
+    </div>
+
+    <!-- INTERACTION NOTES -->
+    <div class="section-title" style="margin-top: 48px;">Interaction Behavior</div>
+    <div class="note">
+      <strong>@dave link:</strong><br>
+      • Hover: color changes from gray (#888) to white (#f0f0f0)<br>
+      • Click: navigates to /diff/@dave/<br>
+      • Provides quick access to "view my profile"<br><br>
+
+      <strong>Log out link:</strong><br>
+      • Hover: color changes from darker gray (#777) to lighter gray (#888)<br>
+      • Click: clears localStorage auth token and redirects to /diff/<br>
+      • Subtle styling to not compete with main actions
+    </div>
+
+    <!-- QUESTIONS FOR REVIEW -->
+    <div class="section-title" style="margin-top: 48px;">Questions for Review</div>
+    <div class="note">
+      1. Should @handle be more prominent (brighter color)?<br>
+      2. Do we want an avatar/icon next to the handle?<br>
+      3. Should "Log out" be a separate dropdown menu instead?<br>
+      4. On mobile, should this collapse into a hamburger menu?
+    </div>
+  </div>
+</body>
+</html>
