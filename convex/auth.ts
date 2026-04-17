@@ -2,7 +2,14 @@ import Google from "@auth/core/providers/google";
 import Apple from "@auth/core/providers/apple";
 import { convexAuth } from "@convex-dev/auth/server";
 
+const googleClientId =
+  process.env.AUTH_GOOGLE_CLIENT_ID ?? process.env.AUTH_GOOGLE_ID;
+const googleClientSecret =
+  process.env.AUTH_GOOGLE_CLIENT_SECRET ?? process.env.AUTH_GOOGLE_SECRET;
+
 const GoogleProvider = Google({
+  clientId: googleClientId,
+  clientSecret: googleClientSecret,
   authorization: {
     params: {
       prompt: "select_account",

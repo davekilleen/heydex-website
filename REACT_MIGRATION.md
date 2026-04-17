@@ -50,7 +50,7 @@ const signInAction = useAction('auth:signIn');
 2. `handleOAuth()` calls `auth:signIn` action with provider
 3. Convex Auth returns `redirect` URL to Google's OAuth endpoint
 4. User redirected to Google login
-5. Google redirects back to `https://dexdiff-platform.convex.site/api/auth/callback/google`
+5. Google redirects back to `${CONVEX_SITE_URL}/api/auth/callback/google`
 6. Convex Auth processes the OAuth response (handled automatically)
 7. JWT token stored in localStorage under `__convexAuthJWT`
 8. Page detects token and calls `users:me` query

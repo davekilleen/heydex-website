@@ -201,6 +201,18 @@ export const me = query({
   },
 });
 
+export const viewerState = query({
+  args: {},
+  handler: async (ctx) => {
+    const viewer = await getViewerOrNull(ctx);
+
+    return {
+      authenticated: viewer !== null,
+      handle: viewer?.user.handle ?? null,
+    };
+  },
+});
+
 // Sync user token (validates that authentication is still valid)
 // Called after OAuth callback to ensure token is synced
 export const syncToken = mutation({

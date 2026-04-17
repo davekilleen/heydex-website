@@ -45,8 +45,6 @@ Exit criteria for removing the static override:
 
 What is missing:
 - live Google OAuth browser E2E that bypasses the "browser not secure" block
-- authenticated self-profile coverage
-- public profile adopt E2E for signed-in users
 - deploy-time route ownership check
 
 What landed:
@@ -54,6 +52,8 @@ What landed:
 - CLI contract coverage for `/api/connect/redeem`, `/api/review/create`, and `/api/review/status`
 - true CLI link -> browser review -> publish -> public profile coverage
 - cold-load public profile browse coverage for non-self handles
+- authenticated public profile adopt/copy coverage
+- real-browser authenticated self-profile smoke
 
 ### Convex public/admin surface still needs a final hardening pass
 
@@ -72,11 +72,13 @@ Still worth auditing before broader launch:
 The dedicated Google smoke now runs from saved Playwright auth state, which makes the reusable coverage path much more reliable.
 
 What is better:
-- the repeatable browser smoke no longer depends on re-entering credentials
-- the saved state lives outside git under `playwright/.auth/`
+- the repeatable browser smoke now rides the real Chrome session over CDP instead of relying on Playwright-only context restore
+- the reusable smoke no longer depends on re-entering credentials
+- the active Convex Google auth env is now aligned to the web OAuth client instead of the desktop client
 
 What is still awkward:
 - the auth-state bootstrap still has to hit the real Google flow in a headed browser
+- the Google OAuth client must explicitly allow the current Convex callback URI for each non-prod deployment
 - Google can still reject fresh Playwright Chromium sign-in with:
 
 - `Couldn’t sign you in`
@@ -92,9 +94,7 @@ Decision still worth making:
 ## Recommended Next Cuts
 
 1. Decide and implement the Google auth automation strategy.
-2. Add authenticated adopt coverage on public profiles.
-3. Add self-profile browser coverage after auth.
-4. Decide whether `/diff/@dave/` stays as a curated snapshot or becomes a redirect to the dynamic route.
-5. Either deploy the checked-in Caddy contract automatically or add a live-config drift check.
-6. Add a reliable health check for `api.heydex.ai` from an allowed environment.
-7. Fold the portable DexDiff client into `dex-core` so `dex-pi` stops carrying the bridge code.
+2. Decide whether `/diff/@dave/` stays as a curated snapshot or becomes a redirect to the dynamic route.
+3. Either deploy the checked-in Caddy contract automatically or add a live-config drift check.
+4. Add a reliable health check for `api.heydex.ai` from an allowed environment to CI or deploy automation.
+5. Fold the portable DexDiff client into `dex-core` so `dex-pi` stops carrying the bridge code.

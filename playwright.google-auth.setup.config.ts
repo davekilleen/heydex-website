@@ -15,6 +15,7 @@ export default defineConfig({
   outputDir: "output/playwright/test-results",
   use: {
     ...devices["Desktop Chrome"],
+    channel: "chrome",
     baseURL,
     headless: false,
     trace: "retain-on-failure",

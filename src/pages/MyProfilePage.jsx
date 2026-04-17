@@ -44,6 +44,16 @@ export default function MyProfilePage() {
   const [editData, setEditData] = useState({});
   const [startingLoveLetterReview, setStartingLoveLetterReview] = useState(false);
   const [copiedCommand, setCopiedCommand] = useState('');
+  const profileInitials = useMemo(
+    () =>
+      currentUser?.displayName
+        ?.split(' ')
+        .map((part) => part[0] || '')
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || '?',
+    [currentUser?.displayName]
+  );
 
   // Redirect if not authenticated
   if (!isLoading && !isAuthenticated) {
@@ -70,17 +80,6 @@ export default function MyProfilePage() {
       : visibility === 'colleagues'
         ? `Visible only to colleagues at ${currentUser.company || 'your company'}`
         : 'Only you can see this right now';
-
-  const profileInitials = useMemo(
-    () =>
-      currentUser.displayName
-        ?.split(' ')
-        .map((part) => part[0] || '')
-        .join('')
-        .slice(0, 2)
-        .toUpperCase() || '?',
-    [currentUser.displayName]
-  );
 
   async function handleSaveProfile() {
     await updateProfile(editData);

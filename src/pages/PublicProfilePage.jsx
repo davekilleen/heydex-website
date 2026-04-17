@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useConvexAuth, useQuery } from 'convex/react';
+import { useQuery } from 'convex/react';
 import { useParams } from 'react-router-dom';
 import { api } from '../../convex/_generated/api';
 import './PublicProfilePage.css';
@@ -40,6 +40,19 @@ function getShareCta(hasDiffs, hasLoveLetter) {
   };
 }
 
+function hasSavedAuthState() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return Object.keys(window.localStorage).some(
+    (key) =>
+      key === 'auth_redirect_to' ||
+      key.startsWith('__convexAuthJWT_') ||
+      key.startsWith('__convexAuthRefreshToken_')
+  );
+}
+
 function CommandSurface({
   label,
   command,
@@ -78,7 +91,10 @@ function CommandSurface({
 export default function PublicProfilePage() {
   const { handle: rawHandle = '' } = useParams();
   const handle = rawHandle.replace(/^@/, '');
-  const { isAuthenticated } = useConvexAuth();
+  const viewerState = useQuery(api.users.viewerState);
+  const savedAuthStatePresent = useMemo(() => hasSavedAuthState(), []);
+  const isAuthenticated =
+    viewerState?.authenticated === true || savedAuthStatePresent;
   const profile = useQuery(api.profiles.get, handle ? { handle } : 'skip');
   const adoptions = useQuery(api.adoptions.mine, isAuthenticated ? {} : 'skip');
   const loveLetters = useQuery(api.loveLetters.list, handle ? { handle, limit: 3 } : 'skip');

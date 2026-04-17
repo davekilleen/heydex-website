@@ -151,6 +151,14 @@ This currently verifies:
 
 `TEST_SETUP.md` covers the real remaining gaps.
 
+Allowed-environment API host smoke:
+
+```bash
+E2E_ALLOW_LIVE_API_SMOKE=1 npm run smoke:api:prod
+```
+
+That path is intentionally opt-in because direct probes to `api.heydex.ai` can still be blocked by Cloudflare from untrusted environments.
+
 Browser E2E harness:
 
 ```bash
@@ -168,9 +176,14 @@ The optional live Google auth smoke also expects:
 - `E2E_GOOGLE_PASSWORD`
 - optional `E2E_GOOGLE_AUTH_STATE_PATH`
 
+Google auth note:
+- the hosted website should use the web OAuth client via `AUTH_GOOGLE_CLIENT_ID` / `AUTH_GOOGLE_CLIENT_SECRET`
+- do not point hosted Convex Auth at the desktop OAuth client; that client has no redirect URI allowlist and will break browser sign-in
+
 Refresh the saved Google auth session:
 
 ```bash
+npm run e2e:google:redirect-uri
 npm run e2e:google:setup
 ```
 

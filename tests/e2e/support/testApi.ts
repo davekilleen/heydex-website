@@ -98,6 +98,22 @@ export async function bootstrapPublicProfile(
   return await response.json();
 }
 
+export async function bootstrapAdoption(
+  request: APIRequestContext,
+  args: {
+    email: string;
+    authorHandle: string;
+    diffSlug: string;
+  }
+) {
+  const response = await request.post(`${getApiBaseUrl()}/test/bootstrap-adoption`, {
+    headers: getTestSecretHeader(),
+    data: args,
+  });
+  await expect(response).toBeOK();
+  return await response.json();
+}
+
 export async function createReviewSessionViaApi(
   request: APIRequestContext,
   args: {

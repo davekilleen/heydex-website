@@ -4,6 +4,7 @@ import { expect, Page } from "@playwright/test";
 import { getOptionalEnv } from "./env";
 
 const DEFAULT_GOOGLE_AUTH_STATE_PATH = "playwright/.auth/google-test-user.json";
+const GOOGLE_CALLBACK_PATH = "/api/auth/callback/google";
 
 export function getGoogleAuthStatePath() {
   const configuredPath =
@@ -27,6 +28,45 @@ export function googleAuthSkipMessage() {
   return `Run npm run e2e:google:setup to create ${relativeAuthStatePath}.`;
 }
 
+export function getGoogleRedirectUri() {
+  const convexSiteUrl = getOptionalEnv("CONVEX_SITE_URL");
+  if (!convexSiteUrl) {
+    return undefined;
+  }
+
+  return `${convexSiteUrl.replace(/\/$/, "")}${GOOGLE_CALLBACK_PATH}`;
+}
+
+function getGoogleRedirectUriHint() {
+  return (
+    getGoogleRedirectUri() ?? "<CONVEX_SITE_URL>/api/auth/callback/google"
+  );
+}
+
+async function throwIfGoogleOAuthConfigError(page: Page) {
+  const isRedirectMismatch =
+    page.url().includes("redirect_uri_mismatch") ||
+    (await page.getByText(/redirect_uri_mismatch/i).isVisible().catch(() => false));
+  const isBrowserRejected =
+    page.url().includes("flowName=GeneralOAuthFlow") &&
+    (await page
+      .getByText(/this browser or app may not be secure/i)
+      .isVisible()
+      .catch(() => false));
+
+  if (isRedirectMismatch) {
+    throw new Error(
+      `Google OAuth redirect_uri_mismatch. Add ${getGoogleRedirectUriHint()} to the Google OAuth client's authorized redirect URIs for this deployment.`
+    );
+  }
+
+  if (isBrowserRejected) {
+    throw new Error(
+      "Google rejected the automated browser with 'This browser or app may not be secure'. Retry the auth-state setup with a real Chrome channel or use the non-prod auth bypass."
+    );
+  }
+}
+
 export async function completeGoogleSignIn(page: Page) {
   const email = getOptionalEnv("E2E_GOOGLE_EMAIL");
   const password = getOptionalEnv("E2E_GOOGLE_PASSWORD");
@@ -42,13 +82,23 @@ export async function completeGoogleSignIn(page: Page) {
     await chooser.click();
   } else {
     const emailInput = page.locator('input[type="email"]').first();
-    await emailInput.waitFor({ state: "visible", timeout: 30_000 });
+    try {
+      await emailInput.waitFor({ state: "visible", timeout: 30_000 });
+    } catch (error) {
+      await throwIfGoogleOAuthConfigError(page);
+      throw error;
+    }
     await emailInput.fill(email);
     await page.getByRole("button", { name: /next/i }).click();
   }
 
   const passwordInput = page.locator('input[type="password"]').first();
-  await passwordInput.waitFor({ state: "visible", timeout: 30_000 });
+  try {
+    await passwordInput.waitFor({ state: "visible", timeout: 30_000 });
+  } catch (error) {
+    await throwIfGoogleOAuthConfigError(page);
+    throw error;
+  }
   await passwordInput.fill(password);
   await page.getByRole("button", { name: /next/i }).click();
 
@@ -64,7 +114,7 @@ export async function completeRegistrationIfNeeded(
   page: Page,
   uniqueHandle: string
 ) {
-  if (page.url().includes("/diff/profile/")) {
+  if (new URL(page.url()).pathname === "/diff/profile/") {
     return;
   }
 
@@ -89,5 +139,7 @@ export async function completeRegistrationIfNeeded(
   await expect(handleHeading).toBeVisible({ timeout: 30_000 });
   await page.getByPlaceholder("yourhandle").fill(uniqueHandle);
   await page.getByRole("button", { name: /create account/i }).click();
-  await page.waitForURL(/\/diff\/profile\//, { timeout: 60_000 });
+  await expect
+    .poll(() => new URL(page.url()).pathname, { timeout: 60_000 })
+    .toBe("/diff/profile/");
 }

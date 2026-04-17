@@ -376,3 +376,92 @@ export const createPublicProfileBundle = internalMutation({
     };
   },
 });
+
+export const createAdoptionForEmail = internalMutation({
+  args: {
+    email: v.string(),
+    authorHandle: v.string(),
+    diffSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", args.email))
+      .unique();
+
+    if (!user) {
+      throw new Error(`User not found for email: ${args.email}`);
+    }
+
+    const diff = await ctx.db
+      .query("diffs")
+      .withIndex("by_authorHandle_and_diffId", (q) =>
+        q.eq("authorHandle", args.authorHandle).eq("diffId", args.diffSlug)
+      )
+      .unique();
+
+    if (!diff) {
+      throw new Error(
+        `Diff not found for ${args.authorHandle}/${args.diffSlug}`
+      );
+    }
+
+    const existing = await ctx.db
+      .query("adoptions")
+      .withIndex("by_userId_and_diffId", (q) =>
+        q.eq("userId", user._id).eq("diffId", diff._id)
+      )
+      .unique();
+
+    if (existing && !existing.removed) {
+      await ctx.db.patch(existing._id, {
+        lastActiveAt: Date.now(),
+      });
+
+      return {
+        adoptionId: existing._id,
+        userId: user._id,
+        diffId: diff._id,
+      };
+    }
+
+    if (existing && existing.removed) {
+      await ctx.db.patch(existing._id, {
+        removed: false,
+        adoptedAt: Date.now(),
+        lastActiveAt: Date.now(),
+      });
+      await ctx.db.patch(diff._id, {
+        adoptionCount: diff.adoptionCount + 1,
+        activeUserCount: diff.activeUserCount + 1,
+      });
+
+      return {
+        adoptionId: existing._id,
+        userId: user._id,
+        diffId: diff._id,
+      };
+    }
+
+    const adoptionId = await ctx.db.insert("adoptions", {
+      userId: user._id,
+      diffId: diff._id,
+      authorHandle: args.authorHandle,
+      diffSlug: args.diffSlug,
+      adoptedAt: Date.now(),
+      lastActiveAt: Date.now(),
+      removed: false,
+    });
+
+    await ctx.db.patch(diff._id, {
+      adoptionCount: diff.adoptionCount + 1,
+      activeUserCount: diff.activeUserCount + 1,
+    });
+
+    return {
+      adoptionId,
+      userId: user._id,
+      diffId: diff._id,
+    };
+  },
+});

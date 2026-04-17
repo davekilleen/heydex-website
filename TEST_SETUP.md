@@ -86,6 +86,8 @@ What the seeded harness covers:
 - CLI session-token expiry handling for `/api/review/create`
 - true CLI link -> browser review -> publish -> public profile flow
 - public profile cold-load and browse coverage for non-self handles
+- authenticated public-profile adopt/copy coverage for signed-in users
+- real-browser authenticated self-profile smoke for `/diff/profile/`
 - public publish redirect to `/diff/@:handle/`
 
 Run:
@@ -112,13 +114,17 @@ Useful subsets:
 npx playwright test tests/e2e/review-session.spec.ts
 npx playwright test tests/e2e/review-session-expired.spec.ts
 npx playwright test tests/e2e/cli-contract.spec.ts
+npm run e2e:dev -- tests/e2e/google-auth.spec.ts
+npm run e2e:dev -- tests/e2e/public-profile-adopt.spec.ts
+npm run e2e:google:setup
+npm run e2e:self-profile
 ```
 
 ### Live Google auth automation
 
-The harness now expects a saved Playwright auth state for the dedicated Google test account.
+The reusable Google smoke now runs against the same real Chrome session used for auth bootstrap.
 
-Bootstrap or refresh that state with a real headed Google sign-in:
+Bootstrap or refresh that session with a real headed Google sign-in:
 
 ```bash
 E2E_GOOGLE_EMAIL=...
@@ -126,11 +132,13 @@ E2E_GOOGLE_PASSWORD=...
 npm run e2e:google:setup
 ```
 
-Optional:
+Before that, make sure the Google OAuth client allowlist includes the current Convex callback URI:
 
 ```bash
-E2E_GOOGLE_AUTH_STATE_PATH=playwright/.auth/google-test-user.json
+npm run e2e:google:redirect-uri
 ```
+
+That command prints the exact dev callback to add under Google Cloud Console -> OAuth client -> Authorized redirect URIs.
 
 Then run the reusable auth smoke:
 
@@ -140,12 +148,12 @@ npm run e2e:google
 
 Notes:
 - use a dedicated Google test identity, not a personal account
-- keep the auth-state file outside git; `playwright/.auth/` is ignored already
-- rerun `npm run e2e:google:setup` whenever the Google session expires
-- the reusable smoke should use saved session state, not retype credentials
+- `npm run e2e:google` now reuses the live Chrome session over CDP instead of a Playwright-only restored context
+- rerun `npm run e2e:google:setup` whenever the Google session expires or the Chrome profile is reset
+- for the current dev deployment, the allowlist entry should be `${CONVEX_SITE_URL}/api/auth/callback/google`
 - expect the setup capture to be slower and more brittle than the seeded review-session tests
-- keep the seeded session harness as the default coverage; use Google auth as the high-value smoke on top
-- raw credentials are still only for refreshing the saved session because Google is returning "This browser or app may not be secure"
+- keep the seeded session harness as the default coverage; use the real-browser Google smoke on top
+- raw credentials are only used by the real-Chrome bootstrap script that refreshes the saved session
 - a non-prod auth bypass may still be worth adding if session refresh becomes too fragile
 
 ## What Needs To Be Added
@@ -153,10 +161,7 @@ Notes:
 ### Browser E2E
 
 Needed coverage:
-- live Google sign-in smoke that survives Google's browser checks
-- registration continuation after Google sign-in on a reusable test identity
-- self-profile authenticated coverage
-- public-profile adopt coverage for authenticated users, not just browse
+- one deploy-time or CI path for the auth-state refresh itself
 - one production-host smoke path for `api.heydex.ai` from an allowed environment
 
 Preferred approach:
@@ -180,7 +185,11 @@ These should assert:
 Before adding them, resolve the live API base:
 - hosted HTTP actions live at `https://api.heydex.ai/api/*`
 - the inspected live Caddy config for `heydex.ai` correctly does not expose `/api/*`
-- direct API probes from this environment currently hit Cloudflare `1010`, so use an allowed environment for API smoke checks
+- direct API probes from this environment can still hit Cloudflare `1010`, so gate the live smoke behind an explicit opt-in:
+
+```bash
+E2E_ALLOW_LIVE_API_SMOKE=1 npm run smoke:api:prod
+```
 
 ## Test Account Notes
 

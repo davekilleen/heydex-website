@@ -399,6 +399,41 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/api/test/bootstrap-adoption",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) {
+      return authError;
+    }
+
+    const body = await req.json();
+    const email = typeof body?.email === "string" ? body.email : undefined;
+    const authorHandle =
+      typeof body?.authorHandle === "string" ? body.authorHandle : undefined;
+    const diffSlug = typeof body?.diffSlug === "string" ? body.diffSlug : undefined;
+
+    if (!email || !authorHandle || !diffSlug) {
+      return jsonResponse(
+        { error: "email, authorHandle, and diffSlug are required" },
+        400
+      );
+    }
+
+    const result = await ctx.runMutation(
+      internal.testHarness.createAdoptionForEmail,
+      {
+        email,
+        authorHandle,
+        diffSlug,
+      }
+    );
+
+    return jsonResponse(result);
+  }),
+});
+
 // POST /api/publish — publish a diff, authenticated via connection code
 // Used by the CLI: /diff-push
 http.route({
