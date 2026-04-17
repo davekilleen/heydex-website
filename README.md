@@ -29,7 +29,6 @@ Static/editorial routes still served from repo HTML:
 - `/diff/roadmap/`
 - `/diff/welcome/`
 - `/diff/admin/`
-- `/diff/@dave/` snapshot
 
 Read `docs/ROUTES.md` before changing route ownership.
 

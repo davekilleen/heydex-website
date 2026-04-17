@@ -17,7 +17,6 @@
 | `/diff/roadmap/` | static | editorial roadmap | canonical |
 | `/diff/welcome/` | static | onboarding/editorial | canonical |
 | `/diff/admin/` | static | admin/static residue | canonical but debt-heavy |
-| `/diff/@dave/` | static | Dave snapshot page | intentional hybrid override for now |
 
 ## Deploy Rule
 
@@ -37,8 +36,7 @@ Current precedence:
 
 Consequence:
 - `/diff/review/` is React-owned on cold load
-- `/diff/@some-handle/` is React-owned on cold load unless that exact static directory exists
-- `/diff/@dave/` remains static until we remove or redirect that folder on the host
+- `/diff/@some-handle/` is React-owned on cold load; no static author directories are deployed, so `@dave` and every other handle resolve via the dynamic React profile route
 
 ## Routing Guidance
 

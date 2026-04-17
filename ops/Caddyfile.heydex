@@ -28,7 +28,8 @@ heydex.ai, www.heydex.ai {
 	}
 
 	# Hybrid contract: real static subdirectories win when present, otherwise fall back
-	# to the React app. This is why /diff/@dave/ still resolves to the snapshot today.
+	# to the React app. Dynamic public profiles at /diff/@<handle>/ resolve via the
+	# React fallback because no static author directories are deployed.
 	@diffSubdirs {
 		path /diff/*
 	}

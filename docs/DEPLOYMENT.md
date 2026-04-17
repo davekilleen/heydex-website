@@ -49,7 +49,6 @@ That custom domain is owned by Convex HTTP Actions, not by the VPS Caddy config.
    - `/var/www/heydex/diff/`
    - `/var/www/heydex/connect/`
 6. Overlays these static directories from `diff/`:
-   - `@dave`
    - `community`
    - `company`
    - `love-letters`
@@ -111,8 +110,7 @@ Production routing currently works in this order:
 
 This explains the current live behavior:
 - `/diff/review/` cold-loads into React because no static `review/` directory exists
-- `/diff/@some-handle/` cold-loads into React unless that handle has a real static folder
-- `/diff/@dave/` still serves the static snapshot because that directory exists and wins
+- `/diff/@some-handle/` cold-loads into React because no static author directories are deployed — every handle, including `@dave`, resolves via the dynamic profile route
 - slashless product roots like `/diff` and `/connect` should redirect to their trailing-slash forms so relative asset paths resolve correctly
 - nested SPA routes like `/diff/review/` and `/diff/profile/` rely on route-scoped `<base href>` values so `./assets/...` resolves to `/diff/assets/...` instead of `/diff/review/assets/...`
 

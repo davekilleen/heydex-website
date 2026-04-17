@@ -33,7 +33,6 @@ Static canonical:
 - `/diff/roadmap/`
 - `/diff/welcome/`
 - `/diff/admin/`
-- `/diff/@dave/`
 
 Do not let static overlays reclaim a React-owned path.
 The live edge-routing contract is Caddy and is mirrored in `ops/Caddyfile.heydex`.
@@ -66,5 +65,4 @@ If you need to change the portable CLI behavior, update the shared contract in `
 ## Current Sharp Edges
 
 - root marketing landing is still separate from the React deployment path
-- `/diff/@dave/` is still an intentional static snapshot override
 - validation coverage is still smoke-test level, not full E2E
