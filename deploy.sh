@@ -26,6 +26,13 @@ LIVE_CONNECT="/var/www/heydex/connect/"
 
 # The live route precedence is defined by Caddy on the host and mirrored in
 # ops/Caddyfile.heydex. This script only updates the static assets under those roots.
+#
+# Caddy config is NOT auto-deployed from this repo. Drift between the live
+# /etc/caddy/Caddyfile and ops/Caddyfile.heydex is detected (read-only) by
+# scripts/check-caddy-drift.sh, which runs as an advisory warning inside
+# test-production.sh. ops/Caddyfile.heydex is the source of truth; if the
+# drift check fires, reconcile manually on the host before treating the Caddy
+# contract as accurate.
 
 if [ "$1" = "--dry-run" ]; then
   echo "=== DRY RUN ==="
@@ -57,6 +64,7 @@ inject_base(sys.argv[3], sys.argv[4])
 PY
 
 echo "→ Syncing to staging..."
+ssh -i "$SSH_KEY" "$VPS" "mkdir -p \"$STAGING/diff\" \"$STAGING/connect\""   # ensure staging dirs exist (rsync won't create missing parents)
 rsync -avz --delete -e "ssh -i $SSH_KEY" "$TMP_DIFF/" "$VPS:$STAGING/diff/"
 rsync -avz --delete -e "ssh -i $SSH_KEY" "$TMP_CONNECT/" "$VPS:$STAGING/connect/"
 
@@ -71,9 +79,18 @@ for subdir in $STATIC_SUBDIRS; do
   ssh -i "$SSH_KEY" "$VPS" "sudo cp -r /tmp/heydex-static-$subdir $LIVE_DIFF$subdir && sudo chown -R dex:dex $LIVE_DIFF$subdir"
 done
 
+echo ""
+echo "→ Deploying root marketing page + assets..."
+# The marketing homepage (heydex.ai/) and its root-relative images are NOT part
+# of the /diff or /connect React surfaces. Deploy the HTML and its assets together
+# so they can never drift out of sync (stale domain / 404'd images) again.
+"$(dirname "$0")/deploy-root.sh"
+
+echo ""
 echo "✓ Deployed React app to:"
 echo "  - heydex.ai/diff/"
 echo "  - heydex.ai/connect/"
+echo "  - heydex.ai/ (marketing homepage + root images)"
 
 echo ""
 echo "→ Ensuring database is seeded..."

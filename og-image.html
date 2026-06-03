@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!--
+  Source for heydex.ai/og-image.png (Open Graph / social share card).
+  Rendered headless at 1200x630 (deviceScaleFactor 2 -> 2400x1260 retina) and
+  screenshotted to og-image.png. Edit this file and re-render to update the card.
+  Tokens are the canonical Dex theme (product/design/Dex.Theme.md).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#070709; --panel:#0F0F14; --rose:#FF4FA6; --rose-deep:#E06399;
+    --soft-white:#FAF7FB; --cloud:#CBC2CA; --muted:#A69CA7; --dim:#8F8791;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:1200px;height:630px;}
+  body{
+    background:var(--void);
+    font-family:'Inter',system-ui,sans-serif;
+    color:var(--soft-white);
+    position:relative; overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* Atmosphere: a single faint rose radial glow, top-right. Controlled dose. */
+  .glow{
+    position:absolute; top:-280px; right:-240px;
+    width:820px; height:820px;
+    background:radial-gradient(circle at center,
+      rgba(255,79,166,0.22) 0%,
+      rgba(255,79,166,0.07) 38%,
+      rgba(7,7,9,0) 70%);
+  }
+  /* Sparse celestial points near the glow. */
+  .dot{position:absolute;background:var(--soft-white);border-radius:50%;}
+  .frame{
+    position:absolute; inset:0; padding:80px 96px;
+    display:flex; flex-direction:column; height:100%;
+  }
+  .wordmark{
+    font-family:'Manrope',sans-serif; font-weight:800; font-size:30px;
+    letter-spacing:0.01em; color:var(--soft-white);
+    display:flex; align-items:center; gap:14px;
+  }
+  .wordmark .tick{width:11px;height:11px;background:var(--rose);border-radius:2px;}
+  .grow{flex:1;}
+  .headline{
+    font-family:'Manrope',sans-serif; font-weight:700; font-size:108px;
+    line-height:0.9; letter-spacing:-0.055em; color:var(--soft-white);
+  }
+  .rule{width:128px;height:8px;background:var(--rose);margin:38px 0 30px;border-radius:1px;}
+  .lead{font-size:27px; font-weight:400; color:var(--cloud);}
+  .domain{
+    font-family:'IBM Plex Mono',monospace; font-weight:500; font-size:18px;
+    letter-spacing:0.16em; text-transform:uppercase; color:var(--dim);
+    margin-top:46px;
+  }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="dot" style="top:78px;right:130px;width:4px;height:4px;opacity:0.55;"></div>
+  <div class="dot" style="top:142px;right:236px;width:3px;height:3px;opacity:0.34;"></div>
+  <div class="dot" style="top:214px;right:96px;width:3px;height:3px;opacity:0.40;"></div>
+  <div class="dot" style="top:54px;right:348px;width:2px;height:2px;opacity:0.28;"></div>
+  <div class="dot" style="top:286px;right:188px;width:2px;height:2px;opacity:0.30;"></div>
+
+  <div class="frame">
+    <div class="wordmark"><span class="tick"></span>Dex</div>
+    <div class="grow"></div>
+    <h1 class="headline">Your AI<br>Chief of Staff</h1>
+    <div class="rule"></div>
+    <div class="lead">Local-first. Private. Yours.</div>
+    <div class="domain">heydex.ai</div>
+  </div>
+</body>
+</html>
