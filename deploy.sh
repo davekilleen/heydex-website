@@ -72,7 +72,7 @@ echo "→ Promoting to live..."
 ssh -i "$SSH_KEY" "$VPS" "sudo rm -rf ${LIVE_DIFF}* ${LIVE_CONNECT}* && sudo cp -r $STAGING/diff/* $LIVE_DIFF && sudo cp -r $STAGING/connect/* $LIVE_CONNECT && sudo chown -R dex:dex $LIVE_DIFF $LIVE_CONNECT"
 
 echo "→ Deploying static HTML subdirectories..."
-STATIC_SUBDIRS="community company love-letters roadmap welcome admin"
+STATIC_SUBDIRS="community company love-letters roadmap welcome admin like-dave"
 for subdir in $STATIC_SUBDIRS; do
   echo "  Copying diff/$subdir/..."
   rsync -avz -e "ssh -i $SSH_KEY" "$(dirname "$0")/diff/$subdir/" "$VPS:/tmp/heydex-static-$subdir/"

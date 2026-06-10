@@ -146,6 +146,13 @@ export default defineSchema({
     .index("by_sessionCode", ["sessionCode"])
     .index("by_userId", ["userId"]),
 
+  waitlist: defineTable({
+    email: v.string(),
+    source: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"]),
+
   loveLetters: defineTable({
     userId: v.id("users"),
     handle: v.string(),

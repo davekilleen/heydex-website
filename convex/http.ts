@@ -731,4 +731,40 @@ http.route({
   }),
 });
 
+// POST /api/waitlist — email capture for the QR funnel page (/diff/like-dave/)
+http.route({
+  path: "/api/waitlist",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!checkRateLimit(ip)) {
+      return jsonResponse({ error: "Too many requests — try again in a minute" }, 429);
+    }
+
+    let body: { email?: unknown; source?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return jsonResponse({ error: "Invalid JSON body" }, 400);
+    }
+
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) {
+      return jsonResponse({ error: "Please enter a valid email address" }, 400);
+    }
+
+    const source =
+      typeof body.source === "string" ? body.source.slice(0, 100) : undefined;
+
+    const result = await ctx.runMutation(internal.waitlist.join, { email, source });
+    return jsonResponse(result);
+  }),
+});
+
+http.route({
+  path: "/api/waitlist",
+  method: "OPTIONS",
+  handler: corsPreflightHandler,
+});
+
 export default http;
