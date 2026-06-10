@@ -1,0 +1,586 @@
+# ==========================================
+# DEXDIFF METHODOLOGY SCHEMA v2.0
+# ==========================================
+
+# ---- IDENTITY ----
+
+id: compound-learning
+name: "Compound Learning"
+version: 1.0.0
+dexdiff_schema: "2.0"
+
+author:
+  handle: dave
+  display_name: "Dave Killeen"
+  linkedin_url: ""
+  verified: true
+
+description: "Every interaction makes the system smarter. Mistakes become guardrails, preferences become defaults, patterns become insights — all without you lifting a finger."
+
+tags: [ambient-intelligence, learning-loops, self-improving, pattern-detection]
+
+created: 2026-04-09
+updated: 2026-04-09
+
+
+# ---- DISTRIBUTION ----
+
+distribution:
+  visibility: curated
+  targets:
+    orgs: []
+    groups: []
+    individuals: []
+  delivery: available
+  required: false
+
+
+# ---- THE METHODOLOGY ----
+
+methodology:
+
+  problem: |
+    Your AI assistant starts every conversation from scratch. It makes the same
+    mistakes you corrected last week. It doesn't know your preferences unless you
+    repeat them. It can't tell you what patterns are emerging across your work
+    because it forgets everything the moment a session ends.
+
+    (By "session" we mean a single AI conversation — from when you open the chat
+    to when you close it. Not a calendar event or a meeting.)
+
+    You're the one doing all the remembering — which tools worked, which approaches
+    failed, what your team decided, how your workflows are evolving. That knowledge
+    lives in your head and dies with each session. Meanwhile, you repeat the same
+    corrections, re-explain the same preferences, and miss patterns that would be
+    obvious if anything were keeping track.
+
+    A pattern that would have changed how you prepared for a meeting, or framed a
+    proposal, stays invisible — because no one was keeping track.
+
+  solution: |
+    This methodology is implemented by your AI assistant — no software to install.
+    The behaviors below are instructions your AI follows automatically during each
+    session. (A session is a single AI conversation — open to close.)
+
+    A layered system of ambient intelligence that learns from everything you do
+    without requiring you to teach it anything explicitly. It has four components
+    that feed into each other:
+
+    **1. Capture layer** — surface-level learning from every interaction.
+    The system scans each AI session for errors, expressed preferences, and
+    workflow gaps. These are logged automatically and surfaced for review so the
+    useful ones become permanent improvements. This is the raw input for everything
+    else.
+
+    **2. Observation layer** — deeper pattern extraction running silently in the
+    background. (Think of it as a background system that watches how you work and
+    extracts patterns without being asked.) Once per day, it processes the previous
+    day's session traces and extracts structured signals — decisions you made,
+    tools you gravitated toward, ideas that kept recurring. Over time, these
+    signals build into a professional profile: your superpowers, your blind spots,
+    your working conditions, your growth areas. None of this requires you to fill
+    in a form or answer a survey — it's synthesized from how you actually work.
+    The observation layer reads from the capture layer and writes to the
+    professional profile and serendipity engine.
+
+    **3. Serendipity engine** — unexpected connection scoring. (This is a process
+    that scores unexpected connections between topics you've worked on.) It reads
+    the structured signals from the observation layer and scores connections between
+    them that wouldn't otherwise meet — an idea from Monday's session and a problem
+    from Thursday's, a recurring frustration and a tool you haven't tried yet.
+    These surface as gentle nudges, not interruptions. If a semantic search tool is
+    available, it finds thematic connections that keyword matching would miss. Without
+    semantic search, it falls back to keyword and tag matching across recent signals
+    — less powerful but still functional.
+
+    **4. Weekly intelligence brief** — consolidation and self-healing. Everything
+    from the other three components rolls up into a weekly brief: what patterns
+    emerged, what's changing in your work, what the system taught itself. The brief
+    also triggers self-healing — if the system notices it keeps making the same
+    mistake, it proposes a fix to its own configuration.
+
+    **Data flow summary:**
+    Capture layer (every session) --> Observation layer (daily) --> Professional profile + Serendipity engine (daily) --> Weekly brief (weekly) --> Self-healing proposals (back into capture rules)
+
+    Each layer feeds the next. The capture layer produces raw learnings. The
+    observation layer turns those into structured signals. The serendipity engine
+    and professional profile consume those signals. The weekly brief synthesizes
+    everything and proposes self-healing changes that update the capture rules
+    themselves — closing the loop.
+
+    **Before and after — the compound effect:**
+
+    *Week 1:* You correct a timezone mistake. The system logs it and fixes the
+    default. You never see that mistake again.
+
+    *Month 1:* The observation layer notices you always restructure meeting notes
+    the same way. It proposes a template. Your meeting prep now starts from a
+    higher baseline.
+
+    *Quarter 1:* The serendipity engine connects a customer objection pattern
+    from January with a product feedback thread from February. Your weekly brief
+    surfaces it as an insight you'd never have spotted manually. You use it in a
+    board presentation.
+
+    The result is a system that compounds. Week one, it remembers your preferences.
+    Month one, it knows your patterns. Quarter one, it has a genuine model of how
+    you work — and it uses that model to serve you better every day.
+
+  user_experience:
+    commands:
+      - name: "learnings"
+        trigger: "/learnings"
+        description: "Review what the system has learned recently — captured mistakes, preferences, and workflow gaps — and choose which to promote into permanent improvements. Also surfaces the weekly brief when one has been generated for the current week."
+        example_input: "/learnings"
+        example_output: |
+          ## Session Learnings Check-In
+
+          **Today:** 3 captured | 2 pending | 1 implemented
+          **This week:** 4 pending items from previous days
+
+          ---
+
+          ### 1. Workflow Gap — Calendar integration missing timezone context
+
+          **What happened:** Scheduled a meeting in GMT but the prep brief showed UTC times.
+
+          **Why this matters:** Every external meeting with US colleagues shows wrong times in the prep output.
+
+          **If we don't fix this:** You'll keep mentally converting timezones or showing up early/late.
+
+          **Suggested fix:** Add timezone preference to your profile so all time-aware outputs respect it.
+
+          **Effort:** Quick fix (5 min)
+
+          ---
+
+          ### Quick Actions
+
+          Reply with number(s) to work on:
+          - `1` - Add timezone preference to profile
+          - `2` - Fix file naming convention for meeting notes
+          - `all` - Apply all suggestions
+          - `skip` - Nothing for now
+
+      - name: "save-insight"
+        trigger: "/save-insight [what you just completed]"
+        description: "After finishing meaningful work, capture what you learned so similar future work starts from a higher baseline."
+        example_input: '/save-insight "First QBR with enterprise customer"'
+        example_output: |
+          ## Enterprise QBR Learnings — 2026-04-09
+
+          **Context:** First QBR delivery for Tier 1 account
+
+          **Challenge:** Spent too long on feature adoption metrics;
+          the exec sponsor wanted business outcomes, not usage data.
+
+          **What Worked:**
+          Pivoted to ROI framing mid-presentation. Showed time saved
+          per user per week rather than login frequency.
+
+          **Key Insight:**
+          > Executive sponsors don't care how often people use the tool.
+          > They care what the tool replaced and what that's worth.
+
+          **See Also:** Related account page, Q1 Planning meeting note
+
+      - name: "eval-session"
+        trigger: "/eval-session [judgement]"
+        description: "Rate how an AI session went — what worked, what didn't — so the system learns what good looks like for you specifically."
+        example_input: "/eval-session partial"
+        example_output: |
+          # Session Eval: deal-prep-review
+
+          ## Outcome Assessment
+          - **Judgement:** Partial success
+          - **Satisfaction:** 3/5
+
+          ## What Worked Well
+          - Context gathering was thorough — read all relevant files before editing
+          - Competitive analysis was well-structured
+
+          ## What Could Improve
+          - Took too many passes to get the tone right
+          - Should have asked about audience before drafting
+
+          ## Suggested System Updates
+          - Add "ask about audience first" as a default behavior for content tasks
+
+      - name: "identity-snapshot"
+        trigger: "/identity-snapshot"
+        description: "Generate a living profile of how you actually work — patterns, tendencies, strengths, blind spots — synthesized from your real behavior, not self-reported traits."
+        example_input: "/identity-snapshot"
+        example_output: |
+          # Identity Model
+          *Auto-generated — last updated 2026-04-09*
+
+          ## Working Patterns
+          - Pillar balance: 55% client relationships, 30% team leadership, 15% technical depth
+          - Task velocity: ~12 items per week, completion rate 78%
+          - Peak focus: Monday mornings and Thursday afternoons
+
+          ## Decision Tendencies
+          - Under pressure: deprioritises secondary pillars in favour of primary pillar
+          - Goal selection: ambitious quarterly targets, pragmatic weekly execution
+
+          ## Quality Preferences
+          - Values: concise output, data-backed recommendations, no filler
+          - Frustrates: verbose answers, unsolicited caveats, generic advice
+
+          ## Growth Areas
+          - Recurring gap: secondary pillar cadence slips when primary pillar volume rises
+          - Blind spot: internal relationship maintenance during busy periods
+
+      - name: "capabilities-report"
+        trigger: "/capabilities-report"
+        description: "Weekly assessment of what changed in the AI platform you're building on — what's new, what matters for your workflows, and what to adopt."
+        example_input: "/capabilities-report"
+        example_output: |
+          # Capabilities Report — Week of 2026-04-07
+
+          **Versions this week:** [previous] to [current] (3 releases)
+          **Relevant changes:** 4 of 12 total
+
+          ## Top Recommendation
+          New background automation support means your daily digest
+          can now run without blocking your first interaction.
+
+          | # | Capability | Impact | Effort | What Changes for You |
+          |---|-----------|--------|--------|---------------------|
+          | 1 | Background tasks | 4/5 | Low | Digest runs silently on startup |
+          | 2 | Memory expansion | 3/5 | Medium | More context carries between sessions |
+
+  vault_structure:
+    description: |
+      The learning system needs a place for session-level captures (daily files
+      that accumulate automatically), a place for consolidated memory (digests,
+      pattern analyses, weekly briefs), and a place for long-lived learnings
+      organized by category. If any of these don't exist, they are created on
+      first use. The paths below are illustrative — adapt them to match your
+      vault's existing folder conventions.
+    folders:
+      - purpose: "Daily session learnings — one file per day, appended automatically"
+        typical_path: "e.g. System/Session_Learnings/ or Journal/AI_Learnings/"
+        required: true
+      - purpose: "Consolidated memory — digests, pattern analyses, weekly briefs"
+        typical_path: "e.g. System/Memory/ or Reviews/AI_Memory/"
+        required: true
+      - purpose: "Long-lived learnings by category — deal insights, workflow patterns, technical decisions"
+        typical_path: "e.g. Resources/Learnings/ or Knowledge/Learnings/"
+        required: false
+      - purpose: "Session evaluations — structured assessments of how AI sessions went"
+        typical_path: "e.g. Resources/Evals/ or Reviews/Session_Evals/"
+        required: false
+      - purpose: "Observation layer outputs — signals, profiles, serendipity queue"
+        typical_path: "e.g. System/Observation_Layer/ or AI/Observations/"
+        required: false
+
+  data_patterns:
+    - name: "Session learning entry"
+      description: |
+        Each day's learnings are captured in a single file with timestamped entries.
+        Each entry has a type (mistake, preference, gap, workflow), a description
+        of what happened, why it matters, and a suggested fix. Entries start as
+        "pending" and move to "implemented" or "skipped" after review.
+      example: |
+        ## 09:41 — [Mistake] Wrong file path for meeting notes
+
+        **What happened:** Saved meeting note to Inbox instead of Meetings folder.
+
+        **Pattern:** This is the 3rd time this week. The default path is wrong.
+
+        **Suggested fix:** Update the meeting note template to use Meetings/ as default.
+
+        **Status:** pending
+
+    - name: "Weekly intelligence brief"
+      description: |
+        A synthesized view of the past 7 days — patterns that emerged, decisions
+        tracked, topics that dominated, growth signals detected. Generated
+        automatically, not written by the user. Includes self-healing
+        recommendations where the system proposes fixes to its own behavior.
+      example: |
+        # Weekly Brief — 2026-04-07
+
+        ## Patterns This Week
+        - Primary pillar dominated (70% of sessions) — above quarterly target
+        - 3 sessions involved competitive analysis — emerging theme
+        - Secondary pillar activity dropped to zero — 2nd consecutive week
+
+        ## Self-Healing Proposals
+        - Auto-remind about secondary priorities when primary load drops below 60%
+        - Add competitive intelligence section to meeting prep output
+
+    - name: "Self-healing approval gate"
+      description: |
+        Every self-healing proposal requires explicit user approval before it
+        changes any system configuration. The system proposes; you decide. No
+        configuration is modified automatically as a result of the weekly brief
+        or any other component — all changes are surfaced for review first.
+      example: |
+        ## Self-Healing Proposal — 2026-04-07
+
+        **What the system noticed:** Timezone conversion errors appeared in 3 of
+        the past 4 sessions involving meeting scheduling.
+
+        **Proposed fix:** Add timezone preference (Europe/London) to your profile
+        so all time-aware outputs respect it by default.
+
+        **What changes:** The meeting prep and calendar integration behaviors will
+        use your local timezone without requiring you to specify it each time.
+
+        **Approve this change?** Reply `yes` to apply, `no` to skip, or `later`
+        to be reminded next week.
+
+    - name: "Professional profile"
+      description: |
+        A living document the system writes, not the user. Captures working
+        patterns, decision tendencies, quality preferences, and growth areas
+        based on observed behavior across sessions. Updated periodically as
+        new signals accumulate.
+      example: |
+        # Professional Profile
+        *Auto-generated — last updated 2026-04-09*
+
+        ## Working Style
+        - Communication: prefers bullet points over prose, data over anecdotes
+        - Decision speed: fast on tactical items, deliberate on strategic ones
+        - Collaboration: async-first, pulls people in for high-stakes decisions
+
+        ## Strengths (observed)
+        - Pattern recognition across customer conversations
+        - Rapid context-switching between strategic and tactical work
+        - Consistent follow-through on commitments made in meetings
+
+        ## Blind Spots (observed)
+        - Tends to over-index on urgent work at the expense of important-not-urgent
+        - Relationship maintenance drops during high-volume periods
+        - Rarely revisits past decisions to check if assumptions held
+
+    - name: "Categorized learning"
+      description: |
+        Permanent learnings organized by domain — deal insights, content patterns,
+        relationship dynamics, workflow improvements. Each entry has context,
+        challenge, what worked, a key insight, and cross-links to related notes.
+        These compound over time into a searchable knowledge base of what works
+        in your specific context.
+      example: |
+        ## Customer Conversations / Enterprise QBR Framing
+
+        **Context:** First QBR delivery for a Tier 1 account (2026-04-09)
+
+        **Challenge:** Presented feature adoption metrics but the exec sponsor
+        wanted business outcomes, not usage data.
+
+        **What worked:** Pivoted to ROI framing — time saved per user per week
+        rather than login frequency.
+
+        **Key insight:** Executive sponsors care about what the tool replaced
+        and what that's worth, not how often people log in.
+
+        **Cross-links:** Account page, Q1 Planning notes, Presentation Templates
+
+  integrations:
+    - name: "Usage analytics"
+      examples: ["Langfuse", "PostHog", "custom telemetry"]
+      required: false
+      value: "Tracks which commands you run, how often, and how they perform — enabling the capabilities report and usage-based profile generation."
+      without_this: "The capabilities report relies on manually checking release notes. The professional profile cannot include usage frequency data and instead infers patterns from session content alone."
+    - name: "Semantic search"
+      examples: ["local search engine", "local vector search"]
+      required: false
+      value: "Enables the serendipity engine to find thematic connections between signals that keyword matching would miss."
+      without_this: "The serendipity engine falls back to keyword and tag matching across recent signals. It still runs and surfaces connections, but thematic links between signals that share no literal keywords will be missed — the more conceptual your work patterns, the larger the gap."
+    - name: "Screen recording"
+      examples: ["ScreenPipe", "Rewind"]
+      required: false
+      value: "Captures ambient work context beyond AI sessions — what you read, what apps you used, what meetings happened — feeding richer signals into the observation layer."
+      without_this: "The observation layer only sees what happens inside AI sessions. Work done in other apps, browser research, and meeting context are invisible unless you mention them in a session. The professional profile is based solely on AI interaction patterns."
+    - name: "Calendar"
+      examples: ["Google Calendar", "Outlook Calendar"]
+      required: false
+      value: "Provides temporal context for the observation layer — correlating work patterns with meeting density, focus blocks, and time of day."
+      without_this: "The observation layer cannot correlate your work patterns with your schedule. It won't know if a productive morning happened during a focus block or between back-to-back meetings. Time-of-day insights in the professional profile are less reliable."
+
+  behaviors:
+    - description: "After every AI interaction, automatically scan for errors, expressed preferences, and workflow gaps. Log anything that could recur (not a one-off error) for later review."
+      trigger: "After every AI response"
+      trigger_mechanism: "Runs inline at the end of each AI response. The AI checks its own output against known preferences and past corrections before finalizing. Adds to today's learning file if something is found."
+      automatic: true
+    - description: "At the end of each session, extract a structured summary — entities mentioned, decisions made, topics covered, open questions — and save it to session memory."
+      trigger: "When a session ends"
+      trigger_mechanism: "Fires when the user closes the AI session or after a configurable idle timeout (e.g. 30 minutes of no interaction). Writes a session summary file before the context is lost."
+      automatic: true
+    - description: "Once per day, process the previous day's session traces and extract structured signals — decisions, tool preferences, idea clusters, frustration patterns."
+      trigger: "At the start of the first session each day"
+      trigger_mechanism: "Checks on session start whether today's signal extraction has already run. If not, processes yesterday's session files before the user's first interaction. Completes in the background if possible."
+      automatic: true
+    - description: "Build a professional profile from accumulated signals — superpowers, tendencies, blind spots, growth areas. Update it as new signals accumulate — only promotes patterns seen in 3+ sessions."
+      trigger: "After daily signal extraction"
+      trigger_mechanism: "Runs immediately after the daily signal extraction completes. Updates fire when a new pattern would meaningfully change the profile — not on every session, and not on one-off observations."
+      automatic: true
+    - description: "Score connections between signals that wouldn't otherwise meet — an idea from one session and a problem from another. Surface the highest-scoring connections as gentle nudges."
+      trigger: "After daily signal extraction"
+      trigger_mechanism: "Runs immediately after daily signal extraction. Compares the latest signals against the previous 30 days of signals using semantic search (if available) or keyword matching. Surfaces the top 1-3 connections scoring above a relevance threshold."
+      automatic: true
+    - description: "Every Monday, synthesize the past 7 days of signals and sessions into a weekly intelligence brief — patterns, themes, decisions, and self-healing proposals. This is distinct from /learnings, which surfaces session-level captures for review. The weekly brief is a strategic rollup; /learnings is a day-to-day review queue."
+      trigger: "First session on Monday (primary); /learnings surfaces it on demand if it exists"
+      trigger_mechanism: "Runs automatically at the start of the first session on Monday. The result is saved and available on demand via /learnings for the rest of the week. Reads all signals and session summaries from the past 7 days."
+      automatic: true
+    - description: "Track file activity — what was read, searched, and edited — to understand which parts of the vault are active and which are going stale."
+      trigger: "After file operations"
+      trigger_mechanism: "Appends to an activity log each time the AI reads, creates, or edits a file during a session. The log is lightweight (path + timestamp + operation type) and processed during daily signal extraction."
+      automatic: true
+    - description: "Watch for spontaneous delight — moments when the user expresses genuine positive surprise after a workflow runs. Log these as candidates for testimonials."
+      trigger: "After every AI response"
+      trigger_mechanism: "Runs inline after each AI response. Scans the user's reply for positive surprise signals (e.g. 'wow', 'that's exactly right', 'how did you know that'). Only logs when confidence is high — false positives are worse than missed captures."
+      automatic: true
+    - description: "Consolidate session learnings and cross-session memory into a daily digest, bridging what was learned today with what was learned previously."
+      trigger: "Periodically during sessions"
+      trigger_mechanism: "Runs every 3-5 interactions within a session (not after every single response). Checks whether new learnings connect to or contradict existing memory. Lightweight — only writes if a new learning contradicts or extends existing memory."
+      automatic: true
+    - description: "Track platform changes and new capabilities weekly. Flag what matters for your workflows and what to adopt."
+      trigger: "Weekly (or on demand)"
+      trigger_mechanism: "Runs alongside the weekly intelligence brief (first Monday session). Reads platform release notes or changelog if available. Also triggered on demand via /capabilities-report."
+      automatic: false
+
+  roles:
+    - name: "Sales / Account Executive"
+      adaptation: "Learning categories emphasise deal patterns, objection handling, and competitive intelligence. The professional profile highlights selling style, win/loss patterns, and relationship-building tendencies. Weekly briefs flag stale deals and coaching opportunities."
+      example_output: |
+        ## /learnings (AE view)
+
+        ### Deal Patterns
+        - **Win signal detected:** 3 of your last 4 wins involved a technical champion intro before Stage 3
+        - **Objection gap:** "Security review" objection came up twice this week with no documented response
+
+        ### Pipeline Health
+        - 2 deals idle >14 days — consider re-engagement
+        - Average deal cycle this quarter: 47 days (down from 52)
+
+        ### Coaching Opportunity
+        - Discovery calls are averaging 22 minutes — top performers run 35+. Consider deeper qualification.
+    - name: "Customer Success"
+      adaptation: "Learning categories emphasise renewal patterns, escalation handling, and expansion signals. The professional profile highlights customer advocacy style and risk detection instincts. Weekly briefs flag accounts that need attention."
+      example_output: |
+        ## /learnings (CSM view)
+
+        ### Account Health
+        - **Risk signal:** 2 accounts showed declining login trends this week
+        - **Expansion signal:** Customer X mentioned a new team onboarding — potential upsell
+
+        ### Renewal Patterns
+        - Renewals closing in <30 days: 4 (all green)
+        - Renewal with open escalation: 1 — needs exec alignment before renewal conversation
+
+        ### Relationship Insights
+        - Your strongest champion at Account Y changed roles — update stakeholder map
+    - name: "Product Leader"
+      adaptation: "Learning categories emphasise feature feedback patterns, prioritisation decisions, and stakeholder management. The professional profile highlights decision-making style and technical vs. strategic balance. Weekly briefs flag emerging themes from customer conversations."
+      example_output: |
+        ## /learnings (Product Leader view)
+
+        ### Feature Feedback Clusters
+        - "Reporting" mentioned in 6 sessions this week across 3 customers — rising theme
+        - "Mobile experience" feedback split: power users want depth, new users want simplicity
+
+        ### Decision Patterns
+        - 4 prioritisation decisions this week — 3 favoured short-term customer asks over roadmap items
+        - Suggestion: review whether tactical requests are crowding out strategic bets
+
+        ### Stakeholder Dynamics
+        - Engineering pushback on 2 items — both lacked technical feasibility notes in the brief
+    - name: "Engineering Leader"
+      adaptation: "Learning categories emphasise technical decisions, architecture patterns, and team management insights. The professional profile highlights problem-solving approach and code review tendencies. Weekly briefs flag recurring technical debt themes."
+      example_output: |
+        ## /learnings (Engineering Leader view)
+
+        ### Technical Decisions
+        - 3 architecture decisions logged this week — all favoured pragmatism over elegance
+        - Recurring pattern: choosing familiar tools over optimal ones under deadline pressure
+
+        ### Code Quality Signals
+        - Review turnaround: averaging 4 hours (up from 2 last month)
+        - 2 incidents traced to insufficient test coverage in the same module
+
+        ### Team Patterns
+        - Sprint velocity stable but 1:1 topics shifting toward burnout signals — worth a team health check
+    - name: "Executive"
+      adaptation: "Learning categories emphasise strategic decisions, organisational patterns, and delegation effectiveness. The professional profile highlights leadership style and decision velocity. Weekly briefs flag themes that deserve board or team attention."
+      example_output: |
+        ## /learnings (Executive view)
+
+        ### Strategic Decisions
+        - 2 resource allocation decisions this week — both increased investment in growth over efficiency
+        - Delegation effectiveness: 3 of 5 delegated items completed without re-intervention
+
+        ### Organisational Signals
+        - Cross-functional friction detected between Product and Sales on pricing flexibility
+        - 2 direct reports raised similar concerns independently — may indicate a systemic issue
+
+        ### Board-Ready Themes
+        - Customer concentration risk: top 3 accounts now represent 40% of ARR (up from 35%)
+
+
+# ---- MATCHING ----
+
+matching:
+  roles: ["Sales", "Customer Success", "Product", "Engineering", "Executive", "Founder"]
+  requires_any: ["session-history", "ai-assistant"]
+  enhanced_by: ["langfuse", "screenpipe", "semantic-search", "calendar"]
+  signals:
+    - trigger: "user corrects the same AI behavior 3+ times across sessions"
+      suggestion: "You've corrected this behavior three times now. There's a workflow that turns corrections into permanent improvements automatically — want to try it?"
+    - trigger: "user asks 'didn't I already tell you this?'"
+      suggestion: "Exactly — you shouldn't have to repeat yourself. There's a compound learning system that remembers preferences across sessions. Want me to set it up?"
+    - trigger: "user has 20+ AI sessions with no captured learnings"
+      suggestion: "You've had a lot of AI sessions but nothing is being remembered between them. A learning system would make every session build on the last."
+    - trigger: "user expresses frustration about AI forgetting context"
+      suggestion: "That forgetting problem is solvable. There's a workflow that captures context automatically and carries it forward. Interested?"
+  share_signals:
+    - trigger: "learning system captures 50+ learnings and user reviews regularly"
+      nudge: "Your learning system has captured real patterns from your work. That methodology could help others — want to share it?"
+
+
+# ---- COMPOUND LOOPS ----
+
+compounds_with:
+  - diff_id: "meeting-intelligence"
+    relationship: "amplifies"
+    description: "Meeting processing generates learnings. Those learnings improve future meeting prep. The observation layer detects meeting patterns that feed back into better preparation."
+  - diff_id: "people-intelligence"
+    relationship: "amplifies"
+    description: "Every person interaction generates signals. The observation layer builds relationship patterns over time. Those patterns feed back into richer person context."
+  - diff_id: "deal-intelligence"
+    relationship: "amplifies"
+    description: "Deal outcomes become learnings. The system detects win/loss patterns and objection-handling strategies that compound into deal playbooks."
+  - diff_id: "planning-rhythm"
+    relationship: "amplifies"
+    description: "Weekly reviews surface learning patterns. Daily plans incorporate observation layer intelligence. Planning decisions become signals that improve future planning."
+  - diff_id: "content-engine"
+    relationship: "extends"
+    description: "The observation layer detects content-worthy moments and expertise patterns. Learnings about what content performs feed back into better topic selection."
+  - diff_id: "intelligence-gathering"
+    relationship: "extends"
+    description: "External intelligence feeds the observation layer with industry context. The serendipity engine connects external signals with internal work patterns."
+  - diff_id: "agentic-orchestration"
+    relationship: "extends"
+    description: "The learning system captures which automation patterns work and which fail. Capabilities reports identify new platform features to adopt. Self-healing proposals improve automation reliability."
+
+
+# ---- SOCIAL PROOF ----
+
+love_letter:
+  text: ""
+  author: ""
+  metrics: []
+  verified: false
+
+
+# ---- POPULATED BY DEX-CLOUD POST-PUBLISH ----
+# stats:
+#   adoptions: 0
+#   active_users: 0
+#   avg_weekly_skill_runs: 0
+#   rating: null
+#   retention_30d: null

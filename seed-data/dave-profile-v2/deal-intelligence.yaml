@@ -1,0 +1,694 @@
+# ==========================================
+# DEXDIFF METHODOLOGY SCHEMA v2.0
+# ==========================================
+
+# ---- IDENTITY ----
+
+id: deal-intelligence
+name: "Deal Intelligence System"
+version: 2.0.0
+dexdiff_schema: "2.0"
+
+author:
+  handle: dave
+  display_name: "Dave Killeen"
+  role: "Field CPO"
+  verified: true
+
+description: "Know which deals need attention — and why — before anyone has to ask. Track accounts, surface staleness and qualification gaps, catch slipped commitments, draft the right messages, run competitive intel, and generate stakeholder updates. Works inside any markdown-based workspace where you keep account pages, meeting notes, and contact pages (pages that track the people you interact with — one per person)."
+
+tags: [deal-intelligence, pipeline-health, account-management, competitive-intel, stakeholder-reporting, commitment-tracking]
+
+created: 2026-04-09
+updated: 2026-04-09
+
+
+# ---- DISTRIBUTION ----
+
+distribution:
+  visibility: curated
+  targets:
+    orgs: []
+    groups: []
+    individuals: []
+  delivery: available
+  required: false
+
+
+# ---- THE METHODOLOGY ----
+
+methodology:
+
+  problem: |
+    You manage dozens of accounts across regions and segments. Some are progressing,
+    some are stalling, and some have gaps in qualification you haven't noticed yet.
+    Without a system, the only way to know which deals need attention is to manually
+    review each one — by which time the stale ones have already slipped. Commitments
+    made in meetings get forgotten because nobody tracks them systematically. You owe
+    someone a follow-up from two weeks ago and only realise when they chase you.
+    Your manager asks for an update and you spend an hour assembling it from memory
+    and scattered notes. Competitors ship features and you find out from a prospect,
+    not your own intelligence. Cross-deal patterns — like the same objection
+    appearing in three accounts — go unnoticed because each deal lives in its own
+    silo. The messages you should be sending — status updates, unblock requests,
+    accountability acknowledgements — pile up until they become awkward.
+
+  solution: |
+    A cluster of commands that work together across four layers:
+
+    **1. Visibility — know what needs attention**
+
+    Without a system, the only way to know which deals need attention is to
+    manually review each one. A scanning command checks every tracked account
+    for staleness, qualification gaps, and missing activity — producing a
+    red/yellow/green dashboard you can glance at in seconds. When you open
+    any account page, the system automatically surfaces cross-deal patterns:
+    similar deals at the same stage, common objections, and how long since
+    your last analysis.
+
+    **2. Accountability — catch slipping commitments**
+
+    Commitments made in meetings get forgotten because nobody tracks them
+    systematically. A separate command scans for slipped commitments using
+    concrete heuristics: action items past their due date, contact pages
+    without a follow-up task after recent meetings, and urgent items with
+    no activity in 7+ days. It cross-references your meetings, tasks, and
+    contact pages to catch things falling through the cracks before they
+    damage relationships.
+
+    **3. Communication — send the right message**
+
+    The messages you should be sending — status updates, unblock requests,
+    accountability acknowledgements — pile up until they become awkward.
+    A message drafting command generates ready-to-send messages based on
+    detected gaps. Each message includes the recipient, the source
+    commitment, and a contextual draft in the right tone.
+
+    **4. Intelligence — competitive and cross-deal patterns**
+
+    Competitors ship features and you find out from a prospect. Cross-deal
+    patterns — like the same objection appearing in three accounts — go
+    unnoticed because each deal lives in its own silo. A competitive intel
+    command gathers competitor changelogs, news, pricing pages, and your own
+    meeting transcripts to produce a threat-level dashboard with specific
+    actions. A transcript analysis command scores calls against a framework
+    — value selling, stakeholder coverage, competitive positioning — and
+    produces coaching recommendations with evidence.
+
+    **Bringing it together**
+
+    You add a deal once and the system creates a structured account page,
+    pulls metadata from your revenue tools, discovers related communication
+    channels, and flags executive connections you already have. For
+    stakeholder reporting, one command regenerates an account engagement
+    summary from your tracked deals, and another blends that with your
+    calendar, tasks, and verbal input to produce a structured update —
+    accounts table, internal enablement, thought leadership, and
+    observations — ready to send.
+
+    Newly created account pages are automatically enriched with data from
+    revenue tools and executive network connections. When you read any file
+    that references a company, the system displays key contacts, recent
+    meetings, and open tasks as additional context alongside the file
+    content.
+
+  user_experience:
+    commands:
+      - name: "add-deal"
+        trigger: '/add-deal [company name]'
+        description: "Add a company to your tracked deals. Creates a structured account page, pulls deal metadata from revenue tools, discovers communication channels, flags executive connections, and adds the account to your tracking list."
+        example_input: '/add-deal "Northwind Traders"'
+        example_output: |
+          # Adding Northwind Traders
+
+          **Segment:** Enterprise
+
+          ## Deal Metadata (from revenue tools)
+          | Field | Value |
+          |-------|-------|
+          | Account | Northwind Traders |
+          | Stage | Stage 2 |
+          | ARR | $280k |
+          | Owner | Regional AE |
+
+          ## Communication Channels
+          - Found deal channel — you're a member
+          - Found voice-of-customer channel — you're not a member (join for deal activity)
+          *(Channel naming conventions will vary by organisation.)*
+
+          ## Executive Connections
+          You have VP+ connections at Northwind Traders:
+          - VP Engineering — connected via LinkedIn
+
+          ## Next Steps
+          - Account page created at Accounts/Northwind_Traders.md
+          - Added to your tracked accounts
+          - Run /analyze-deal "Northwind Traders" to analyze call transcripts
+
+      - name: "analyze-deal"
+        trigger: '/analyze-deal [account name]'
+        description: "Analyze call transcripts for a specific account against a scoring framework — value selling, stakeholder coverage, competitive positioning, qualification depth, and product breadth. Most categories use a 1-5 scale. Product Breadth uses a wider scale (e.g. 1-7) because it measures how many of your available product capabilities were discussed — the upper bound depends on your product catalogue. Produces coaching recommendations with evidence quotes."
+        example_input: '/analyze-deal "Northwind Traders"'
+        example_output: |
+          # Northwind Traders Deal Analysis
+
+          ## Deal Overview
+          | Field | Value |
+          |-------|-------|
+          | Account | Northwind Traders |
+          | Stage | Stage 2 |
+          | ARR | $280k |
+          | Owner | Regional AE |
+          | Calls Analyzed | 4 |
+
+          ## Scoring Framework
+          | Pattern | Score | Priority |
+          |---------|-------|----------|
+          | Value Selling | 2/5 | HIGH |
+          | KPI Connection | 1/5 | HIGH |
+          | Competitive Positioning | 3/5 | Medium |
+          | Stakeholder Coverage | 4/5 | Low |
+          | Product Breadth | 2/7 | HIGH |
+
+          ## Top Coaching Opportunities
+          1. **KPI Connection (HIGH)** — Customer mentioned "reducing churn by 15%"
+             but the team didn't connect it to product capabilities. Prep ROI
+             talking points for next call.
+          2. **Product Breadth (HIGH)** — Only 2 of 7 products discussed.
+             Introduce predictive capabilities given their retention focus.
+
+          ## Key Quotes
+          > "We're just looking for better analytics" — Jan 10 call
+          > Warning: This framing limits deal size. Reframe around business outcomes.
+
+      - name: "deals-attention"
+        trigger: '/deals-attention'
+        description: "Quick scan of all tracked accounts. Checks staleness (days since last touch), qualification gaps (missing sections in deal framework), and recent meeting activity. Produces a red/yellow/green dashboard."
+        example_input: '/deals-attention'
+        example_output: |
+          ## Deals Needing Attention
+
+          | Account | Issue | Days Stale | Action Needed |
+          |---------|-------|------------|---------------|
+          | Northwind Traders | No touch | 18 | Schedule check-in |
+          | Contoso Ltd | Missing Economic Buyer | 5 | Identify EB in next call |
+          | Fabrikam Inc | No meeting in 4 weeks | 28 | Escalate with AE |
+
+          **Summary:** 24 accounts tracked (15 green / 6 yellow / 3 red)
+
+          ### Status Key
+          - **Green:** Touched in last 7 days, 0-2 qualification gaps
+          - **Yellow:** Stale 7-14 days, or 3-4 qualification gaps
+          - **Red:** Stale 14+ days, or 5+ gaps, or no meeting in 3+ weeks
+
+      - name: "cracks"
+        trigger: '/cracks'
+        description: "Scan for slipped commitments and things falling through the cracks. A slipped commitment is any of: action items past their due date, contact pages without a follow-up task after recent meetings, or urgent items with no activity in 7+ days. Cross-references meetings, tasks, and contact pages to surface these before they damage relationships."
+        example_input: '/cracks'
+        example_output: |
+          ## Cracks Detected
+
+          | Item | Age | Source | Risk |
+          |------|-----|--------|------|
+          | Follow up with VP at Contoso on pricing | 5 days | Meeting action item | High |
+          | Review regional expansion deck | 4 days | Weekly priorities | Medium |
+          | Check in with Fabrikam champion | — | No task after meeting | Medium |
+
+          **Summary:** 4 cracks detected (2 high, 2 medium)
+
+          ### Risk Classification
+          - **High:** 5+ days overdue, customer-facing, or explicitly urgent
+          - **Medium:** 3-4 days overdue, internal stakeholder
+          - **Low:** 3 days old, no deadline, internal only
+
+      - name: "draft-messages"
+        trigger: '/draft-messages'
+        description: "Generate ready-to-send messages based on detected accountability gaps, stale accounts, and blocked items. Each message includes the recipient, suggested channel, source commitment, and a contextual draft in the right tone."
+        example_input: '/draft-messages'
+        example_output: |
+          ## Draft Messages
+
+          ### Accountability Debts (Send First)
+
+          #### To Regional VP — Chat DM
+          **Why:** Promised account strategy update 5 days ago
+          **Source:** Meeting action item from last week
+
+          > Hey — wanted to flag I'm still working on the account strategy
+          > update. Should have it to you by Wednesday. Anything urgent
+          > blocking you in the meantime?
+
+          ---
+
+          ### Status Updates
+
+          #### To Sales Team — Team Channel
+          **Why:** No touchpoint with Northwind Traders in 12 days
+          **Source:** Account page
+
+          > Quick update on Northwind: Still in evaluation phase.
+          > Next step is follow-up call scheduled for next week.
+
+          ---
+
+          ### Unblock Requests
+
+          #### To Solutions Architect — Chat DM
+          **Why:** Waiting on technical validation for Contoso
+          **Source:** Task list
+
+          > Can you send over the Contoso technical validation results
+          > when you have them? I need to update the customer before Friday.
+
+      - name: "competitive-intel"
+        trigger: '/competitive-intel'
+        description: "Generate a competitive intelligence report. Gathers competitor changelogs, news, pricing pages, and social feeds. Searches your meeting transcripts for competitive mentions. Classifies each mention by type (active evaluation, switching, feature gap, etc.) and produces a threat-level dashboard with actions."
+        example_input: '/competitive-intel'
+        example_output: |
+          # Competitive Intelligence Brief
+          **Period:** Last 30 days | **Competitors Tracked:** 15
+
+          ## Critical Alerts
+          | Signal | Competitor | Threat | Action |
+          |--------|-----------|--------|--------|
+          | New AI feature launch | Rival A | HIGH | Update battle card, brief AEs |
+          | Pricing page change | Rival B | MED | Verify impact on mid-market deals |
+
+          ## Threat Level Dashboard
+          | Competitor | Level | Direction | Key Driver |
+          |-----------|-------|-----------|------------|
+          | Rival A | 7/10 | UP | AI feature parity closing |
+          | Rival B | 5/10 | -> | No major changes |
+          | Rival C | 3/10 | DOWN | Lost key customer publicly |
+
+          ## Voice of the Field
+          | Date | Account | Competitor | Context | Category |
+          |------|---------|-----------|---------|----------|
+          | YYYY-MM-DD | Acme | Rival A | Prospect comparing side by side | Active Eval |
+          | YYYY-MM-DD | Globex | Rival B | Switching from competitor | Switching From |
+
+          ## Recommended Actions
+          1. Update Rival A battle card with new AI capabilities
+          2. Prep competitive talk track for 3 active evaluations
+
+      - name: "stakeholder-update"
+        trigger: '/stakeholder-update'
+        description: "Generate a structured status update for leadership showing account engagement, internal enablement, external activity, and observations. Blends data from tracked accounts, calendar, tasks, and verbal input."
+        example_input: '/stakeholder-update'
+        example_output: |
+          YYYY-MM-DD
+
+          **Highlight: Completed Workshop Series with Globex**
+
+          Delivered the final session of a multi-part strategy workshop with the
+          Globex team. They've committed to expanding scope into additional
+          business units.
+
+          **Accounts & Sales Support**
+
+          | Company | Deal Value | My Activity | Owner |
+          |---------|-----------|-------------|-------|
+          | **Globex** | $300k | Workshop series complete. Expansion discussion started. | J. Smith |
+          | **Contoso** | $430k | Strategy workshop scheduled for next week. | M. Jones |
+
+          **Waiting for AE**
+
+          | Company | Deal Value | My Activity | Owner |
+          |---------|-----------|-------------|-------|
+          | **Fabrikam** | TBD | Conference speaking slot confirmed. | TBD |
+
+          **Internal Enablement**
+          - Running enablement session with team on product advisory
+          - Coaching new hire on running workshops independently
+
+          **External / Thought Leadership**
+          - Recorded podcast episode on industry trends
+          - Webinar next week on growth strategies
+
+      - name: "refresh-accounts"
+        trigger: '/refresh-accounts'
+        description: "Regenerate the account engagement summary from all tracked deal pages. Updates priority rankings, deal values, and activity status for stakeholder reporting."
+        example_input: '/refresh-accounts'
+        example_output: |
+          Account summary regenerated from 24 tracked accounts.
+
+          | Priority | Company | Deal Value | Last Activity |
+          |----------|---------|-----------|---------------|
+          | This Week | Globex | $300k | Workshop series |
+          | This Week | Contoso | $430k | KPI prep |
+          | Waiting | Fabrikam | TBD | Conference confirmed |
+
+  workspace_structure:
+    description: |
+      The workflow expects a folder for account pages (one markdown file per
+      tracked deal), plus folders for meeting notes, contact pages (one per
+      person you interact with), and competitive intelligence. A tracking
+      mechanism records which accounts you actively manage — this could be a
+      structured file, a tagged list, or data synced from your CRM. If these
+      don't exist, they should be created during setup.
+    folders:
+      - purpose: "Account pages — one file per tracked deal with structured metadata, qualification checklist, and engagement history"
+        typical_path: "Accounts/"
+        required: true
+      - purpose: "Meeting notes — structured notes from customer and internal meetings"
+        typical_path: "Meetings/"
+        required: true
+      - purpose: "Contact pages — external contacts (customers, partners), one page per person"
+        typical_path: "People/External/"
+        required: true
+      - purpose: "Contact pages — internal colleagues"
+        typical_path: "People/Internal/"
+        required: false
+      - purpose: "Tasks — a task list or backlog where action items and commitments are tracked"
+        typical_path: "Tasks/"
+        required: true
+      - purpose: "Competitive intelligence — competitor registry, reports, battle cards, and alerts"
+        typical_path: "Intel/Competitive/"
+        required: false
+      - purpose: "Account tracking — a mechanism for recording which accounts you actively manage and their segment/priority (could be a structured file, a tagged list, or synced from your CRM)"
+        typical_path: "assignments"
+        required: true
+
+  data_patterns:
+    - name: "Account page"
+      description: |
+        Each tracked deal has a markdown page with structured metadata at the
+        top (stage, ARR, owner, segment, priority, communication channels)
+        and sections for a deal qualification checklist (covering areas like
+        metrics, economic buyer, champion, decision process, and competition),
+        call intelligence from transcript analysis, engagement history,
+        executive connections, and notes. Updated by multiple commands —
+        add-deal creates it, analyze-deal enriches it, deals-attention scans it.
+      example: |
+        ---
+        type: account
+        stage: "Stage 2"
+        arr: "$280k"
+        owner: "Regional AE"
+        segment: "enterprise"
+        priority: "this_week"
+        channels:
+          - name: "deal-channel"
+        ---
+        (The section between the dashes at the top is structured metadata
+        the system reads automatically.)
+
+        # Northwind Traders
+
+        ## Metrics
+        Reducing churn by 15% is the stated KPI.
+
+        ## Economic Buyer
+        VP Product — identified but not yet engaged directly.
+
+        ## Champion
+        Director of Analytics — strong internal advocate.
+
+        ## Call Intelligence
+        Last analyzed: 2024-01-15 (4 calls)
+        - Value Selling: 2/5 (HIGH priority)
+        - KPI Connection: 1/5 (HIGH priority)
+
+        ## Engagement History
+        | Date | Activity | Notes |
+        |------|----------|-------|
+        | 2024-01-15 | Discovery call | Initial qualification |
+        | 2024-02-01 | Demo | Showed analytics suite |
+
+        ## Executive Connections
+        - VP Engineering — LinkedIn connection
+
+    - name: "Account tracking"
+      description: |
+        A tracking mechanism for which accounts you actively manage — could
+        be a structured file, a tagged list, or synced from your CRM. Records
+        each account's segment (enterprise vs commercial) and current priority.
+        Used by the attention scanner and stakeholder reporting commands.
+      example: |
+        # Example structured format (adapt to your tooling):
+        assigned:
+          - name: "Northwind Traders"
+            segment: enterprise
+          - name: "Contoso Ltd"
+            segment: enterprise
+          - name: "Fabrikam Inc"
+            segment: commercial
+
+    - name: "Deal scoring framework"
+      description: |
+        A configurable scoring framework used by the analyze-deal command to
+        evaluate call transcripts. Each category is scored on a scale with a
+        priority level. Most categories use a 1-5 quality scale. Product
+        Breadth uses a wider scale (default 1-7) because it counts how many
+        of your available product capabilities were discussed — the upper
+        bound should match the number of distinct capabilities in your
+        catalogue, so adjust it to fit. Roles can add or replace categories
+        — for example, Customer Success might add Renewal Signals and
+        Expansion Indicators.
+      example: |
+        scoring_categories:
+          - name: "Value Selling"
+            scale: "1-5"
+            description: "Is the conversation framed around business outcomes, not features?"
+          - name: "KPI Connection"
+            scale: "1-5"
+            description: "Are customer KPIs explicitly linked to product capabilities?"
+          - name: "Competitive Positioning"
+            scale: "1-5"
+            description: "Is the team proactively differentiating against alternatives?"
+          - name: "Stakeholder Coverage"
+            scale: "1-5"
+            description: "Are the right people in the room — economic buyer, champion, technical evaluator?"
+          - name: "Product Breadth"
+            scale: "1-N (default 1-7, where N = number of distinct product capabilities)"
+            description: "How many relevant capabilities have been discussed vs available?"
+
+    - name: "Competitive intel report"
+      description: |
+        A dated markdown report with sections for critical alerts, threat-level
+        dashboard, per-competitor analysis (what changed, impact, voice of
+        customer), win/loss patterns, feature gaps, blind spots, and recommended
+        actions. Generated by the competitive-intel command.
+
+    - name: "Stakeholder update"
+      description: |
+        A structured message with a date, narrative highlight, accounts table
+        (active and waiting), internal enablement bullets, external/thought
+        leadership bullets, and an optional observation. Designed to be sent
+        directly to leadership via chat.
+
+  integrations:
+    - name: "CRM / revenue intelligence"
+      examples: ["Salesforce", "HubSpot", "Clari", "Gong"]
+      required: false
+      value: "Pulls deal metadata (stage, ARR, owner) when adding accounts. Without this, you enter deal metadata manually and the workflow still works."
+    - name: "Meeting intelligence"
+      examples: ["Momentum", "Gong", "Chorus", "Granola"]
+      required: false
+      value: "Surfaces meeting history and transcripts for deal analysis and commitment tracking. Enables the transcript scoring framework. Without this, you analyze deals from your own notes and track commitments manually."
+    - name: "Chat/messaging"
+      examples: ["Slack", "Microsoft Teams"]
+      required: false
+      value: "Discovers deal-related channels, monitors for activity, and enables sending drafted messages directly. Without this, you track communication channels manually and copy messages to your preferred tool."
+    - name: "Calendar"
+      examples: ["Google Calendar", "Outlook Calendar"]
+      required: false
+      value: "Enriches stakeholder updates with meeting activity from the past and upcoming weeks. Without this, you describe your week from memory."
+    - name: "Professional network"
+      examples: ["LinkedIn Sales Navigator", "LinkedIn"]
+      required: false
+      value: "Flags VP+ connections at new accounts — surfaces executive relationships you already have. Without this, you check your network manually."
+    - name: "Competitor changelog/blog feeds"
+      examples: ["RSS", "web scraping"]
+      required: false
+      value: "Enables automated competitive intelligence gathering from public sources. Without this, competitive intel relies on manual research and meeting transcript mentions."
+    - name: "Semantic search"
+      examples: ["local vector search", "embedding-based search"]
+      required: false
+      value: "Finds thematically related accounts and cross-deal patterns that keyword search misses. Without this, the attention scanner and cracks detector use simple file scanning instead."
+
+  behaviors:
+    - description: "When a new account page is created, automatically enrich it with deal metadata from revenue tools, meeting history counts, and executive network connections"
+      trigger: "After an account page is created or saved"
+      automatic: true
+    - description: "When reading any account page, surface cross-deal intelligence — similar deals at the same stage, staleness alerts, and patterns appearing across multiple accounts"
+      trigger: "When opening an account page"
+      automatic: true
+    - description: "When reading any file that references a company, display key contacts, recent meetings, open tasks, and deal status as additional context alongside the file content"
+      trigger: "When opening a file that mentions a tracked company"
+      automatic: true
+    - description: "During weekly planning, run the attention scanner and surface any red-status accounts that need immediate action"
+      trigger: "During weekly planning"
+      automatic: false
+    - description: "During morning planning, scan for slipped commitments and surface any high-risk cracks — overdue action items, contacts without follow-up, and urgent items not started"
+      trigger: "During morning planning"
+      automatic: false
+    - description: "Periodically check when the last competitive intel report was generated and nudge if it's overdue"
+      trigger: "During morning planning"
+      automatic: false
+    - description: "After generating a stakeholder update, silently update contact pages, project pages, and account pages with any new activity referenced in the update"
+      trigger: "After stakeholder update is generated"
+      automatic: true
+
+  roles:
+    - name: "Sales / Account Executive"
+      adaptation: |
+        Account pages focus on pipeline progression and next steps. The attention
+        scanner emphasises deal velocity and close-date risk. Commitment tracking
+        prioritises customer-facing promises. Stakeholder updates are framed
+        around quota attainment and forecast accuracy.
+      example_differences:
+        - "Attention scanner flags deals where close date is within 30 days but stage hasn't advanced"
+        - "Competitive intel prioritises active evaluations in your pipeline over general market moves"
+        - "Draft messages default to customer-facing follow-ups before internal updates"
+    - name: "Sales Engineering / Field CTO"
+      adaptation: |
+        Account pages include technical qualification and product fit sections.
+        The transcript analyzer scores for technical depth and solution breadth.
+        Commitment tracking watches for PoC deliverables and demo follow-ups.
+        Stakeholder updates highlight technical wins and enablement delivered.
+      example_differences:
+        - "Transcript analysis includes a 'product breadth' score — how many capabilities were discussed vs available"
+        - "Attention scanner checks whether technical validation has been completed for late-stage deals"
+        - "Cracks detector flags overdue PoC deliverables and demo follow-up materials"
+    - name: "Customer Success"
+      adaptation: |
+        Account pages reframe around health score, renewal timeline, and
+        expansion opportunities. The attention scanner watches for declining
+        engagement rather than deal progression. Commitment tracking focuses
+        on support promises and review cadences. Stakeholder updates emphasise
+        retention and growth metrics.
+      example_differences:
+        - "Attention scanner flags accounts with no meeting in 3+ weeks as churn risk, not just staleness"
+        - "Stakeholder update includes a 'Renewals This Quarter' section with health indicators"
+        - "Draft messages prioritise proactive check-ins over reactive follow-ups"
+    - name: "Revenue Leader / VP Sales"
+      adaptation: |
+        The system operates at portfolio level rather than individual deal level.
+        Attention scanning summarises team pipeline health. Commitment tracking
+        aggregates overdue items by rep. Stakeholder updates aggregate across
+        reps. Competitive intel feeds into enablement priorities.
+      example_differences:
+        - "Attention dashboard groups accounts by rep and shows team-level red/yellow/green distribution"
+        - "Competitive intel recommends specific enablement sessions based on where reps are losing"
+        - "Cracks detector surfaces systemic patterns — are multiple reps missing the same follow-up type?"
+      example_output_snippets:
+        deals_attention: |
+          ## Team Pipeline Health
+
+          | Rep | Green | Yellow | Red | Total |
+          |-----|-------|--------|-----|-------|
+          | A. Lee | 8 | 2 | 1 | 11 |
+          | B. Chen | 5 | 4 | 3 | 12 |
+          | C. Park | 7 | 1 | 0 | 8 |
+
+          **Team Summary:** 31 accounts (20 green / 7 yellow / 4 red)
+
+          ### Red Accounts by Rep
+          | Rep | Account | Issue | Days Stale |
+          |-----|---------|-------|------------|
+          | A. Lee | Contoso Ltd | No meeting in 4 weeks | 28 |
+          | B. Chen | Fabrikam Inc | Missing Economic Buyer | 14 |
+          | B. Chen | Woodgrove | No touch in 21 days | 21 |
+          | B. Chen | Tailspin | Close date passed, stage unchanged | 35 |
+        cracks: |
+          ## Systemic Cracks
+
+          | Pattern | Reps Affected | Count | Risk |
+          |---------|---------------|-------|------|
+          | Post-demo follow-up missing | B. Chen, C. Park | 4 items | High |
+          | Champion check-in overdue | A. Lee, B. Chen | 3 items | Medium |
+
+          **Interpretation:** Post-demo follow-ups are a team-wide gap, not
+          a single-rep issue. Consider adding it to the deal stage checklist.
+    - name: "Product Leader"
+      adaptation: |
+        Account pages emphasise feature requests and product feedback captured
+        in meetings. Competitive intel focuses on feature gaps and product
+        differentiation. Commitment tracking watches for roadmap promises made
+        to customers. Stakeholder updates highlight product-influenced wins
+        and customer advisory engagement.
+      example_differences:
+        - "Transcript analysis extracts feature requests and maps them to product roadmap areas"
+        - "Competitive intel produces a 'Feature Gap' heatmap showing where competitors are ahead"
+        - "Cracks detector flags roadmap commitments made in customer meetings that haven't been relayed to product"
+      example_output_snippets:
+        deals_attention: |
+          ## Deals Needing Product Attention
+
+          | Account | Feature Request | Roadmap Area | Status | Risk |
+          |---------|----------------|--------------|--------|------|
+          | Contoso Ltd | Bulk export API | Platform / API | Not planned | High — deal blocker |
+          | Globex | SSO with SAML | Security | Q2 roadmap | Low — on track |
+          | Fabrikam Inc | Custom dashboards | Analytics | Under review | Medium — no ETA given |
+
+          **Summary:** 6 open feature requests across 4 accounts.
+          2 are deal blockers with no roadmap commitment.
+        cracks: |
+          ## Roadmap Commitments at Risk
+
+          | Account | Promise Made | Meeting Date | Relayed to Product? | Risk |
+          |---------|-------------|-------------|---------------------|------|
+          | Contoso Ltd | "We'll have bulk export by Q2" | 2024-01-15 | No | High |
+          | Northwind | "Dashboard customization is on our radar" | 2024-02-01 | Yes — under review | Medium |
+
+          **Action:** 1 roadmap promise made to a customer has not been
+          relayed to the product team. Surface before the next customer call.
+
+
+# ---- MATCHING ----
+
+matching:
+  roles: ["Sales", "Sales Engineering", "Customer Success", "Product", "Revenue Leadership"]
+  requires_any: ["account-pages", "deal-tracking"]
+  enhanced_by: ["salesforce", "hubspot", "clari", "gong", "momentum", "granola", "slack", "calendar", "linkedin", "semantic-search"]
+  signals:
+    - trigger: "user creates 3+ account or company pages manually"
+      suggestion: "You're tracking deals by hand. There's a workflow that structures account pages, scans for gaps, and tells you which deals need attention — want to try it?"
+    - trigger: "user searches for competitive information in meetings"
+      suggestion: "You're researching competitors manually. There's a workflow that gathers changelogs, news, and your own transcripts to produce a threat dashboard. Interested?"
+    - trigger: "user writes a status update for their manager"
+      suggestion: "You just assembled a status update from scratch. There's a workflow that generates these from your tracked accounts and calendar. Want me to set it up?"
+    - trigger: "user connects a CRM or revenue tool for first time"
+      suggestion: "Now that you have CRM data, your deal tracker can pull stage, value, and owner automatically when you add accounts. Want to enable that?"
+    - trigger: "user reads 5+ account pages in one session"
+      suggestion: "Looks like you're reviewing your pipeline. There's a command that scans all accounts and flags which ones need attention — saves you from checking each one."
+    - trigger: "user has overdue tasks referencing customers for 3+ days"
+      suggestion: "You have customer commitments slipping. There's a workflow that detects these automatically and drafts the right messages. Want to try it?"
+  share_signals:
+    - trigger: "deal attention scan used 2+ times per week for 4+ weeks"
+      nudge: "Your deal attention workflow is clearly part of your rhythm. Want to diff it so others can use it?"
+    - trigger: "stakeholder update generated weekly for 4+ weeks"
+      nudge: "You've been generating stakeholder updates consistently. That's a workflow other people would love."
+
+
+# ---- COMPOUND LOOPS ----
+
+compounds_with:
+  - diff_id: "meeting-intelligence"
+    relationship: "amplifies"
+    description: "Meeting intelligence captures what happened in calls. Deal intelligence consumes those notes to detect qualification gaps, score transcripts, and track commitments. Every processed meeting enriches deal analysis, and deal context makes future meeting prep sharper."
+  - diff_id: "daily-operating-rhythm"
+    relationship: "extends"
+    description: "Daily planning consumes the deal attention dashboard and cracks detector to prioritise the day. Red-status accounts and high-risk commitments surface in morning plans. Stakeholder updates feed into weekly review cycles."
+  - diff_id: "compound-learning"
+    relationship: "amplifies"
+    description: "Each deal interaction generates learnings — which coaching patterns recur, which competitors appear most, which commitment types slip. Over time the system recognises your pipeline patterns and surfaces increasingly precise recommendations."
+
+
+# ---- SOCIAL PROOF ----
+
+love_letter:
+  text: ""
+  author: ""
+  metrics: []
+  verified: false
+
+
+# ---- POPULATED BY DEX-CLOUD POST-PUBLISH ----
+# stats:
+#   adoptions: 0
+#   active_users: 0
+#   avg_weekly_skill_runs: 0
+#   rating: null
+#   retention_30d: null

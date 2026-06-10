@@ -20,8 +20,9 @@
     "convex:dashboard": "npx convex dashboard",
     "smoke:api:prod": "bash ./scripts/test-production-api.sh",
     "db:check": "node scripts/check-database.cjs",
-    "db:seed": "node scripts/seed-database.cjs",
-    "db:ensure": "npm run db:check || npm run db:seed"
+    "db:seed": "node scripts/reseed-v2.cjs",
+    "db:seed-legacy-v1": "node scripts/seed-database.cjs",
+    "db:ensure": "npm run db:check"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.91",

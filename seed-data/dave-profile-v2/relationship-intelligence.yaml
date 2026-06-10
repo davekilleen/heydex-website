@@ -1,0 +1,460 @@
+# ==========================================
+# DEXDIFF METHODOLOGY SCHEMA v2.0
+# ==========================================
+
+# ---- IDENTITY ----
+
+id: relationship-intelligence
+name: "Relationship Intelligence"
+version: 1.0.0
+dexdiff_schema: "2.0"
+
+author:
+  handle: dave
+  display_name: "Dave Killeen"
+  linkedin_url: ""
+  verified: true
+
+description: "Every file you open is silently enriched with relationship context — who these people are, where you left things with them, what's still open — so your working memory never starts from zero."
+
+tags: [relationship-intelligence, people, accounts, context-aware, automation]
+
+created: 2026-04-09
+updated: 2026-04-09
+
+
+# ---- DISTRIBUTION ----
+
+distribution:
+  visibility: curated
+  targets:
+    orgs: []
+    groups: []
+    individuals: []
+  delivery: available
+  required: false
+
+
+# ---- THE METHODOLOGY ----
+
+methodology:
+
+  problem: |
+    Context about the people and companies you work with is scattered across
+    meeting notes, task lists, and account pages — and none of it surfaces
+    automatically when you need it. You open a file to prepare for a call and
+    you're starting cold: who is this person, what role do they hold, what did
+    you last discuss, what do you still owe them? You know the answer is in your
+    vault somewhere, but finding it mid-task breaks your flow. For account work,
+    the problem is worse — deal status, key contacts, and recent activity all
+    live in different files that nobody links together.
+
+    The deeper cost is invisible: you skip context that matters because looking
+    it up feels too slow. Relationships degrade when you forget small things.
+    Accounts stall when context doesn't flow between the people you meet and the
+    companies they represent.
+
+  solution: |
+    A person-context automation runs before you read any file — detecting whether
+    the file mentions people you have records for, and if so, injecting a brief
+    context panel showing their role, when you last interacted with them, and
+    what's still open between you. A company-context automation does the same for
+    organisations — detecting company references and surfacing account-level context:
+    deal status, key contacts, and recent activity.
+
+    You never configure or trigger these. They just work. When you open a meeting
+    note, a project brief, a pipeline update, or a task list, the people and
+    companies in that file become visible without a search. Context drawn from
+    vault records — fed by meeting processing — not pulled directly from email or
+    chat, so the signal is curated and noise-free.
+
+    Two commands complete the loop. One scans files you've written for people
+    mentions and adds navigation links back to their person pages — keeping your
+    records connected as you produce new content. The other presents AI-generated
+    suggestions for new person pages, account connections, and project associations
+    surfaced from recent meeting processing, so you can approve or skip them in
+    one pass.
+
+    Together: every file you read gets enriched with relationship context
+    automatically, and every file you write feeds back into your relationship
+    records.
+
+  user_experience:
+    commands:
+      - name: "link-people"
+        trigger: "/link-people [file path]"
+        description: "Scans a markdown file for people mentions and adds navigation links inline, then updates each person's record with a reference to this file — keeping relationship records current as you write."
+        example_input: "/link-people"
+        example_output: |
+          Scanned: Account_Review_Notes.md
+
+          Found 3 people:
+            - Jordan Marsh (External)
+            - Sam Okafor (Internal)
+            - Priya Nair (External)
+
+          Updated 3 person pages:
+            - Jordan_Marsh.md — added mention from Account_Review_Notes.md
+            - Sam_Okafor.md — added mention from Account_Review_Notes.md
+            - Priya_Nair.md — added mention from Account_Review_Notes.md
+
+          Inline links added to Account_Review_Notes.md
+
+      - name: "review-suggestions"
+        trigger: "/review-suggestions [--week | --pending]"
+        description: "Surfaces AI-generated suggestions from recent meeting processing — new person pages to create, meetings to connect to accounts, and project associations to confirm — for a quick human review and approval pass."
+        example_input: "/review-suggestions --week"
+        example_output: |
+          ## Connection Suggestions Review
+
+          Period: 2026-04-02 – 2026-04-09
+
+          Summary:
+          - People to create: 2
+          - Account connections: 3
+          - Project suggestions: 1
+
+          Would you like to:
+          1. Review people suggestions
+          2. Review account connections
+          3. Review project associations
+          4. Review all
+          5. Skip (defer to weekly review)
+
+          ---
+
+          ### Person: Alex Tran
+          - Company: Meridian Solutions (from email domain)
+          - Appeared in: 2 meetings this week
+          - Meetings: Partner Sync, Renewal Planning
+
+          Actions:
+          - [y] Create page at People/External/Alex_Tran.md
+          - [ ] Skip
+          - [ ] Defer
+
+          ---
+
+          ### Account Connection: Partner Sync — 2026-04-07
+          - Attendees: Alex Tran, Jordan Marsh
+          - Matched Account: Meridian Solutions (high confidence)
+          - Action: Add to Meridian's Recent Activity? [y/n]
+
+          ---
+
+          Review complete:
+          - Created 1 person page
+          - Connected 2 meetings to accounts
+          - Deferred 1 (need more context on project match)
+
+
+  vault_structure:
+    description: |
+      The workflow expects person pages organised by relationship type (external
+      contacts, internal colleagues, and optionally a specialist network) and
+      company or account pages in a dedicated area. Meeting notes are the primary
+      source of new relationship signals; the automations and commands use all
+      three together.
+    folders:
+      - purpose: "Person pages for external contacts — customers, partners, vendors, prospects"
+        typical_path: "People/External/"
+        required: true
+      - purpose: "Person pages for internal colleagues"
+        typical_path: "People/Internal/"
+        required: true
+      - purpose: "Person pages for specialist networks (advisors, investors, peers)"
+        typical_path: "People/Network/"
+        required: false
+      - purpose: "Company and account pages — one per organisation you have a meaningful relationship with"
+        typical_path: "Companies/"
+        required: true
+      - purpose: "Meeting notes — one per meeting, referenced by person and company pages"
+        typical_path: "Meetings/"
+        required: false
+      - purpose: "Pending connection suggestions awaiting human review"
+        typical_path: "People/Suggestions/"
+        required: false
+
+
+  data_patterns:
+    - name: "People index"
+      description: |
+        The person-detection automation scans against a registry of known contacts.
+        This is a simple markdown or YAML list — one entry per person — with enough
+        identifiers for the automation to recognise them in arbitrary files. Aliases
+        handle nicknames, maiden names, or initials. The file path links the registry
+        entry to the full person page.
+      example: |
+        # People Index
+
+        - name: Jordan Marsh
+          role: VP Engineering
+          company: Meridian Solutions
+          aliases: [Jordan, J. Marsh]
+          file: People/External/Jordan_Marsh.md
+
+        - name: Alex Tran
+          role: Account Director
+          company: Verity Group
+          aliases: [Alex]
+          file: People/External/Alex_Tran.md
+
+        - name: Sam Okafor
+          role: Engineering Lead
+          company: Internal
+          aliases: [Sam]
+          file: People/Internal/Sam_Okafor.md
+
+    - name: "Person page"
+      description: |
+        Each contact has a markdown page with a metadata header at the top of the
+        file capturing their role, company, and last interaction date. The body has
+        sections for relationship
+        context, a table of recent meetings (date, topic, key outcomes), open items
+        as a checklist (things you owe them and things they owe you), and freeform
+        notes. Filename follows a consistent convention such as Firstname_Lastname.md.
+      example: |
+        ---
+        type: person
+        company: "Meridian Solutions"
+        role: "VP of Operations"
+        last_interaction: "2026-04-07"
+        ---
+
+        # Jordan Marsh
+
+        **Company:** Meridian Solutions
+        **Role:** VP of Operations
+
+        ## Context
+        Primary champion on the renewal. Technically fluent, prefers written
+        summaries over slides. Budget authority shared with their CFO.
+
+        ## Recent Meetings
+
+        | Date       | Topic            | Key Outcomes                          |
+        |------------|------------------|---------------------------------------|
+        | 2026-04-07 | Partner Sync     | Agreed to extend pilot by 6 weeks     |
+        | 2026-03-21 | Renewal Planning | Flagged internal approval timeline    |
+
+        ## Open Items
+        - [ ] Send updated pricing proposal (due 2026-04-14)
+        - [x] Shared case study from similar customer (done 2026-04-01)
+
+        ## Notes
+        Mentioned wanting to see a roadmap preview before finalising the renewal.
+
+    - name: "Company page"
+      description: |
+        Each organisation has a page capturing deal or relationship status, key
+        contacts (linked to person pages), a timeline of recent meetings and
+        activities, and open tasks. Updated when meeting notes or account reviews
+        reference the company.
+      example: |
+        ---
+        type: company
+        status: active
+        ---
+
+        # Meridian Solutions
+
+        **Status:** Active — renewal in progress
+        **Region:** Northern Europe
+
+        ## Key Contacts
+
+        | Name         | Role             | Last Met   |
+        |--------------|------------------|------------|
+        | Jordan Marsh | VP of Operations | 2026-04-07 |
+        | Sam Park     | Finance Director | 2026-03-15 |
+
+        ## Recent Activity
+
+        | Date       | Event                    | Notes                          |
+        |------------|--------------------------|--------------------------------|
+        | 2026-04-07 | Partner Sync             | Pilot extended by 6 weeks      |
+        | 2026-03-21 | Renewal Planning call    | Internal approval timeline TBC |
+
+        ## Open Tasks
+        - [ ] Send updated pricing proposal by 2026-04-14
+        - [ ] Schedule roadmap preview before end of April
+
+    - name: "Meeting connection suggestion"
+      description: |
+        When meetings are processed, the system generates a structured suggestion
+        entry for each inferred connection — a person to create a page for, an
+        account to link a meeting to, or a project to associate. Suggestions are
+        stored in a review queue until confirmed or dismissed.
+
+        Confidence scoring note: confidence is high when the company name appears
+        in both the attendee's email domain and existing vault records; low when
+        inferred from name patterns alone. Low-confidence matches are shown for
+        human review with a flag rather than actioned automatically.
+      example: |
+        ---
+        type: connection-suggestion
+        date: 2026-04-08
+        status: pending
+        ---
+
+        ## Suggestion: New Person — Alex Tran
+        Source: Partner Sync (2026-04-07)
+        Company: Meridian Solutions (from email domain)
+        Appearances this week: 2
+        Suggested action: Create People/External/Alex_Tran.md
+
+
+  integrations:
+    - name: "Meeting processing"
+      examples: ["Granola", "Zoom", "Otter.ai", "manual meeting notes"]
+      required: false
+      value: "Generates the raw material that feeds relationship records — meeting notes with attendees, discussion points, and action items. Without this, person and company pages are updated manually; the suggestion review command has nothing to surface."
+    - name: "People index"
+      examples: ["a markdown or YAML list with name, role, aliases, and file path — one entry per known contact"]
+      required: true
+      value: "The person-detection automation needs a registry of who to look for in files. Without it, no names are recognised, no context is injected, and the link-people command cannot detect mentions. A minimal list with names and roles is enough to start. See the People index data pattern for the expected format."
+    - name: "Semantic search"
+      examples: ["QMD", "local vector search"]
+      required: false
+      value: "Finds thematically related relationship content that keyword matching misses — surfacing past discussions with a person even when their name isn't literally present in the file. Without it, detection relies on name matching only, which is still effective for most cases."
+    - name: "Calendar"
+      examples: ["Google Calendar", "Outlook Calendar"]
+      required: false
+      value: "Enriches suggestion review with meeting metadata — attendee email domains, timing, frequency — improving account-matching confidence. Without it, account connections are inferred from meeting notes alone."
+
+
+  behaviors:
+    - description: "When you open any file, scan it for known person names and inject a brief context panel showing their role, last interaction date, and open items — before you read the file content."
+      trigger: "Any file read that contains a known person's name (excluding person pages themselves, to avoid recursion)"
+      automatic: true
+      example_output: |
+        ## Context: Jordan Marsh — VP Engineering at Meridian Solutions
+        Last met: 2 weeks ago (Partner Sync, 2026-03-26)
+        Open: you owe architecture feedback — due 2026-04-14
+        Open: they owe you approval timeline update
+
+    - description: "When you open any file, scan it for known company names and inject a brief account context panel showing deal status, key contacts, and recent activity — before you read the file content."
+      trigger: "Any file read that references a known company (excluding company pages themselves)"
+      automatic: true
+      example_output: |
+        ## Context: Meridian Solutions
+        Status: Renewal in progress — $84k ARR
+        Key contacts: Jordan Marsh (VP Eng), Sam Park (Finance Director)
+        Last activity: Partner Sync 2026-03-26 — pilot extended 6 weeks
+        Open: pricing proposal due 2026-04-14
+    - description: "After writing or updating a file that mentions people, run the link-people automation to add inline navigation links and update person page references."
+      trigger: "On demand via /link-people, or after writing vault markdown that mentions people"
+      automatic: false
+    - description: "After meeting processing runs, queue suggestions for new person pages, account connections, and project associations for human review."
+      trigger: "After meeting notes are processed by the meeting intelligence pipeline"
+      automatic: true
+    - description: "When a suggestion is confirmed during /review-suggestions, create the person page or account connection and mark the suggestion as actioned."
+      trigger: "User confirmation during /review-suggestions"
+      automatic: false
+
+
+  roles:
+    - name: "Sales / Account Executive"
+      adaptation: |
+        Context injection emphasises deal stage, renewal timeline, and buying signals
+        alongside standard person context. When reading a file that mentions an account,
+        the panel shows pipeline status and the last commercial touchpoint, not just
+        meeting history. Suggestion review prioritises new contacts at target accounts
+        — every new attendee in a deal call is a candidate for a person page and a
+        champion-mapping entry.
+      example_panel: |
+        ## Context: Jordan Marsh — VP Engineering at Meridian Solutions
+        Deal stage: Renewal — $84k ARR — close target 2026-04-30
+        Last commercial touchpoint: pricing call 2026-03-21
+        Open: send updated proposal by 2026-04-14
+
+    - name: "Customer Success"
+      adaptation: |
+        Person context panels surface health indicators and open support commitments
+        alongside last interaction. Company panels lead with renewal date, health score
+        trend, and escalation history. Suggestion review flags new stakeholders at
+        at-risk accounts as high priority — the context injection catches when a
+        previously unseen contact appears in a file, signalling a potential escalation
+        or champion change.
+
+    - name: "Product Leader"
+      adaptation: |
+        Person context emphasises feature requests and roadmap commitments made to
+        that individual. Company panels surface product usage signals and open feedback
+        threads alongside deal status. Link-people runs after every customer research
+        note, ensuring that insight traces back to a named stakeholder rather than
+        disappearing into an unlinked file.
+
+    - name: "Engineering or Technical Leader"
+      adaptation: |
+        Context panels surface technical context rather than commercial context — what
+        projects this person is a stakeholder on, what decisions they've been involved
+        in, what technical concerns they've raised. Company panels emphasise integration
+        or implementation status. Suggestion review connects meeting attendees to active
+        projects, surfacing which technical topics have external stakeholder visibility.
+      example_panel: |
+        ## Context: Jordan Marsh — VP Engineering at Meridian Solutions
+        Projects: Auth redesign — stakeholder since March, raised concerns about token rotation
+        Decision history: approved SSO scope change 2026-03-10
+        Open: you owe architecture feedback on proposed session model
+
+    - name: "Executive or Founder"
+      adaptation: |
+        Context injection covers the full relationship picture — commercial, personal,
+        and strategic — in a compact panel suited for high meeting frequency. Company
+        panels show the organisational relationship holistically: partnership status,
+        key individuals, shared history. Suggestion review focuses on net-new contacts
+        at strategic accounts and flags any connection between a new contact and an
+        existing senior relationship.
+
+
+# ---- MATCHING ----
+
+matching:
+  roles: ["Sales", "Customer Success", "Product", "Engineering", "Executive", "Founder", "Partnerships"]
+  requires_any: ["people-pages", "company-pages"]
+  enhanced_by: ["meeting-notes", "calendar", "semantic-search", "meeting-recording"]
+  signals:
+    - trigger: "user manually looks up a person page before reading a related file, 3+ times in one week"
+      suggestion: "You're manually pulling relationship context before reading files. There's an automation that surfaces this for you automatically — want to try it?"
+    - trigger: "user has 10+ person pages but no company pages"
+      suggestion: "You have strong people records. Adding company pages would let you see the full account picture when you read files that mention that organisation. Want to set that up?"
+    - trigger: "user writes meeting notes that mention people but those people aren't linked to person pages"
+      suggestion: "This meeting note mentions people who aren't in your relationship records yet. Want to run /review-suggestions to create their pages?"
+    - trigger: "user opens an account file and then manually opens 2+ person pages in the same session"
+      suggestion: "You're pulling account and people context separately. There's a workflow that surfaces both automatically when you open any file — want to see it?"
+  share_signals:
+    - trigger: "person context injection fires 20+ times per week for 4+ consecutive weeks"
+      nudge: "Your relationship intelligence system is running constantly. That's a strong signal it's working — want to diff it so others can use it?"
+
+
+# ---- COMPOUND LOOPS ----
+
+compounds_with:
+  - diff_id: "meeting-prep"
+    relationship: "amplifies"
+    description: "Meeting prep pulls from person and company pages to build a pre-meeting brief. Relationship intelligence keeps those pages current automatically, so meeting prep gets richer over time without manual effort."
+  - diff_id: "meeting-intelligence"
+    relationship: "extends"
+    description: "Meeting intelligence processes recordings and generates notes. Relationship intelligence consumes that output — extracting new person and account connections and feeding them back into relationship records, closing the loop."
+  - diff_id: "deal-intelligence"
+    relationship: "amplifies"
+    description: "Deal intelligence tracks pipeline and commercial context at the account level. Relationship intelligence ensures the people behind those accounts are tracked individually, adding the human layer to the commercial picture."
+
+
+# ---- SOCIAL PROOF ----
+
+love_letter:
+  text: "[placeholder — captured separately]"
+  author: ""
+  metrics: []
+  verified: false
+
+
+# ---- POPULATED BY DEX-CLOUD POST-PUBLISH ----
+# stats:
+#   adoptions: 0
+#   active_users: 0
+#   avg_weekly_skill_runs: 0
+#   rating: null
+#   retention_30d: null

@@ -1,0 +1,508 @@
+# ==========================================
+# DEXDIFF METHODOLOGY SCHEMA v2.0
+# ==========================================
+
+# ---- IDENTITY ----
+
+id: market-intelligence
+name: "Market Intelligence System"
+version: 1.0.0
+dexdiff_schema: "2.0"
+
+author:
+  handle: dave
+  display_name: "Dave Killeen"
+  linkedin_url: ""
+  verified: true
+
+description: "A network of intelligence pipelines that monitor your industry across sources — competitor moves, thought leadership, deal signals, community conversations — and synthesise everything into a single daily briefing and on-demand reports."
+
+tags: [market-intelligence, competitive-intel, signal-synthesis, research, automation]
+
+created: 2026-04-09
+updated: 2026-04-09
+
+
+# ---- DISTRIBUTION ----
+
+distribution:
+  visibility: curated
+  targets:
+    orgs: []
+    groups: []
+    individuals: []
+  delivery: available
+  required: false
+
+
+# ---- THE METHODOLOGY ----
+
+methodology:
+
+  problem: |
+    Market intelligence is everywhere and nowhere. Competitor announcements live in
+    changelogs, newsletters, social feeds, and video content — each in a different
+    place, each arriving at a different time. You either miss signals entirely, or
+    you spend hours a week manually trawling sources that rarely yield anything useful.
+
+    When something does matter — a competitor launches a feature, a key account
+    shows intent signals, an industry narrative shifts — it gets buried in noise or
+    lands in your inbox two weeks too late to act on it.
+
+    The result: you're reactive when you should be proactive, and every "did you see
+    what they just shipped?" conversation is one you're behind on.
+
+  solution: |
+    You start each day informed, not catching up — with a single morning briefing that
+    distils everything across every intelligence source you track. On demand, you can
+    pull a structured competitor report, surface emerging technology, or summarise any
+    URL, file, or video directly into your vault.
+
+    Behind this is a system of always-on intelligence pipelines, each monitoring a
+    different source category, each producing structured vault entries from what they
+    find. The pipelines run on their own cadence — daily, weekly, or event-triggered —
+    and every signal they surface flows into a shared synthesis layer.
+
+    The synthesis layer — a layer that reads across all your intelligence folders and
+    looks for the same theme appearing in multiple sources at once — finds patterns
+    that no single pipeline can see: a theme in newsletters, video content, and social
+    simultaneously is a signal worth acting on. A competitor name surfacing in deal
+    transcripts the same week they ship a major feature is more important than either
+    data point alone.
+
+    If a source goes down or your credentials expire, the system notes the gap in your
+    morning briefing and keeps running — it never fails silently.
+
+  user_experience:
+    commands:
+      - name: "competitive-intel"
+        trigger: '/competitive-intel'
+        description: "Generates a full competitive intelligence report by scanning competitor changelogs, public announcements, social activity, and internal deal transcripts in parallel. Produces a structured report with threat assessments, voice-of-customer signals, and recommended actions."
+        example_input: '/competitive-intel'
+        example_output: |
+          # Competitive Intelligence Brief
+          **Date:** 2026-04-09 | **Period:** Last 30 days
+
+          ## Executive Flash
+
+          ### Critical Alerts
+          | Signal | Competitor | Threat Level | Action |
+          |--------|-----------|-------------|--------|
+          | Launched AI-native analytics tier | Competitor A | HIGH | Update battle card, brief field team |
+
+          ### This Period in 30 Seconds
+          - Competitor A shipped AI-native analytics — directly overlaps our roadmap positioning
+          - Two enterprise deals mentioned Competitor B in the same week (new pattern)
+          - Competitor C raised Series C — expect accelerated hiring and pricing pressure
+
+          ## Threat Level Dashboard
+          | Competitor | Level | Direction | Key Driver |
+          |-----------|-------|-----------|------------|
+          | Competitor A | 8/10 | UP | AI feature launch |
+          | Competitor B | 6/10 | -> | Stable, but enterprise push |
+          | Competitor C | 5/10 | UP | Funding round |
+
+          ## Voice of the Field (from deal transcripts)
+          | Date | Account Type | Competitor | Context | Category |
+          |------|-------------|-----------|---------|----------|
+          | 2026-04-07 | Enterprise | Competitor A | Evaluating both | Active Evaluation |
+          | 2026-04-05 | Mid-Market | Competitor B | Considering switch | Switching To |
+
+          ## Recommended Actions
+          ### Immediate
+          1. Update Competitor A battle card with AI tier positioning
+          2. Brief field team on Competitor C funding context
+
+          ### This Month
+          1. Request roadmap acceleration on overlapping AI features
+          2. Add Competitor B to weekly deal transcript scan
+
+      - name: "repo-radar"
+        trigger: '/repo-radar [--all] [--deep <repo-name>]'
+        description: "Surfaces the top technology discoveries from the current week, scored for relevance to your domain and priorities. Pulls from an automated discovery tracker. Deep-dive mode fetches full analysis and drafts a backlog entry."
+        example_input: '/repo-radar'
+        example_output: |
+          REPO RADAR — Week of 2026-04-07
+
+          Scanned: 47 tracked repos | 12 discovered this week
+          Relevance scored by domain match, recency, and community adoption signal
+          High = strong domain fit + active adoption | Medium = adjacent or early-stage | Low = monitor only
+
+          #1: tool-name — one-line description
+             Stars: 4.2k | Language: TypeScript | License: MIT
+             Relevance: High
+             Domain: Agent orchestration
+
+             WHY THIS MATTERS:
+             Solves the exact context-persistence problem the team has been discussing.
+             Lightweight, file-based, no cloud dependency — fits local-first architecture.
+
+             THE PLAY:
+             Read the architecture section and evaluate as a replacement for the current
+             approach. Low integration effort if the interface is compatible.
+
+             RISK/EFFORT: Low — single dependency, MIT licence, active maintenance
+
+      - name: "add-newsletter"
+        trigger: '/add-newsletter [name] [email] [category] [priority]'
+        description: "Adds one or more publications to the newsletter intelligence pipeline. Accepts single entries or pipe-delimited batch lists. Validates against existing sources and skips duplicates."
+        example_input: '/add-newsletter "Product Weekly" | weekly@productco.com | product | high'
+        example_output: |
+          Added 1 newsletter to intelligence sources.
+          - Product Weekly (product, high priority) → will appear in next fetch cycle
+
+          Skipped 0 (already tracked).
+
+          Source categories tracked:
+          - Industry news: 8 sources
+          - Technical deep-dives: 5 sources
+          - Product & strategy: 6 sources
+          - Business & startups: 4 sources
+
+      - name: "summarize"
+        trigger: '/summarize <url | file | youtube-url>'
+        description: "Summarises any URL, local file, YouTube video, or document into vault-ready content. Identifies the source type automatically and uses the appropriate extraction method. Offers to save the output directly to the inbox."
+        example_input: '/summarize https://example.com/industry-report-2026'
+        example_output: |
+          # Summary: The State of Product Analytics 2026
+
+          **Source:** https://example.com/industry-report-2026
+          **Date:** 2026-04-09
+
+          ## Summary
+          The report identifies three converging trends reshaping the product analytics
+          market: AI-native instrumentation, privacy-first data architectures, and the
+          collapse of the analytics-feedback gap. Mid-market vendors are consolidating
+          while enterprise buyers demand unified platforms.
+
+          ## Key Points
+          - 67% of teams have consolidated to one analytics vendor in the last 18 months
+          - AI-assisted analysis is now a buying criterion, not a differentiator
+          - Privacy regulations driving shift to first-party data strategies
+
+          ## Source Notes
+          Page 14 has the vendor comparison matrix — worth revisiting for competitive
+          positioning.
+
+          ---
+          Save to vault? [Y/n]
+
+  vault_structure:
+    description: |
+      Intelligence pipelines write structured entries into dedicated inbox folders,
+      one per source type. A synthesis layer reads across folders to detect
+      cross-source patterns. Competitive reports land in a dedicated reports folder.
+      The morning briefing is a single dated markdown file that aggregates
+      highlights from every active pipeline.
+    folders:
+      - purpose: "Competitive intelligence reports — one per run"
+        typical_path: "Intel/Competitive/reports/"
+        required: true
+      - purpose: "Competitor registry and threat dashboard"
+        typical_path: "Intel/Competitive/"
+        required: true
+      - purpose: "Newsletter intelligence — processed articles and digests"
+        typical_path: "Intel/Newsletter_Intel/"
+        required: false
+      - purpose: "LinkedIn intelligence — follower activity and post signals"
+        typical_path: "Intel/LinkedIn_Intel/"
+        required: false
+      - purpose: "Video intelligence — processed transcripts and summaries"
+        typical_path: "Intel/YouTube_Intel/"
+        required: false
+      - purpose: "Social intelligence — bookmarked conversations and threads"
+        typical_path: "Intel/Twitter_Intel/"
+        required: false
+      - purpose: "Deal and meeting signal digests"
+        typical_path: "Intel/Momentum_Intel/"
+        required: false
+      - purpose: "Morning briefing — one file per day"
+        typical_path: "00-Inbox/Daily_Prep/"
+        required: false
+      - purpose: "Summarised URLs, files, and documents"
+        typical_path: "00-Inbox/"
+        required: false
+      - purpose: "Technology discovery tracker — living registry"
+        typical_path: "System/Innovation_Research/"
+        required: false
+
+  data_patterns:
+    - name: "Competitor registry"
+      description: |
+        A YAML file listing every tracked competitor with their tier (Tier 1 /
+        Tier 2 / Watch List), URLs to monitor (changelog, pricing, social),
+        current threat level (1–10), and search terms for internal transcript
+        scanning. Threat level rubric: 1–3 = monitoring only, 4–6 = active
+        awareness, 7–9 = strategic response needed, 10 = existential risk.
+        Updated after each competitive intel run when new information warrants
+        a tier or threat level change. Search terms are split by scan cadence:
+        high-priority terms run daily, broader market terms run weekly.
+      example: |
+        # Threat level: 1-3 monitoring only | 4-6 active awareness | 7-9 strategic response | 10 existential
+
+        competitors:
+          tier_1:
+            - name: "Competitor A"
+              changelog_url: "https://competitor-a.com/releases"
+              pricing_url: "https://competitor-a.com/pricing"
+              social_handle: "@competitorA"
+              threat_level: 8  # 7-9 = strategic response needed
+              threat_direction: "UP"
+              last_updated: "2026-04-09"
+          watch_list:
+            - name: "Emerging Tool X"
+              threat_level: 3  # 1-3 = monitoring only
+              threat_direction: "->"
+              notes: "Early stage — monitor quarterly"
+
+        search_terms:
+          daily: ["Competitor A", "Competitor B", "Competitor C"]
+          weekly: ["category term", "market term"]
+
+    - name: "Synthesis layer"
+      description: |
+        The synthesis layer reads across all your intelligence folders —
+        Newsletter_Intel, YouTube_Intel, LinkedIn_Intel, Twitter_Intel,
+        Momentum_Intel, and Competitive reports — and looks for the same
+        theme appearing in multiple sources at once. When a theme appears
+        in 2 or more independent sources within a 7-day window, it is
+        flagged as a "cross-source signal" and surfaced in the next morning
+        briefing under a dedicated section with a confidence rating. The
+        synthesis layer writes its output to a dated synthesis digest file;
+        it does not modify the source pipeline entries.
+      example: |
+        # Inputs the synthesis layer reads:
+        #   Intel/Newsletter_Intel/   Intel/YouTube_Intel/
+        #   Intel/LinkedIn_Intel/     Intel/Twitter_Intel/
+        #   Intel/Momentum_Intel/     Intel/Competitive/reports/
+
+        # Cross-source signal threshold: same theme in 2+ sources within 7 days
+
+        # Output written to:
+        #   Intel/Synthesis/ — one dated digest per synthesis run
+
+        ---
+        type: synthesis-digest
+        date: 2026-04-09
+        sources_scanned: [newsletter, youtube, linkedin, momentum, competitive]
+        cross_source_signals: 2
+        ---
+
+        ## Cross-Source Signals
+
+        ### AI-native pricing models gaining traction
+        Sources: 2 newsletters, 3 YouTube videos (within 7 days)
+        Confidence: High — multiple independent sources
+        So what: Customers will start asking pricing questions differently.
+
+    - name: "Intelligence pipeline entry"
+      description: |
+        Each pipeline produces structured markdown entries when it finds
+        something worth surfacing. Entries include source metadata (where it
+        came from, when it was fetched), a brief summary of the signal, and
+        a relevance tag indicating which domain it relates to. Low-signal
+        fetches produce no entry — pipelines only write to the vault when
+        there is something worth reading.
+      example: |
+        ---
+        type: intel-entry
+        source: newsletter
+        publication: "[publication name]"
+        date: 2026-04-09
+        relevance: [competitive, ai-trends]
+        ---
+
+        # [Article Title]
+
+        **Publication:** [name] | **Date:** 2026-04-09
+
+        ## Signal
+        [2-3 sentence summary of what this means, not just what it says]
+
+        ## Why It Matters
+        [Specific relevance to current priorities or competitive context]
+
+        ## Source
+        [URL or reference]
+
+    - name: "Morning briefing"
+      description: |
+        A dated markdown file generated each morning that pulls highlights
+        from every active pipeline — newsletter signals, social activity,
+        video summaries, deal signals, and any competitive alerts. Structured
+        to be readable in under 3 minutes. Sections appear only when a pipeline
+        has new material; quiet pipelines leave no noise.
+      example: |
+        ---
+        type: daily-briefing
+        date: 2026-04-09
+        pipelines_active: [newsletter, linkedin, momentum, competitive]
+        ---
+
+        # Intelligence Briefing — 2026-04-09
+
+        ## Competitive Alerts
+        - Competitor A shipped a new integration yesterday — see full alert in your competitive alerts file
+
+        ## Newsletter Signals (3 new)
+        - [Publication A]: AI pricing models shifting toward consumption-based — signals market move
+        - [Publication B]: Enterprise security requirements tightening — relevant to upcoming deal
+
+        ## Deal Signals (from yesterday's meetings)
+        - Two accounts mentioned budget freeze — possible macro signal
+        - Competitor B name surfaced in a mid-market call for first time this quarter
+
+        ## Community Conversation (social)
+        - Active thread on [topic] — 47 bookmarks in 24h, rising signal
+
+        ---
+        Full pipeline archives in Intel/
+
+    - name: "Synthesis digest"
+      description: |
+        A periodically generated document that identifies patterns appearing
+        across multiple intelligence sources simultaneously. When the same theme
+        appears in newsletters, video content, and social conversation within a
+        short window, the synthesis layer flags it as a cross-source signal. These
+        digests are more valuable than any single pipeline entry because they
+        indicate a genuine market shift rather than isolated noise.
+      example: |
+        ---
+        type: synthesis-digest
+        date: 2026-04-09
+        cross_source_signals: 3
+        ---
+
+        # Signal Synthesis — 2026-04-09
+
+        ## Cross-Source Signals
+
+        ### Signal: AI-native pricing models gaining traction
+        **Sources:** 2 newsletters, 3 YouTube videos, 1 social thread
+        **Confidence:** High (multiple independent sources, 7-day window)
+        **So what:** Customers will start asking pricing questions differently.
+        Update deal objection handling and pricing narrative.
+
+        ### Signal: Privacy-first architecture narrative strengthening
+        **Sources:** 1 newsletter, 4 social bookmarks, competitor blog
+        **Confidence:** Medium
+        **So what:** Reinforce local-first positioning in upcoming content.
+
+  integrations:
+    - name: "Web scraping"
+      examples: ["Firecrawl", "WebFetch"]
+      required: false
+      value: "Enables the competitive intel pipeline to fetch competitor changelogs, pricing pages, and blog posts automatically. Without this, you manually check competitor sites and paste content for analysis."
+    - name: "Meeting transcript tool"
+      examples: ["Granola", "Zoom", "Fireflies"]
+      required: false
+      value: "Enables the momentum pipeline to scan recent meeting transcripts for competitor mentions, deal signals, and customer pain patterns. Without this, competitive mentions from calls are invisible to the system."
+    - name: "Email access"
+      examples: ["Gmail", "Outlook"]
+      required: false
+      value: "Enables the newsletter pipeline to fetch new issues directly from your inbox rather than relying on manual forwarding or browser-based fetching."
+    - name: "Social bookmark sync"
+      examples: ["X/Twitter saved bookmarks", "Raindrop", "custom bookmark export"]
+      required: false
+      value: "Enables the social intelligence pipeline to process bookmarked posts and threads. Without this, social signal capture is manual."
+    - name: "Video transcript extraction"
+      examples: ["yt-dlp", "YouTube transcript API"]
+      required: false
+      value: "Enables the video pipeline to process thought leadership content from YouTube automatically. Without this, you paste transcripts or summaries manually."
+    - name: "GitHub API access"
+      examples: ["GitHub GraphQL API", "GitHub trending"]
+      required: false
+      value: "Enables the automated technology discovery scan to fetch trending repos, star counts, and recent activity. Without this, repo-radar works from a manually maintained tracker only."
+    - name: "Calendar"
+      examples: ["Google Calendar", "Outlook"]
+      required: false
+      value: "Enables the morning briefing to include the day's schedule as context for which intelligence is most immediately relevant."
+      without: "Without this, the morning briefing contains no schedule context and you manually consider which intelligence is time-sensitive."
+    - name: "Semantic search"
+      examples: ["local vector search", "local semantic search engine"]
+      required: false
+      value: "Enables the synthesis layer to find thematic connections across intelligence entries that keyword search would miss — surfacing patterns in meaning rather than just matching terms."
+      without: "Without this, the synthesis layer relies on keyword matching only, which misses thematic signals that don't share exact vocabulary."
+
+  behaviors:
+    - description: "When a competitive intelligence run identifies a critical alert (threat level HIGH or a new competitor entering field conversations), write a one-line alert to the competitive alerts file (in the competitive intel folder) so it surfaces in the next morning briefing even if the full report isn't opened."
+      trigger: "After competitive-intel completes"
+      automatic: true
+    - description: "When the morning briefing is generated, check when competitive intel was last run. If more than 14 days have elapsed, add a nudge: 'Competitive scan is [N] days old — run /competitive-intel to refresh.'"
+      trigger: "During morning briefing generation"
+      automatic: true
+    - description: "When a newsletter source is added via /add-newsletter, schedule it into the next pipeline fetch cycle rather than fetching immediately, to batch network activity."
+      trigger: "After add-newsletter completes"
+      automatic: true
+    - description: "When /summarize saves content to the vault, offer to tag it with relevant intelligence categories so it appears in future synthesis runs."
+      trigger: "After summarize saves a file"
+      automatic: false
+    - description: "When the synthesis layer detects a cross-source signal with high confidence, surface it in the next morning briefing under a dedicated 'Cross-Source Signals' section with a confidence rating."
+      trigger: "During signal synthesis"
+      automatic: true
+    - description: "Generate the morning briefing at the start of the first vault session each day. If no intelligence pipelines have run since the previous briefing, include a note listing which sources have gone quiet and how long since each last ran — the briefing still generates, it just makes the gaps visible."
+      trigger: "First vault session of the day"
+      automatic: true
+    - description: "If a source goes down or credentials expire, write a brief note to the morning briefing under 'Pipeline Gaps' — the system keeps running and never fails silently. Each gap entry shows which source was affected and when it last ran successfully."
+      trigger: "On any pipeline fetch error"
+      automatic: true
+
+  roles:
+    - name: "Field Sales / Account Executive"
+      adaptation: "Competitive intel emphasises threat levels for competitors active in current pipeline, win/loss patterns from recent calls, and copy-paste Slack summaries for sharing with the team. Morning briefing highlights any deal-adjacent signals first."
+    - name: "Product Leader"
+      adaptation: "Competitive intel foregrounds feature gaps and 'so what for roadmap' analysis. Repo radar surfaces technology patterns relevant to product decisions. Synthesis digests highlight narrative shifts that should inform positioning."
+    - name: "Founder / Executive"
+      adaptation: "Morning briefing leads with macro signals and competitive threats, not operational detail. Synthesis digests are the primary output — patterns across sources, not per-source summaries. Reports are shorter and more decisive."
+    - name: "Customer Success"
+      adaptation: "The morning briefing leads with switching-risk signals and renewal account mentions rather than product launch news. Competitive intel surfaces competitor mentions from accounts in the renewal pipeline. Newsletter and video pipelines are filtered toward customer pain categories so the digest reads like a customer health signal, not an industry roundup."
+    - name: "Marketing / Content Strategist"
+      adaptation: "Synthesis digests are the primary output — emerging narrative themes, rising topics across newsletters and social, and competitor positioning shifts that inform the content calendar. Synthesis digests surface trending vocabulary and narrative arcs — useful for headlines, angles, and timing content to emerging conversations before they peak."
+
+
+# ---- MATCHING ----
+
+matching:
+  roles: ["Sales", "Product", "Executive", "Customer Success", "Marketing", "Founder"]
+  requires_any: ["intel-folder", "competitor-registry", "newsletter-sources"]
+  enhanced_by: ["firecrawl", "granola", "gmail", "local-semantic-search", "yt-dlp", "github-api", "calendar"]
+  signals:
+    - trigger: "user manually googles a competitor three or more times in a week"
+      suggestion: "You've been checking on competitors manually. There's a workflow that does this automatically and writes structured reports to your vault — want to see it?"
+    - trigger: "user pastes a long article or newsletter into chat asking for a summary"
+      suggestion: "You can set up a pipeline that processes publications like this automatically. Want to add this source to your intelligence feeds?"
+    - trigger: "user asks 'what have competitors shipped recently' or similar"
+      suggestion: "That's exactly what /competitive-intel is for. Want me to run a full scan now?"
+    - trigger: "user connects email for the first time"
+      suggestion: "Your newsletter pipeline can now fetch directly from your inbox. Want me to set up automatic processing for your subscribed publications?"
+    - trigger: "user saves a summarized URL to vault manually 3+ times"
+      suggestion: "You've been summarizing a lot of content. The /summarize command streamlines this — want to try it on your next link?"
+  share_signals:
+    - trigger: "competitive-intel run 6+ times in 30 days"
+      nudge: "You're running competitive intel consistently. Want to share this methodology so your team can use the same system?"
+
+
+# ---- COMPOUND LOOPS ----
+
+compounds_with:
+  - diff_id: "meeting-intelligence"
+    relationship: "amplifies"
+    description: "Deal transcripts from meeting intelligence feed the competitive signal scan. Competitor mentions in calls surface as voice-of-customer data in the competitive intel report."
+  - diff_id: "daily-operating-rhythm"
+    relationship: "feeds"
+    description: "The morning briefing produced by this system is the intelligence input for the daily operating rhythm. Together they close the loop from signal to action."
+  - diff_id: "content-engine"
+    relationship: "extends"
+    description: "Synthesis digests surface emerging themes that become content ideas. Cross-source signals are the raw material for thought leadership that feels timely rather than generic."
+  - diff_id: "deal-intelligence"
+    relationship: "amplifies"
+    description: "Competitive alerts flow into deal context. Knowing a competitor shipped something before a renewal call is qualitatively different from learning about it after."
+
+
+# ---- SOCIAL PROOF ----
+
+love_letter:
+  text: ""
+  author: ""
+  metrics: []
+  verified: false

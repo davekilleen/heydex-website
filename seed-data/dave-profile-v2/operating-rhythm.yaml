@@ -1,0 +1,684 @@
+# ==========================================
+# DEXDIFF METHODOLOGY SCHEMA v2.0
+# ==========================================
+
+# ---- IDENTITY ----
+
+id: operating-rhythm
+name: "Operating Rhythm"
+version: 1.0.0
+dexdiff_schema: "2.0"
+
+author:
+  handle: dave
+  display_name: "Dave Killeen"
+  linkedin_url: ""
+  verified: true
+
+description: |
+  A complete daily-to-weekly operating system. Every session starts with strategic
+  context already loaded. Every morning builds a focused plan from real data. Every
+  evening closes the loop. Every week opens with aligned priorities and closes with
+  a narrative ready for leadership. Between cadences, automated scans catch slipped
+  commitments before they become problems.
+
+tags: [daily-planning, weekly-planning, review, commitment-tracking, operating-rhythm, accountability]
+
+created: 2026-04-09
+updated: 2026-04-09
+
+
+# ---- DISTRIBUTION ----
+
+distribution:
+  visibility: curated
+  targets:
+    orgs: []
+    groups: []
+    individuals: []
+  delivery: available
+  required: false
+
+
+# ---- THE METHODOLOGY ----
+
+methodology:
+
+  problem: |
+    The deeper problem: every session with your AI starts cold. It doesn't know
+    your quarterly goals, your weekly priorities, or the context from yesterday.
+    You spend the first few minutes re-explaining what matters. The AI helps you
+    execute, but it never helps you stay oriented.
+
+    Most professionals compound this by starting the day opening email and reacting.
+    By mid-morning the real priorities are buried under noise. By Friday, the week is
+    hard to describe — you know you were busy but struggle to articulate what actually
+    moved. Commitments slip between cadences. Things fall through cracks not because
+    you forgot them, but because there was no system that surfaced them at the right
+    moment.
+
+  solution: |
+    A set of nine commands and one always-on automation that together form a
+    complete operating rhythm — from the moment a session opens to the end-of-week
+    narrative.
+
+    The session-start automation injects your strategic hierarchy — quarterly goals,
+    weekly priorities, role context — into every conversation before you type a
+    word. You never have to explain what matters; the AI already knows. This runs
+    automatically when you open a conversation — no command needed. Your AI platform
+    fires it before your first message.
+
+    The morning planning command pulls from your calendar, task backlog, and
+    intelligence sources simultaneously. Background pipelines refresh intel while
+    structured data loads in parallel. The output is a focused daily plan with
+    time-blocked priorities and flagged risks — not a brain dump.
+
+    The evening review captures what actually happened, surfaces learning, and sets
+    up tomorrow — so Monday morning doesn't start with Tuesday's context.
+
+    Weekly planning aligns to quarterly goals, evaluates calendar shape, and
+    surfaces which accounts and projects need attention. Weekly review synthesises
+    the week into a narrative ready for leadership reporting — deal momentum,
+    time allocation, and what carried over.
+
+    Between cadences, three lightweight commands run on demand: a project health
+    scan that checks all active initiatives for staleness and blockers, a crack
+    detector that finds slipped commitments before they damage relationships, and a
+    task promoter that pulls backlog items into the current week's priorities.
+
+    When cracks are found, a message drafter generates ready-to-send communications
+    for each accountability gap — so acting on a detected crack takes seconds, not
+    minutes. A work-in-progress check gives an instant snapshot of what is actively
+    being worked on across all projects.
+
+    Every command degrades gracefully. If an integration is unavailable, the command
+    falls back to vault-only data. If a digest already exists for today, pipelines
+    skip. Nothing breaks; it just does less.
+
+  user_experience:
+    commands:
+
+      - name: "daily-plan"
+        trigger: '/daily-plan'
+        description: |
+          Morning planning ritual. Runs intelligence pipelines in the background
+          while loading calendar, tasks, and goals in parallel. Synthesises
+          everything into a focused daily plan with priorities, flagged risks,
+          meeting context, and accountability checks.
+        example_input: '/daily-plan'
+        example_output: |
+          # Daily Plan — Thursday, April 10, 2026
+
+          ## Today's Focus
+          1. **[Account A] prep brief** — 09:30 meeting, 3 open items to address
+          2. **Draft proposal section** — blocked on this for 2 days, P0
+          3. **Weekly review write-up** — 90-min block from 15:00
+
+          ## Calendar Today
+          | Time  | Meeting              | Prep Needed? |
+          |-------|----------------------|--------------|
+          | 09:30 | [Account A] check-in | Yes — see below |
+          | 14:00 | Internal sync        | No           |
+
+          ## Meeting Prep: [Account A]
+          - Last interaction: 2026-04-03 — left open item: revised pricing
+          - Open item on your side: send updated deck
+          - Intelligence: Competitor X announced pricing change (see digest)
+
+          ## Cracks Detected
+          | Item                       | Age    | Risk   |
+          |----------------------------|--------|--------|
+          | Follow-up with [Contact A] | 5 days | High   |
+          | Review [project] blocker   | 3 days | Medium |
+
+          ## Weekly Priorities Progress
+          1. [Priority 1] — on track
+          2. [Priority 2] — at risk (no movement in 3 days)
+          3. [Priority 3] — not started
+
+          ## Intelligence Highlights
+          - YouTube: [Signal relevant to active deal]
+          - Newsletter: [Market signal]
+          - Competitive: [Competitor move]
+
+      - name: "daily-review"
+        trigger: '/daily-review'
+        description: |
+          End-of-day review. Verifies what actually happened (asks you to confirm
+          rather than inferring from file timestamps), captures progress against
+          weekly priorities, surfaces insights, sets up tomorrow's focus, and
+          logs open loops.
+        example_input: '/daily-review'
+        example_output: |
+          # Daily Review — Thursday, April 10, 2026
+
+          ## Accomplished
+          - Delivered revised pricing to [Account A]
+          - Completed proposal section draft
+
+          ## Weekly Priorities Progress
+          - Priority 1: on track
+          - Priority 2: moved forward — blocker resolved
+          - Priority 3: still not started (carry to tomorrow)
+
+          ## Tomorrow's Focus
+          1. [Account B] follow-up — commitment made today
+          2. Priority 3 — no more deferral
+          3. Weekly review write-up
+
+          ## Open Loops
+          - [ ] Awaiting response from [Contact B] re: contract terms
+
+      - name: "week-plan"
+        trigger: '/week-plan [next]'
+        description: |
+          Weekly planning. Reviews last week's outcomes, evaluates the upcoming
+          calendar shape, surfaces account priorities from deal data, and guides
+          you through setting three top outcomes for the week. Generates a
+          week priorities document with task alignment, calendar summary, and
+          pillar balance.
+        example_input: '/week-plan'
+        example_output: |
+          # Week Priorities — April 14–20, 2026
+
+          ## Top 3 This Week
+          1. **Close [Account A] proposal** — Deal Support
+             - Success: signed SOW in hand
+          2. **Publish thought leadership piece** — Thought Leadership
+             - Success: post live, drafted LinkedIn
+          3. **Unblock [Project X]** — Product Feedback
+             - Success: decision made, next steps documented
+
+          ## Calendar Summary
+          | Day | Meetings | Key Accounts | Notes          |
+          |-----|----------|--------------|----------------|
+          | Mon | 4        | 2            | Heavy morning  |
+          | Tue | 2        | 1            | Deep work PM   |
+          | Wed | 6        | 3            | Back-to-back   |
+          | Thu | 3        | 1            |                |
+          | Fri | 2        | 0            | Review day     |
+
+          Heavy days flagged: Wednesday (6 meetings)
+          Free blocks for deep work: Tuesday PM, Friday AM
+
+      - name: "week-review"
+        trigger: '/week-review'
+        description: |
+          Weekly synthesis. Aggregates deal momentum, time allocation, task
+          completion, thought leadership progress, and intelligence signals into
+          a narrative ready for leadership reporting. Surfaces what to prioritise
+          next week, including blocked items and critical path accounts.
+        example_input: '/week-review'
+        example_output: |
+          # Weekly Synthesis — Week of April 14, 2026
+
+          ## TL;DR
+          - 12 meetings (4 key accounts, 5 internal) — 18 hours
+          - 3 accounts touched
+          - Key win: [Account A] moved to final stage
+          - Watch list: [Account B] — stalled 14 days
+
+          ## Deal Momentum
+          | Account    | Meetings | Stage | Movement         |
+          |------------|----------|-------|------------------|
+          | [Account A]| 2        | Final | Advanced         |
+          | [Account B]| 0        | S3    | Stalled 14 days  |
+
+          ## Time Allocation
+          | Category        | Hours | % of Week |
+          |-----------------|-------|-----------|
+          | Key Account     | 8.5   | 47%       |
+          | Other External  | 3.0   | 17%       |
+          | Internal        | 4.5   | 25%       |
+          | Focus Time      | 2.0   | 11%       |
+
+          ## Next Week: Critical Path
+          1. [Account A] — close sequence, action: send contract
+          2. [Account B] — re-engage champion, action: schedule exec call
+          3. [Account C] — first meeting Monday, prep required
+
+      - name: "project-health"
+        trigger: '/project-health'
+        description: |
+          Scans all active initiatives for staleness, missing week-priority
+          tasks, cadence gaps, logged blockers, and overdue decisions. Outputs
+          a status dashboard across every project in one view. A project is
+          stale when it has had no file modifications or task completions in
+          longer than its configured cadence (default: 7 days for weekly
+          projects, 14 for bi-weekly).
+        example_input: '/project-health'
+        example_output: |
+          ### Project Health Dashboard
+
+          | Project              | Pillar            | Status | Issue                    | Days Stale |
+          |----------------------|-------------------|--------|--------------------------|------------|
+          | [Initiative A]       | Deal Support      | 🔴     | Blocked — awaiting legal | 5          |
+          | [Initiative B]       | Thought Leadership| 🟡     | No week-priority tasks   | 9          |
+          | [Initiative C]       | Product Feedback  | 🟢     | On cadence               | 0          |
+
+          **Summary:** 12 projects (8 🟢 / 3 🟡 / 1 🔴)
+
+      - name: "promote-to-week"
+        trigger: '/promote-to-week [project]'
+        description: |
+          Scans project backlogs for tasks ready to promote, groups them by
+          strategic pillar, lets you select which to bring into this week's
+          priorities, and adds references (not copies) to the week priorities
+          document. Single source of truth is preserved.
+        example_input: '/promote-to-week'
+        example_output: |
+          ## Tasks Ready to Promote
+
+          ### Deal Support
+          - [ ] Prepare executive deck for [Account A] renewal
+          - [ ] Review [Account B] commercial terms
+
+          ### Thought Leadership
+          - [ ] Record episode 12 intro segment
+          - [ ] Draft LinkedIn post on [topic]
+
+          Select tasks to add to this week's priorities. They will be
+          referenced, not copied — checking them off anywhere marks them done.
+          Each task has a unique identifier that lets the weekly view link back
+          to it — checking it off in one place marks it done everywhere.
+
+      - name: "cracks"
+        trigger: '/cracks'
+        description: |
+          Scans for slipped commitments: meeting action items that are 3+ days
+          old and unchecked, people mentioned in recent meetings without
+          follow-up tasks, and urgent week-priority items not yet started.
+          Outputs a risk-classified table of everything falling through the
+          cracks. The threshold defaults to 3 days for customer-facing
+          commitments and 5 for internal items, based on typical
+          response-time expectations. Configurable during adoption. Risk is
+          classified by commitment type (customer-facing = higher weight), age
+          relative to threshold, and whether a meeting with that person is
+          upcoming.
+        example_input: '/cracks'
+        example_output: |
+          ### Cracks Detected
+
+          | Item                            | Age    | Source         | Risk   |
+          |---------------------------------|--------|----------------|--------|
+          | Follow up with [Contact A] on pricing | 5 days | Meeting Apr 5  | High   |
+          | [Urgent item] not started       | 3 days | Week Priorities| High   |
+          | Check in with [Contact B]       | —      | No task after meeting | Medium |
+
+          **Summary:** 3 cracks detected (2 high, 1 medium)
+
+      - name: "draft-messages"
+        trigger: '/draft-messages'
+        description: |
+          Generates ready-to-send messages for each accountability gap, stale
+          account, blocked item, or pending customer outreach. Each message
+          includes recipient, channel, the source of the commitment, and a
+          copy-paste draft body. Cracks become communications in seconds.
+        example_input: '/draft-messages'
+        example_output: |
+          ## Draft Messages
+
+          ### Accountability Debts
+
+          #### To [Internal Contact] — Slack DM
+          **Why:** Committed to field update on [date]
+          **Source:** Week Priorities, 5 days overdue
+
+          > Hey — wanted to flag I'm still working on [item].
+          > Should have it to you by Wednesday. Anything blocking you in the meantime?
+
+          ---
+
+          ### Customer Outreach
+
+          #### To [External Contact] — Email
+          **Why:** [Account] stale 8 days, no touchpoint
+          **Source:** Account page last updated April 2
+
+          > Quick note — wanted to check in ahead of [upcoming milestone].
+          > Happy to jump on a call this week if useful.
+
+      - name: "wip"
+        trigger: '/wip'
+        description: |
+          Shows current work-in-progress across all projects — ready, in
+          progress, and blocked items — with suggested next actions. A quick
+          reorientation when starting a session or picking up after context
+          switches.
+        example_input: '/wip'
+        example_output: |
+          ## Work in Progress
+
+          - 🟢 [Ready] [Project A] — build phase complete, awaiting review
+          - 🟡 [In Progress] [Project B] — draft 80% done, needs final section
+          - 🔴 [Blocked] [Project C] — waiting on [Contact] approval
+
+          **Suggested next:** Continue [Project B] — closest to done.
+
+  vault_structure:
+    description: |
+      The workflow expects a weekly priorities document, a task backlog, and a
+      quarterly goals document as the minimum footprint. Review notes are written
+      to dated files in inbox folders. A project tracker provides the list of
+      active initiatives for health scanning. Intelligence digests (optional) are
+      read by daily planning but the workflow degrades gracefully without them.
+
+      All paths are relative to your vault root. The exact folder names are
+      configurable — these are the defaults unless overridden during adoption.
+
+      The session-start automation reads two key documents on every open: the
+      quarterly goals doc (for strategic orientation) and the weekly priorities
+      doc (for current-week context). These are the minimum required for
+      session-start to function.
+
+      Pillars are user-configurable work categories used to balance weekly
+      effort across your responsibilities. They are set during adoption and
+      labelled on tasks, outcomes, and weekly summaries to surface where your
+      time is going. Default examples: Deal Support, Thought Leadership,
+      Product Feedback.
+    folders:
+      - purpose: "Quarterly goals with progress tracking and success criteria"
+        typical_path: "Goals/"
+        required: true
+      - purpose: "Weekly priorities — top outcomes, tasks, and calendar summary for the current week"
+        typical_path: "Priorities/"
+        required: true
+      - purpose: "Task backlog with priorities, pillars, and statuses"
+        typical_path: "Tasks/"
+        required: true
+      - purpose: "Daily review notes — one per day"
+        typical_path: "Reviews/Daily/"
+        required: false
+      - purpose: "Weekly synthesis notes — one per week"
+        typical_path: "Reviews/Weekly/"
+        required: false
+      - purpose: "Active project tracker — all initiatives with status and cadence"
+        typical_path: "Projects/"
+        required: false
+      - purpose: "Intelligence digests — daily summaries from configured sources"
+        typical_path: "Intel/"
+        required: false
+
+  data_patterns:
+    - name: "Weekly priorities document"
+      description: |
+        A single markdown file replaced each Monday. Contains the top three
+        outcomes for the week, task lists by priority (must/should/if-time),
+        calendar summary, pillar balance, and a section filled in at week-end
+        with results and carry-over. Referenced by both daily planning and the
+        session-start automation.
+      example: |
+        ---
+        week_start: 2026-04-14
+        type: week-priorities
+        ---
+
+        # Week Priorities — April 14–20, 2026
+
+        ## Top 3 This Week
+        1. [Outcome 1] — [Pillar]
+        2. [Outcome 2] — [Pillar]
+        3. [Outcome 3] — [Pillar]
+
+        ## Must Complete
+        - [ ] [Task] — supports Outcome 1
+
+        ## Should Complete
+        - [ ] [Task]
+
+        ## End of Week Results
+        1. Outcome 1: ✅ Done
+        2. Outcome 2: 🔄 Partial
+        3. Outcome 3: ❌ Not started — carried over
+
+    - name: "Task backlog entry"
+      description: |
+        Each task has a priority level (P0–P3), a pillar label, an optional due
+        date, and a status. Tasks live in a central backlog and are referenced
+        into the weekly priorities document — they are not copied. Each task has
+        a unique identifier that lets the weekly view link back to it — checking
+        it off in one place marks it done everywhere. This means you only need
+        to update a task in one place — the weekly view always reflects the
+        current state.
+      example: |
+        - [ ] Complete proposal draft for [Account] ^task-20260410-001
+          Priority: P0 | Pillar: Deal Support | Due: 2026-04-12
+
+    - name: "Daily review note"
+      description: |
+        A dated markdown file written at end of day. Sections: what was
+        accomplished, progress against weekly priorities, insights and learnings,
+        blocked or stuck items, and tomorrow's top three. Referenced by the
+        next morning's planning command for continuity.
+      example: |
+        ---
+        date: 2026-04-10
+        type: daily-review
+        ---
+
+        # Daily Review — Thursday, April 10, 2026
+
+        ## Accomplished
+        - [Item 1]
+        - [Item 2]
+
+        ## Tomorrow's Focus
+        1. [Priority 1]
+        2. [Priority 2]
+        3. [Priority 3]
+
+        ## Open Loops
+        - [ ] Awaiting [person] re: [item]
+
+    - name: "Project tracker entry"
+      description: |
+        Each active initiative has an entry in the project tracker with its
+        pillar, expected cadence (e.g. weekly touchpoints), current status,
+        next decision, and any logged blockers. The project health command
+        reads this file as its source of truth.
+      example: |
+        | Project          | Pillar       | Cadence  | Status  | Next Decision    | Blocker         |
+        |------------------|--------------|----------|---------|------------------|-----------------|
+        | [Initiative A]   | Deal Support | Weekly   | Active  | Proposal by Apr 15 | None          |
+        | [Initiative B]   | TL           | Bi-weekly| Stalled | —                | Awaiting input  |
+
+  integrations:
+    - name: "Calendar"
+      examples: ["Google Calendar", "Outlook Calendar"]
+      required: false
+      value: |
+        Enables daily planning to load today's meetings with attendees, detect
+        prep requirements, and identify heavy days. Without this, you enter
+        meetings manually and the plan still generates — it just lacks time context.
+    - name: "Task manager"
+      examples: ["Things", "Todoist", "Linear", "custom MCP"]
+      required: false
+      value: |
+        Enables structured task loading with priorities, pillars, and due dates.
+        Without this, the workflow reads a flat markdown task file — less structured
+        but still functional.
+    - name: "Meeting recording tool"
+      examples: ["Granola", "Zoom", "Otter.ai"]
+      required: false
+      value: |
+        Meeting intelligence from recordings feeds daily planning with richer
+        context on what was said, committed, and decided. Without this, the plan
+        draws only from notes you've written manually.
+    - name: "Intelligence sources"
+      examples: ["YouTube subscriptions", "newsletters", "LinkedIn follows", "Twitter/X"]
+      required: false
+      value: |
+        Daily intelligence pipelines synthesise external signal into digests that
+        surface in the morning plan. Without these, planning draws only on vault
+        data — still useful, just without external signal.
+    - name: "CRM / deal data"
+      examples: ["Clari", "Salesforce", "HubSpot"]
+      required: false
+      value: |
+        Surfaces deal stage, score trends, and days-in-stage for account-facing
+        roles during weekly planning and review. Without this, deal health comes
+        from your vault notes rather than live pipeline data.
+    - name: "Semantic search"
+      examples: ["QMD", "local vector search"]
+      required: false
+      value: |
+        Enables the project health and crack detection commands to surface at-risk
+        items through meaning rather than exact file paths. Without this, the same
+        scans run using direct folder traversal — reliable but slower.
+
+  behaviors:
+    - description: |
+        At the start of every session, inject the current quarterly goals, weekly
+        priorities, and role context into the conversation before the user's first
+        message. Every subsequent interaction is already oriented to what matters
+        without the user needing to re-explain.
+      trigger: "Every new session"
+      automatic: true
+
+    - description: |
+        During morning planning, run intelligence pipelines as background tasks
+        while loading calendar and task data in parallel. Do not wait for
+        pipelines to complete before starting structured data gathering. Collect
+        pipeline results just before synthesis.
+      trigger: "During daily planning"
+      automatic: true
+
+    - description: |
+        When a daily review is requested, surface files modified today and ask
+        the user to confirm what they actually worked on before including anything
+        in the review. File timestamps indicate what changed — not what matters.
+      trigger: "During daily review"
+      automatic: false
+
+    - description: |
+        When generating crack detection output, immediately offer to draft
+        messages for any high-risk items. Do not require the user to run a
+        separate command unless they prefer to.
+      trigger: "After crack detection finds high-risk items"
+      automatic: false
+
+    - description: |
+        Skip intelligence pipelines that already have a digest for today. Never
+        re-run a pipeline whose output already exists for the current date.
+      trigger: "During daily planning"
+      automatic: true
+
+    - description: |
+        When promoting tasks to the weekly priorities document, create references
+        to the source task rather than copying the task text. A task lives in one
+        place; the weekly view points to it.
+      trigger: "During promote-to-week"
+      automatic: true
+
+  roles:
+    - name: "Sales / Account Executive"
+      adaptation: |
+        Daily planning leads with deal-specific prep: open commitments to each
+        account, competitive signals from overnight digests, and stage-specific
+        next steps. Weekly review is structured around pipeline movement —
+        which deals advanced, stalled, or need escalation. Crack detection
+        prioritises customer-facing commitments above internal items.
+
+    - name: "Customer Success Manager"
+      adaptation: |
+        Daily planning surfaces renewal timelines, health score changes, and
+        open support items for accounts with meetings today. Weekly review
+        tracks customer engagement cadence and flags accounts with declining
+        activity. Project health focuses on renewal and expansion initiatives.
+
+    - name: "Product Leader"
+      adaptation: |
+        Daily planning opens with strategic context: quarterly goals, active
+        bets, and decisions pending. Weekly planning explicitly evaluates pillar
+        balance — time split between customer discovery, internal roadmap work,
+        and thought leadership. Crack detection flags feedback commitments made
+        to customers that haven't been tracked as tasks.
+
+    - name: "Founder / Operator"
+      adaptation: |
+        Session-start automation carries maximum context — goals, priorities,
+        active bets, and open decisions — because context-switching cost is
+        highest. Daily planning integrates investor, customer, and team
+        commitments in a single view. Weekly review generates a narrative
+        suitable for board updates and investor notes with minimal additional
+        effort.
+
+    - name: "Chief of Staff / Operations"
+      adaptation: |
+        Weekly planning and review centre on coordination health: which
+        stakeholders haven't been touched, which commitments are at risk, and
+        where information is not flowing. Crack detection runs daily rather than
+        on-demand. Draft messages command is used to generate status updates
+        across multiple workstreams simultaneously. Daily planning leads with a
+        stakeholder touchpoint map — who hasn't been contacted in N days —
+        rather than deal or project priorities.
+
+
+# ---- MATCHING ----
+
+matching:
+  roles: ["Sales", "Customer Success", "Product", "Founder", "Operations", "Executive"]
+  requires_any: ["task-backlog", "weekly-priorities", "quarterly-goals"]
+  enhanced_by: ["calendar", "crm", "semantic-search", "meeting-recording", "intelligence-sources"]
+  signals:
+    - trigger: "user starts 3+ sessions in a row without a daily plan"
+      suggestion: "You've opened three sessions without a morning plan. There's a workflow that does this in under two minutes — want to try it?"
+    - trigger: "user manually re-explains their goals or priorities to the AI more than once"
+      suggestion: "You're spending time re-orienting every session. There's an automation that injects your goals and priorities before you type anything."
+    - trigger: "user mentions feeling like things are falling through the cracks"
+      suggestion: "There's a crack detection command that scans for slipped commitments in under 30 seconds. Want to run it now?"
+    - trigger: "user writes a weekly review manually for the second time"
+      suggestion: "Your weekly review pattern is consistent. There's a command that structures this automatically — want to diff it?"
+    - trigger: "user has 5+ overdue tasks visible in any session"
+      suggestion: "Looks like there's a backlog building. The crack detection and promote-to-week commands can help triage — want to run them?"
+  share_signals:
+    - trigger: "daily-plan command used 4+ times per week for 4+ weeks"
+      nudge: "Your morning planning rhythm is clearly working. Want to diff it so others can use it?"
+
+
+# ---- COMPOUND LOOPS ----
+
+compounds_with:
+  - diff_id: "meeting-prep"
+    relationship: "amplifies"
+    description: |
+      Meeting prep feeds context into the daily plan — open commitments, last
+      interaction dates, and suggested talking points appear in the morning brief.
+      After meetings, the review captures what was said and sets up follow-up tasks
+      for the next day's plan.
+  - diff_id: "intelligence-gathering"
+    relationship: "feeds"
+    description: |
+      Intelligence digests generated by the intelligence-gathering workflow are
+      consumed by daily planning. Signals are surfaced in the morning brief,
+      connected to active accounts, and folded into the weekly synthesis.
+  - diff_id: "deal-intelligence"
+    relationship: "extends"
+    description: |
+      For account-facing roles, deal intelligence data (stage, score, days in
+      stage) flows into weekly planning and review. The operating rhythm provides
+      the cadence; deal intelligence provides the deal-specific signal.
+  - diff_id: "people-intelligence"
+    relationship: "amplifies"
+    description: |
+      Person pages updated by the people-intelligence workflow are read during
+      daily planning meeting prep. Richer relationship context means better
+      prioritisation of who to reach out to and what to say.
+
+
+# ---- SOCIAL PROOF ----
+
+love_letter:
+  text: "[Placeholder — to be captured from a real user after adoption]"
+  author: ""
+  metrics: []
+  verified: false
+
+
+# ---- POPULATED BY DEX-CLOUD POST-PUBLISH ----
+# stats:
+#   adoptions: 0
+#   active_users: 0
+#   avg_weekly_skill_runs: 0
+#   rating: null
+#   retention_30d: null

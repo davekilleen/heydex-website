@@ -1,0 +1,621 @@
+# ==========================================
+# DEXDIFF METHODOLOGY SCHEMA v2.0
+# ==========================================
+
+# ---- IDENTITY ----
+
+id: content-thought-leadership
+name: "Content & Thought Leadership"
+version: 1.0.0
+dexdiff_schema: "2.0"
+
+author:
+  handle: dave
+  display_name: "Dave Killeen"
+  linkedin_url: ""
+  verified: true
+
+description: "A complete publishing pipeline — from raw idea to polished article, social post, or branded presentation — with 22 parallel quality reviewers that catch what single-pass editing misses and a dedicated step to remove AI-generated language before anything goes live."
+
+tags: [thought-leadership, content-creation, voice-authenticity, quality-review, presentations, social-media, publishing]
+
+created: 2026-04-09
+updated: 2026-04-09
+
+
+# ---- DISTRIBUTION ----
+
+distribution:
+  visibility: curated
+  targets:
+    orgs: []
+    groups: []
+    individuals: []
+  delivery: available
+  required: false
+
+
+# ---- THE METHODOLOGY ----
+
+methodology:
+
+  problem: |
+    You know you should be publishing. You have real opinions, hard-won experience, and
+    stories from the field that nobody else has. But the gap between "I should write about
+    this" and "this is live and good" is enormous.
+
+    When you do publish, you're never confident it's actually good — you're too close to it.
+    A single reviewer (you) can't simultaneously evaluate logic, pacing, voice, specificity,
+    platform fit, and mobile readability. So you either guess, or you spend hours editing and
+    still miss something.
+
+    If you use AI to speed up drafting, the result sounds like every other AI-generated post
+    on the internet — hedging language, overused transitions, robotic parallel structures,
+    marketing superlatives. It doesn't sound like you, and audiences notice.
+
+    Presentations compound the problem. You spend more time fighting slide tools than thinking
+    about your message. Speaker notes are an afterthought. The deck looks generic and the
+    narrative arc collapses halfway through.
+
+    The result: you publish rarely, inconsistently, or not at all.
+
+  solution: |
+    A full publishing pipeline with three reinforcing layers.
+
+    **Layer 1 — Creation with your voice baked in.**
+    Every command starts by reading your voice profile and platform-specific writing guide
+    before generating a single word. The output isn't a blank page with AI slop on it — it's
+    a first draft that already has your cadence, your opinions, and your characteristic
+    sentence patterns. Clarifying the brief is part of the process: audience, goal, content
+    type, and key message are confirmed before generation starts.
+
+    **Layer 2 — 22 parallel quality reviewers.**
+    Before anything publishes, the draft passes through a structured quality review running
+    22 specialised reviewers simultaneously across four phases. Each reviewer scores one
+    dimension (1-10) and produces specific fix suggestions. They run in parallel, so the full
+    review completes in roughly the same time as a single review pass. The four phases are:
+
+    Phase 1 — Quality and writing (8 reviewers in parallel):
+      active voice and strong verbs, specificity and concrete evidence, engagement hooks and
+      platform compliance, narrative arc and story structure, logical coherence and fallacies,
+      jargon density and plain language, balanced perspective and counterarguments, reader
+      value and the "so what?" test.
+
+    Phase 2 — Voice and structure (6 reviewers in parallel):
+      authentic voice and audience match, empathy and pain-point acknowledgment, pacing and
+      sentence variation, section transitions and flow continuity, redundancy and circular
+      arguments, formatting and mobile scannability.
+
+    Phase 3 — Platform and strategy (7 reviewers in parallel):
+      length vs. platform norms, mobile readability and thumb-scroll experience, SEO alignment
+      (long-form only), company positioning and brand alignment, AI transformation angles and
+      leadership framing, call-to-action effectiveness, and a final "would you proudly share
+      this?" gut-check.
+
+    Phase 4 — Final gate (1 reviewer):
+      A synthesis gatekeeper — not a scorer. It reads all prior scores and produces a binary
+      PUBLISH/REVISE verdict. Publication requires both a minimum 7/10 on every individual
+      dimension AND an overall score of 75/100 or above. Failing either gate triggers revision.
+      Items below 7/10 on any dimension receive specific fix suggestions for that dimension.
+
+    The 22-reviewer architecture is the differentiator. A single editor cannot hold all these
+    dimensions simultaneously. Parallel reviewers can, and the synthesis step ensures nothing
+    contradicts.
+
+    **Layer 3 — De-AI-ification (removing AI-generated language patterns).**
+    A dedicated cleanup step — run via /de-ai-ify — strips AI-generated patterns from any text — overused transitions
+    ("Moreover," "Furthermore," "Additionally"), hedging language ("It's important to note"),
+    corporate buzzwords ("leverage," "synergise," "optimise"), robotic parallel structures, and
+    hyperbolic claims ("game-changer," "unprecedented"). It replaces them with natural
+    rhythm, direct statements, varied sentence lengths, and authentic phrasing. A change log
+    explains every substitution.
+
+    This step activates automatically when the creation pipeline used AI generation. For
+    human-written drafts, it runs on demand.
+
+    **Presentations follow the same pipeline structure.**
+    Brief clarification → narrative arc generation (opening hook, tension/insight sequence,
+    concrete close) → slide-by-slide mapping with layout type, speaker notes, and visual
+    direction → quality review against presentation-specific dimensions → iteration on critical
+    issues → script delivered ready for your slide tool. Company-branded presentations in PPTX
+    or Google Slides format are both supported, each with their own design system and brand
+    compliance rules.
+
+    **Podcast and video content** gets its own path: clean the transcript, surface the key
+    theme, generate five hook options for the platform post, write a voice-matched body grounded
+    in specific moments from the episode, and compose a first comment with back-catalog links
+    — all ready to post within 60 seconds of choosing a hook.
+
+  user_experience:
+    commands:
+
+      - name: "create-article"
+        trigger: "/create-article [topic or brief file]"
+        description: |
+          Full article creation pipeline. Clarifies the brief (topic, content type, audience,
+          goal, key takeaway, company angle), generates a voice-matched draft, runs all 22
+          parallel quality reviewers, surfaces the top critical fixes, applies them, re-reviews
+          affected dimensions, and delivers publish-ready content with score and verdict.
+          Accepts a topic string or a path to a brief file.
+        example_input: '/create-article "Why most AI initiatives fail in enterprise" for product leaders, thought leadership goal'
+        example_output: |
+          # Article Ready
+
+          **Score:** 86/100
+          **Verdict:** PUBLISH
+
+          ## Final Content
+
+          [The polished article in your voice]
+
+          ## Review Summary
+
+          | Category            | Score  |
+          |---------------------|--------|
+          | Quality & Writing   | 84/100 |
+          | Voice & Structure   | 88/100 |
+          | Platform & Strategy | 85/100 |
+          | Final Gate          | PUBLISH |
+
+          ## Critical Fixes Applied
+          1. Replaced vague "many companies" with a specific data point from the field
+          2. Shortened sentences 4-7 to break pacing drag in the second section
+          3. Strengthened the opening hook with a concrete before/after contrast
+
+          ## Saved To
+          Content/Articles/ai-initiative-failure-2026-04-09.md
+
+      - name: "review-article"
+        trigger: "/review-article [file path or pasted content]"
+        description: |
+          Standalone multi-dimensional quality review for any existing content. Accepts a file
+          path or directly pasted text. Runs all 22 parallel reviewers across four phases,
+          synthesises findings into a prioritised action list with per-dimension scores, and
+          produces a PUBLISH, REVISE, or RECONSIDER verdict. Use this when you've written a
+          draft yourself and want structured editorial feedback before publishing.
+        example_input: '/review-article Content/Articles/my-draft.md'
+        example_output: |
+          # Article Review Summary
+
+          **Overall Score:** 72/100
+          **Verdict:** REVISE
+
+          ## Critical Issues (Fix Before Publishing)
+          1. Specificity: 5 claims use vague quantifiers — need concrete data or examples
+          2. Pacing: Section 2 has 6 consecutive long sentences — vary the rhythm
+
+          ## High-Impact Improvements
+          1. Opening hook is generic — replace with a specific field anecdote or stat
+          2. Paragraphs 4, 6, and 9 make the same point in different words — consolidate
+
+          ## Strengths
+          - Voice authenticity is strong — reads naturally throughout
+          - Logical structure is clean — argument builds to a clear conclusion
+          - Mobile readability is good — short paragraphs, scannable formatting
+
+          ## Agent Scores (22 reviewers)
+          | Reviewer              | Score |
+          |-----------------------|-------|
+          | writing-effectiveness | 7/10  |
+          | specificity           | 5/10  |
+          | engagement            | 8/10  |
+          | narrative             | 7/10  |
+          | logic                 | 9/10  |
+          | jargon                | 9/10  |
+          | balance               | 8/10  |
+          | utility               | 7/10  |
+          | tone                  | 9/10  |
+          | empathy               | 7/10  |
+          | pacing                | 5/10  |
+          | transitions           | 8/10  |
+          | redundancy            | 6/10  |
+          | formatting            | 8/10  |
+          | length                | 8/10  |
+          | mobile                | 8/10  |
+          | seo                   | 7/10  |
+          | brand-alignment       | 9/10  |
+          | ai-leadership         | 8/10  |
+          | company-positioning   | 8/10  |
+          | cta                   | 7/10  |
+          | final-check           | REVISE |
+
+      - name: "social-post"
+        trigger: "/social-post [platform] [episode or topic] [transcript or brief] [key message]"
+        description: |
+          Generates a platform-optimised social post from a podcast episode transcript or
+          a topic brief. Reads the voice guide and platform writing rules first. Produces
+          five hook options (under 140 characters each, character count shown), a voice-matched
+          post body grounded in specific moments from the source material, and a first comment
+          with supporting links and back-catalog references. No engagement-bait questions.
+          No external links in the post body.
+        example_input: '/social-post linkedin "Episode 12 — Parallel Agents" episode-12.srt "Parallel agents collapse a 3-hour workflow into 20 minutes"'
+        # SRT is a subtitle/transcript file format — the workflow accepts any subtitle/transcript file (e.g. SRT format) exported from your recording or editing tool
+        example_output: |
+          ## 5 Hook Options (choose one)
+
+          1. "I ran 8 agents in parallel this week. What took 3 hours took 20 minutes." (75 chars)
+          2. "Parallel agents aren't a future thing. Here's what they actually look like." (74 chars)
+          3. "Most people use AI sequentially. That's why they're not seeing the time savings." (80 chars)
+          4. "The bottleneck in most AI workflows isn't the model. It's the queue." (68 chars)
+          5. "Serial thinking is the new bottleneck. Parallel agents fix it." (62 chars)
+
+          ---
+
+          ## Main Post (ready to paste)
+
+          [Chosen hook]
+
+          [Voice-matched body grounded in specific moments from the episode transcript,
+          no headers, embedded value, natural close]
+
+          New episode covers this in detail with a live demo. Link in the first comment.
+
+          #ProductManagement #AI
+
+          ---
+
+          ## First Comment (post within 60 seconds)
+
+          Watch Episode 12: [ADD YOUTUBE LINK]
+
+          Back catalog:
+          Ep 1: [Key takeaway]
+          Ep 2: [Key takeaway]
+          ...
+
+          Subscribe: [platform links]
+
+      - name: "de-ai-ify"
+        trigger: "/de-ai-ify [file path]"
+        description: |
+          Strips AI-generated patterns from any text and restores natural human voice. Works
+          on articles, emails, posts, scripts, and presentations. Creates a clean copy with a
+          "-HUMAN" suffix and provides a change log of every substitution. Targets: overused
+          transitions, hedging language, corporate buzzwords, robotic parallel structures,
+          false dichotomy reframes, and breathless marketing speak.
+        example_input: '/de-ai-ify Content/Articles/my-draft.md'
+        example_output: |
+          ## Changes Applied
+
+          - "In today's rapidly evolving landscape" → removed (throat-clearing opening)
+          - "leverage" → "use" (4 instances)
+          - "It's important to note that" → removed (hedging hedge)
+          - "This isn't about X. It's about Y." → rewritten as direct assertion
+          - "game-changer" → removed; claim supported with specific outcome instead
+          - Broke up 3 obsessive parallel triplets into varied sentence patterns
+          - Removed 2 rhetorical questions immediately answered by the next sentence
+
+          Saved clean version to Content/Articles/my-draft-HUMAN.md
+
+          ## Places Needing Specific Examples
+          - Para 3: "many organisations" — add a number or a real case
+          - Para 7: "significant improvement" — quantify
+
+      - name: "create-presentation-script"
+        trigger: "/create-presentation-script [topic, audience, duration]"
+        description: |
+          Generates a fully structured presentation script ready for any slide tool. Reads
+          the design system and authoring guide before generating. Covers template selection
+          for each slide (title, statement, comparison, data, section break, demo, closing),
+          pink keyword marking (the 2-4 word phrase per slide that carries the slide's core
+          argument — the phrase a reader would stop scrolling for), speaker notes
+          in natural speaking voice, and visual direction. Presents a slide-by-slide outline
+          for approval before writing the full script. Checks rhythm, register variety, and
+          narrative arc before delivery.
+        example_input: '/create-presentation-script "AI productivity for product leaders" sales kickoff audience, 20 minutes'
+        example_output: |
+          ## Slide Outline for Approval (~20 min, 10 slides)
+
+          Slide 1:  Title — "{{AI}} Changed How I Build Product" — PROVOCATION
+          Slide 2:  Bold statement — "Most AI initiatives fail for the same reason" — PROVOCATION
+          Slide 3:  Big stat — "30% faster cycles, same headcount" — PROOF
+          Slide 4:  Section break — "What top performers do differently" — TRANSITION
+          Slide 5:  3-column comparison — patterns across roles — PROOF
+          Slide 6:  Live demo — parallel agent workflow — DEMO
+          Slide 7:  Utility — 3 things to try this week — UTILITY
+          Slide 8:  Section break — "Where this is going" — TRANSITION
+          Slide 9:  Statement — the 12-month prediction — PROVOCATION
+          Slide 10: Closing with contact — UTILITY
+
+          Does this structure work? Any slides to add, remove, or reorder?
+
+          [After approval: full script with speaker notes, visual instructions,
+          template type per slide, and keyword marking]
+
+      - name: "company-deck-pptx"
+        trigger: "/company-deck-pptx [topic, audience, occasion]"
+        description: |
+          Creates a company-branded offline presentation as a PPTX file using your
+          organisation's branded template (must exist in the vault). Selects from 10 branded
+          slide layouts (cover, section
+          breaks in black/navy/pink, content layouts with header bars, visual canvases, and a
+          static closing slide). Produces thumbnail grids for visual QA before delivery.
+          Follows brand colour and typography rules strictly — no off-palette colours, no
+          unauthorised font overrides.
+        example_input: '/company-deck-pptx "Q1 Business Review" for enterprise leadership team, 9 slides'
+        example_output: |
+          Content plan confirmed (9 slides):
+          1. Cover — title and subtitle
+          2. Section break — agenda
+          3. Q1 performance — key metrics
+          4. Section break — highlights
+          5. Deal analysis — split view
+          6. Product feedback themes — content slide
+          7. Section break — what's next
+          8. Q2 priorities — action items
+          9. Closing (static — unedited)
+
+          Building deck...
+          Visual QA grid generated — reviewing for text overflow and layout variety...
+
+          Delivered: Content/Presentations/q1-business-review-2026-04-09.pptx
+          Brand compliance: PASS
+          Layout variety: PASS (no 3+ consecutive repeats)
+          Leftover placeholder text: NONE
+
+      - name: "company-slides-google"
+        trigger: "/company-slides-google [topic, audience]"
+        description: |
+          Creates a company-branded Google Slides presentation using the light-theme design
+          system. Pure white backgrounds with subtle radial gradients on title slides, pink
+          accent keywords (1-3 per slide title), glass-style card components, and Lucide icon
+          conventions. Supports four layout types: standard content, split comparison, sequential
+          timeline, and appendix detail. Returns a Google Slides URL ready to edit and present.
+          Requires Google Slides integration configured.
+        example_input: '/company-slides-google "Customer onboarding plan" for mixed technical and executive audience'
+        example_output: |
+          Proposed structure (5 slides):
+          1. Title: "Your {{Journey}} to Launch"
+          2. Goals: "What {{Success}} Looks Like" — Layout A
+          3. Timeline: "Four Steps to Go-Live" — Layout C
+          4. Teams: "Who's {{Involved}}" — Layout B (split)
+          5. Next Steps: "Let's {{Start}}" — Layout A
+
+          Does this work? Any adjustments before I create it?
+
+          [After confirmation: deck created, Google Slides URL returned]
+
+      - name: "create-slides"
+        trigger: "/create-slides [description or source]"
+        description: |
+          Creates a general-purpose Google Slides presentation without company-specific branding.
+          Accepts a topic description, a vault file as source material, or a manually provided
+          outline. Supports five slide types: title, content, section break, two-column, and
+          image. Returns a Google Slides URL. Use this for presentations where a neutral style
+          is preferred over corporate branding. Requires Google Slides integration configured.
+        example_input: '/create-slides from my weekly review notes for a team update'
+        example_output: |
+          Generated 6-slide deck from your weekly review:
+          - Title: "Team Update — Week of 7 April 2026"
+          - Section: Wins this week
+          - Content: 3 key outcomes with context
+          - Content: Blockers and decisions needed
+          - Section: Next week
+          - Content: 4 priorities with owners
+
+          Google Slides URL: [link]
+
+    # -- Iteration commands (apply during any command) --
+    iteration_commands:
+      - "Try a different opening hook"
+      - "Make it more direct / more provocative"
+      - "Add more specific data points"
+      - "Remove the company mention"
+      - "Make it shorter for the platform"
+      - "Expand section 2"
+      - "Adjust the tone for a more senior audience"
+
+  vault_structure:
+    description: |
+      The workflow expects folders for different content types and a guides folder for the
+      voice profile and platform writing rules. The voice profile is the foundation — without
+      it, content generation falls back to a neutral professional tone. If no structure exists,
+      it should be created during initial setup. The paths below are typical defaults —
+      actual paths depend on the vault_structure configured during setup and may vary
+      per user (e.g. "[your content folder]/Articles/..." rather than "Content/Articles/").
+    folders:
+      - purpose: "Long-form articles and blog posts"
+        typical_path: "Content/Articles/"
+        required: true
+      - purpose: "Social media posts organised by platform"
+        typical_path: "Content/Social/"
+        required: true
+      - purpose: "Presentation scripts and slide outlines"
+        typical_path: "Content/Presentations/"
+        required: false
+      - purpose: "Voice profile and platform writing guides"
+        typical_path: "Guides/"
+        required: true
+      - purpose: "Content ideas backlog"
+        typical_path: "Content/Ideas/"
+        required: false
+      - purpose: "Podcast episode transcripts"
+        typical_path: "Content/Podcast/Transcripts/"
+        required: false
+
+  data_patterns:
+    - name: "Voice profile"
+      description: |
+        A markdown file capturing the author's authentic writing voice — characteristic
+        sentence patterns, words they use naturally, words they never use, stance on common
+        topics, and anti-patterns to avoid. This is the foundation for all generated content.
+        Build it from existing published work; the setup automation can generate a starter
+        profile from 3-5 writing samples if none exists.
+      example: |
+        # My Voice Profile
+
+        ## Sentence Patterns
+        - Short declarative statements to open sections
+        - Questions used sparingly — only when genuinely open
+        - Specific numbers and named examples over vague claims
+
+        ## Words I Use
+        - "Actually" — as a pivot, not a filler
+        - "Here's the thing" — to introduce a contrarian point
+
+        ## Words I Never Use
+        - "Leverage", "synergise", "game-changer"
+        - "In today's fast-paced world"
+        - "It's important to note"
+
+        ## Anti-Patterns
+        - No false dichotomies ("This isn't about X. It's about Y.")
+        - No engagement-bait questions at the end of posts
+        - No over-deprecation or false modesty
+
+    - name: "Platform writing guide"
+      description: |
+        Platform-specific rules for each channel — character limits, algorithm preferences,
+        formatting conventions, hashtag strategy, and what the platform rewards vs penalises.
+        Updated as platforms evolve. Referenced by every content generation command.
+      example: |
+        # LinkedIn Writing Guide
+
+        ## Limits
+        - Post limit: 3,000 characters
+        - Comment limit: 1,250 characters
+        - First ~210 characters visible before "see more"
+
+        ## Algorithm Rewards
+        - Native text posts outperform link posts
+        - Early engagement in first 60 minutes is weighted heavily
+        - Comments weighted more than reactions
+        - Longer dwell time (readers pausing) boosts reach
+
+        ## Formatting
+        - One sentence per line for mobile readability
+        - No external links in post body — first comment only
+        - 2-5 hashtags at the end, not embedded in text
+        - Hook must work in the preview window
+
+    - name: "Content metadata"
+      description: |
+        Each piece of content gets a short frontmatter block tracking type, status, topic,
+        pillar alignment (the user-defined content theme this piece belongs to — e.g.
+        "thought-leadership", "product-strategy", "customer-stories"), review score, and
+        creation date. Enables filtering, coverage tracking, and identifying recurring topics.
+      example: |
+        ---
+        type: linkedin-post
+        status: published
+        created: 2026-04-09
+        topic: "AI adoption in enterprise"
+        pillar: thought-leadership
+        review_score: 86
+        agents_run: 22
+        ---
+
+  integrations:
+    - name: "Social media platform"
+      examples: ["LinkedIn", "X/Twitter", "Threads"]
+      required: false
+      value: "Enables reading platform-specific algorithm rules and formatting conventions directly. Without this, platform guides are maintained manually and updated when conventions change."
+    - name: "Slide tool"
+      examples: ["Google Slides", "PowerPoint", "Keynote"]
+      required: false
+      value: "Enables direct presentation creation from scripts. Without this, the generated script is used as a guide and slides are built manually."
+    - name: "Podcast or video transcript source"
+      examples: ["subtitle/transcript files (e.g. SRT format)", "YouTube captions", "recording tool exports"]
+      required: false
+      value: "Enables social post generation directly from episode or video content. Without this, you summarise the episode manually and provide a brief instead."
+    - name: "Web content source"
+      examples: ["web fetch", "RSS", "bookmarks"]
+      required: false
+      value: "Enables summarising and referencing external content as research input for your own writing. Without this, you paste the source material manually."
+    - name: "Semantic search"
+      examples: ["local vector search"]
+      required: false
+      value: "Surfaces thematically related vault content when generating new pieces — past articles on the same topic, commitments made in content, recurring themes. Prevents duplication and strengthens cross-references. Without this, you rely on keyword search and manual cross-referencing to avoid duplicating past content."
+
+  behaviors:
+    - description: "Before generating any content, read the voice profile and relevant platform guide. If the voice profile does not exist, prompt the user to create one from writing samples before proceeding."
+      trigger: "Before any content generation command"
+      automatic: true
+    - description: "After generating a draft, automatically run the full 22-reviewer quality check before presenting the content as ready."
+      trigger: "After any content generation command completes"
+      automatic: true
+    - description: "When content scores below the quality threshold on review, surface the top 3-5 critical fixes and offer to apply them immediately. After fixes are applied, only the reviewers whose dimensions were directly addressed re-run — not the full 22-reviewer pass."
+      trigger: "Quality review returns score below 75/100 or any dimension below 7/10"
+      automatic: true
+    - description: "After any AI-assisted generation, run the de-AI-ification step automatically before delivery."
+      trigger: "After AI generation is used in content creation"
+      automatic: true
+    - description: "After content is marked as published, log the piece with metadata to the content folder so coverage and topic overlap can be tracked over time."
+      trigger: "User marks content as published"
+      automatic: true
+    - description: "When the user declines the quality review, deliver the draft as-is with a note that the review was skipped. Offer to run it later as a standalone command."
+      trigger: "User declines quality review"
+      automatic: false
+    - description: "When summarising external content, offer to suggest whether it sparks an original article idea based on the user's existing content pillars."
+      trigger: "After a web or document summarisation"
+      automatic: false
+
+  roles:
+    - name: "Product Leader"
+      adaptation: "Content focuses on product strategy, roadmap communication, and translating technical decisions for business audiences. Posts emphasise frameworks and lessons from shipping. Presentations optimised for internal stakeholder buy-in and conference thought leadership. The company-positioning reviewer prioritises product angles."
+    - name: "Sales / Solutions Engineer"
+      adaptation: "Content focuses on customer pain points, competitive positioning, and practical problem-solving. Posts emphasise real-world customer stories and industry observations. Presentations optimised for prospect education, post-demo follow-up, and objection handling. The company-positioning reviewer flags opportunities to introduce product value naturally."
+    - name: "Customer Success"
+      adaptation: "Content focuses on adoption patterns, best practices, and customer outcomes. Posts emphasise community building and practical how-to guidance. Presentations optimised for business reviews, onboarding workshops, and user group talks. The utility reviewer is weighted highest — actionability matters more than provocation."
+    - name: "Marketing"
+      adaptation: "Content focuses on brand narrative, market positioning, and category creation. Posts emphasise trend commentary and industry insight. Presentations optimised for analyst briefings, launch events, and partner pitches. The SEO reviewer and brand-alignment reviewer are weighted highest."
+    - name: "Executive"
+      adaptation: "Content focuses on vision, industry direction, and strategic bets. Posts emphasise bold takes and company-building lessons. Presentations optimised for board updates, all-hands, and keynote stages. The narrative reviewer and final-gate reviewer are weighted highest — the bar for an executive publishing something weak is higher."
+
+
+# ---- MATCHING ----
+
+matching:
+  roles: ["Product", "Sales", "Customer Success", "Marketing", "Executive"]
+  requires_any: ["voice-profile", "content-folder"]
+  enhanced_by: ["linkedin", "google-slides", "podcast-transcripts", "web-fetch", "local-vector-search"]
+  signals:
+    - trigger: "user creates or edits a content file in a writing folder"
+      suggestion: "Looks like you're writing content. There's a workflow that generates drafts in your voice and reviews them across 22 quality dimensions before publishing. Want to try it?"
+    - trigger: "user pastes a long text block and asks for feedback"
+      suggestion: "Want structured editorial feedback? The content review workflow evaluates writing, voice, logic, engagement, and platform fit simultaneously — 22 reviewers in parallel."
+    - trigger: "user asks for help with a social media post"
+      suggestion: "There's a workflow that generates platform-optimised posts with multiple hook options and your voice baked in — no engagement bait, no AI slop."
+    - trigger: "user creates or edits a presentation"
+      suggestion: "There's a workflow that handles slide structure, speaker notes, visual direction, and brand compliance — so you focus on the message, not the tool."
+    - trigger: "user runs a de-AI-ify request or asks to make text sound more human"
+      suggestion: "The full content workflow includes AI pattern removal as a built-in step. Want to see the whole pipeline?"
+    - trigger: "user has 5+ content files with no review score in metadata"
+      suggestion: "You have several drafts without a quality review. Want to run the 22-reviewer pass on any of them before publishing?"
+  share_signals:
+    - trigger: "user publishes 10+ pieces of content through the workflow"
+      nudge: "You've built a consistent publishing habit using this system. Your voice profile and review process could help others in your field. Want to diff it?"
+    - trigger: "user's average review score climbs 15+ points over a month"
+      nudge: "Your content quality has measurably improved. That's a story worth sharing."
+
+
+# ---- COMPOUND LOOPS ----
+
+compounds_with:
+  - diff_id: "daily-operating-rhythm"
+    relationship: "extends"
+    description: "Daily planning surfaces content opportunities from meetings, research, and conversations. Ideas captured during the day flow directly into the creation pipeline. The rhythm keeps publishing consistent rather than sporadic."
+  - diff_id: "compound-learning"
+    relationship: "amplifies"
+    description: "Published content and its review scores feed back into the voice profile and content strategy over time. What resonated informs what comes next. Recurring low scores on specific dimensions get captured as voice profile updates — so the system improves with use."
+  - diff_id: "intelligence-gathering"
+    relationship: "feeds"
+    description: "External intelligence — research summaries, industry signals, competitor moves — provides the raw material for original content. The intelligence workflow captures it; the content workflow turns it into published perspective."
+
+
+# ---- SOCIAL PROOF ----
+
+love_letter:
+  text: ""
+  author: ""
+  metrics: []
+  verified: false
+
+
+# ---- POPULATED BY DEX-CLOUD POST-PUBLISH ----
+# stats:
+#   adoptions: 0
+#   active_users: 0
+#   avg_weekly_skill_runs: 0
+#   rating: null
+#   retention_30d: null

@@ -1,0 +1,671 @@
+# ==========================================
+# DEXDIFF METHODOLOGY SCHEMA v2.0
+# ==========================================
+
+# ---- IDENTITY ----
+
+id: agent-orchestration
+name: "Autonomous Agent Orchestration"
+version: 1.0.0
+dexdiff_schema: "2.0"
+
+author:
+  handle: dave
+  display_name: "Dave Killeen"
+  linkedin_url: ""
+  verified: true
+
+description: "Run multiple AI agents in parallel, chain them through an execution plan, keep dangerous operations safely gated, and recover everything cleanly after a crash. Delegation without chaos — and without catastrophic mistakes."
+
+tags: [multi-agent, orchestration, parallel-execution, safety, session-recovery, autonomous-work, remote-compute]
+
+created: 2026-04-09
+updated: 2026-04-09
+
+
+# ---- DISTRIBUTION ----
+
+distribution:
+  visibility: curated
+  targets:
+    orgs: []
+    groups: []
+    individuals: []
+  delivery: available
+  required: false
+
+
+# ---- THE METHODOLOGY ----
+
+methodology:
+
+  problem: |
+    The more you delegate to AI agents, the more you have to watch them. That
+    defeats the point.
+
+    You have ambitious, multi-part work to get done. Some pieces are purely
+    autonomous — no judgment required, just execution. Others need a decision
+    from you before continuing. Today you either do everything sequentially
+    (slow, one thread), or try to hold multiple threads in your head at once
+    (exhausting, error-prone, context-switching hell).
+
+    Two failure modes make it worse:
+
+    **Runaway agents.** The moment you hand off real work to an autonomous
+    agent, the blast radius of a bad decision expands. A confused agent can
+    delete files, force-push code, or wipe data — and ask for forgiveness
+    after. Without safety guardrails, more delegation means more risk, not less.
+
+    **Fragile state.** When your laptop closes, a session crashes, or you
+    just lose track after a context switch, all that in-flight work is orphaned.
+    You spend 20 minutes reconstructing where you were instead of moving forward.
+
+    The result: you can't delegate ambitiously because you can't trust the
+    agent, you can't run in parallel because you can't track what's running,
+    and you can't recover gracefully when things fall apart.
+
+  solution: |
+    A layered orchestration system with safety built into the foundation —
+    not bolted on afterward.
+
+    **Layer 1: Plan decomposition.** Take any blueprint or specification and
+    classify each piece as autonomous (can run without you) or human-required
+    (needs your judgment). Generate an execution plan with dependencies mapped
+    and quality gates defined. Produce ready-to-run prompts for each autonomous
+    piece so you can start immediately.
+
+    **Layer 2: Parallel isolated execution.** Spin up independent workspaces —
+    each task runs in complete isolation with no cross-contamination. Tasks that
+    don't depend on each other run simultaneously. The system tracks which
+    workspace is running which task, monitors for completion signals, and chains
+    tasks automatically when their dependencies complete. Human checkpoints
+    pause the chain and notify you; you resume with a single command.
+
+    **Layer 3: Safety guardrails — always on.** Two complementary automations
+    run on every operation, invisibly:
+
+    - A **pattern guard** watches every command before it executes. Catastrophic
+      operations — recursive deletes targeting critical paths, force-pushing to
+      protected branches, disk wipes — are blocked before they reach the shell.
+      Other risky patterns emit a warning that the agent sees and must reason
+      about before continuing.
+
+    - A **smart approval gate** intercepts the grey-zone commands that pattern
+      matching alone can't resolve. A lightweight AI evaluates the actual
+      context — the specific paths, the current branch, what was just done —
+      and decides: approve silently, block with an explanation, or escalate to
+      you. You only see the genuinely ambiguous cases; everything clear in either
+      direction is handled automatically.
+
+    Together they mean: the more you delegate, the safer the system becomes —
+    not the other way around.
+
+    **Layer 4: Remote offloading (optional).** For work that doesn't need your
+    local machine — Node.js, Python, server-side processing — tasks can be
+    offloaded to a remote cloud server. Multiple agents run there in parallel
+    while you continue local work. When tokens expire or sessions drop,
+    re-authentication is a single command that restores all stalled agents.
+    Results sync back to the correct local paths when the work completes.
+
+    **Layer 5: Session recovery (always available — no configuration needed).**
+    After a crash, reboot, or laptop close, scan all recent sessions, classify
+    their status (done, interrupted, stalled), prioritise by strategic importance,
+    and offer to spin up workspaces for the outstanding ones. You pick up exactly
+    where you left off with full context on what each session was doing and why
+    it matters.
+
+    The outcome: you define the work once, the system parallelises what can run
+    in parallel, chains what must run in sequence, blocks what must never happen,
+    pauses for your input only when it genuinely needs it, and recovers
+    gracefully when things go wrong.
+
+  user_experience:
+    commands:
+      - name: "plan-work"
+        trigger: "/plan-work [blueprint-path]"
+        description: "Analyse a project blueprint and produce an execution plan: classify each component as autonomous or human-required, map dependencies, generate ready-to-execute prompts for autonomous pieces, and add quality gates."
+        example_input: '/plan-work "specs/analytics-pipeline.md"'
+        example_output: |
+          Analysed: analytics-pipeline.md
+          Found: 9 components
+
+          Classification:
+            Autonomous (6): scaffolding, data models, ingestion worker, API layer,
+                            output formatter, unit tests
+            Human-required (2): schema approval, visual review
+            Quality gates (1): automated verification pass
+
+          Execution plan:
+            Phase 1 (parallel): scaffolding + data models
+            Phase 2 (sequential): ingestion worker → API layer [depends on Phase 1]
+            Phase 3 (human checkpoint): schema approval
+            Phase 4 (parallel): output formatter + unit tests [depends on Phase 2]
+            Phase 5 (quality gate): automated verification
+            Phase 6 (human checkpoint): visual review
+
+          Ready to execute:
+            Run automatically: /run-plan plans/analytics-pipeline
+            Launch parallel workspaces: /launch-parallel plans/analytics-pipeline
+
+      - name: "run-plan"
+        trigger: "/run-plan [plan-directory] [--resume]"
+        description: "Execute an entire execution plan automatically — chains autonomous tasks, pauses at human checkpoints with context, tracks state across sessions, and resumes cleanly after interruption."
+        example_input: '/run-plan plans/analytics-pipeline'
+        example_output: |
+          Starting plan: analytics-pipeline
+
+          Component 1/9: scaffolding... complete
+          Component 2/9: data-models... complete
+          Component 3/9: ingestion-worker... complete
+          Component 4/9: api-layer... complete
+
+          ┌─────────────────────────────────────────┐
+          │  HUMAN CHECKPOINT: Schema approval       │
+          │  Review: plans/analytics-pipeline/       │
+          │          review/schema-review.md         │
+          │                                          │
+          │  After approval, resume with:            │
+          │  /run-plan --resume plans/analytics-     │
+          │            pipeline                      │
+          └─────────────────────────────────────────┘
+
+      - name: "launch-parallel"
+        trigger: "/launch-parallel [context or plan-directory]"
+        description: "Create isolated workspaces for independent tasks and launch them simultaneously. Each workspace is fully isolated — no cross-contamination between parallel agents."
+        example_input: '/launch-parallel "4 independent API endpoints from the analytics PRD"'
+        example_output: |
+          Created 4 isolated workspaces:
+
+          Workspace 1: analytics/ingestion-api    — running
+          Workspace 2: analytics/query-api        — running
+          Workspace 3: analytics/export-api       — running
+          Workspace 4: analytics/health-api       — running
+
+          All running in parallel, no shared state.
+          Monitor with: /orchestrator-status
+
+      - name: "recover-sessions"
+        trigger: "/recover-sessions [--hours N] [--resume]"
+        description: "After a crash, reboot, or laptop close — scan recent sessions, classify each as done, interrupted, or stalled, prioritise by strategic importance, and optionally spin up workspaces to resume outstanding work."
+        example_input: '/recover-sessions --hours 24'
+        example_output: |
+          Found 18 sessions from the last 24 hours.
+
+            10 done — no action needed
+             5 interrupted — mid-flow when session ended
+             3 stalled — waiting for your decision
+
+          Top 3 to resume:
+          1. analytics/api-layer — 70% complete, clean stopping point [P1]
+          2. data-pipeline refactor — interrupted mid-function [P1]
+          3. auth integration — stalled on schema question [P2]
+
+          Full triage: System/Recovery/session-recovery-2026-04-09.md
+
+          Spin up workspaces for the outstanding ones? [Y/n]
+
+      - name: "deploy-to-cloud"
+        trigger: "/deploy-to-cloud [prd-path]"
+        description: "Parse a ready-to-execute specification, classify which work packages can run on a remote cloud server, sync code, create task queues, spawn remote agents, and verify they are actively working."
+        example_input: '/deploy-to-cloud System/PRDs/analytics-pipeline.md'
+        example_output: |
+          Parsed PRD: 6 work packages
+
+          Deployment plan:
+            Remote server (4): data-ingestion, API layer, test suite, LLM integration
+            Local (2):         native audio pipeline, certificate signing
+
+          Syncing to remote server... done
+          Creating task queue... 6 tasks created
+          Spawning remote agents... 4 agents started
+
+          Authorising agents (10s)... all approved
+          Authorising agents (20s)... all clear
+
+          Status:
+            ✓ data-ingestion    — working (reading schema.ts)
+            ✓ api-layer         — working (scaffolding routes)
+            ✓ test-suite        — working (configuring runner)
+            ✓ llm-integration   — working (installing dependencies)
+            ○ audio-pipeline    — local, spawned
+            ○ cert-signing      — queued (depends on audio-pipeline)
+
+          Agents are autonomous. Pull results back with: /sync-from-cloud
+
+      - name: "sync-from-cloud"
+        trigger: "/sync-from-cloud"
+        description: "Check which remote agents have completed, show what they produced, and pull results back to the correct local paths — via version control for code repos, targeted sync for other files."
+        example_input: '/sync-from-cloud'
+        example_output: |
+          Checking remote agents...
+
+          3 sessions found:
+            data-ingestion: COMPLETE — 2 commits ready
+            api-layer:      COMPLETE — 4 commits ready
+            test-suite:     still running (estimated 8 min)
+
+          Ready to sync:
+            data-ingestion: remote → push to version control → pull locally
+            api-layer:      remote → push to version control → pull locally
+
+          Proceed? [Y/n]
+
+      - name: "fix-cloud-auth"
+        trigger: "/fix-cloud-auth"
+        description: "Re-authenticate the AI coding tool on a remote cloud server when your AI tool's login credentials expire. Generates a browser auth URL, walks through the token refresh, saves updated session credentials, and restarts any stalled sessions."
+        example_input: '/fix-cloud-auth'
+        example_output: |
+          Auth URL copied to clipboard. Open it in your browser.
+
+          Waiting for auth code...
+
+          [User pastes code]
+
+          Logged in successfully.
+          Session credentials saved.
+          Restarting stalled sessions... 2 sessions resumed.
+
+      - name: "orchestrator-status"
+        trigger: "/orchestrator-status"
+        description: "Show a unified view of everything running — local workspaces, remote agents, queued tasks, and what needs your attention."
+        example_input: '/orchestrator-status'
+        example_output: |
+          Local workspaces: 3
+            analytics/ingestion-api   — complete, ready to merge
+            analytics/query-api       — running (62% through)
+            analytics/health-api      — stalled (missing config value)
+
+          Remote agents: 2
+            data-pipeline             — complete, 4 commits ready to sync
+            load-tests                — running (estimated 12 min)
+
+          Needs attention:
+            - analytics/health-api needs a config decision from you
+            - data-pipeline results ready to pull back
+
+  vault_structure:
+    description: |
+      The workflow uses a plans directory for execution plans and their runtime
+      state, a recovery directory for triage reports after crashes, and
+      optionally a specs directory for the source blueprints that execution
+      plans are derived from. If using remote cloud execution, a sync mapping
+      tracks what lives where so results land in the right local paths.
+    folders:
+      - purpose: "Execution plans — one subdirectory per project, containing components, prompts, and plan state"
+        typical_path: "Plans/"
+        required: true
+      - purpose: "Session recovery triage reports — written after crashes or reboots"
+        typical_path: "System/Recovery/"
+        required: false
+      - purpose: "Project specifications and blueprints — source material for plan decomposition"
+        typical_path: "Specs/ or System/PRDs/"
+        required: false
+
+  data_patterns:
+    - name: "Execution plan"
+      description: |
+        A structured breakdown of a project into components with dependencies,
+        classification (autonomous vs human-required), completion signals,
+        and quality gates. Exists in two forms: a human-readable summary
+        for review, and a machine-readable manifest that the run-plan command
+        reads to drive automatic chaining.
+
+        Completion signals tell the system a task is done. Each component
+        defines one of three signal types:
+          - file: a specific output file now exists
+          - exit_code: the process exited successfully
+          - status_field: the manifest records "status: done" for this component
+
+        The machine-readable manifest is what enables automatic chaining —
+        when a completion signal fires, the system marks the component done
+        and evaluates which downstream components are now unblocked.
+      example: |
+        Plan: analytics-pipeline
+        Source: specs/analytics-pipeline.md
+        Components: 9 (6 autonomous, 2 human, 1 quality gate)
+
+        Dependency graph:
+          scaffolding → data-models → ingestion-worker → api-layer
+          api-layer → [human: schema-approval] → output-formatter
+          output-formatter → quality-verification → [human: visual-review]
+
+        Example component entry in manifest:
+          - id: ingestion-worker
+            type: autonomous
+            depends_on: [data-models]
+            completion_signal:
+              type: file
+              path: src/workers/ingestion.ts
+            prompt: prompts/03-ingestion-worker.md
+            max_iterations: 25
+            status: pending
+
+    - name: "Pattern guard configuration"
+      description: |
+        A configuration block defining which shell command patterns the pattern
+        guard intercepts. Each entry specifies a command pattern, a risk level
+        (block or warn), and the reason. Block-level entries prevent the command
+        from reaching the shell entirely. Warn-level entries emit a message the
+        agent must reason about before proceeding. The pattern guard evaluates
+        every command against this list before execution.
+      example: |
+        pattern_guard:
+          blocked:
+            - pattern: "rm -rf /"
+              reason: "Recursive force-delete of filesystem root"
+            - pattern: "git push --force origin main"
+              reason: "Force-push to protected branch"
+            - pattern: "dd if=.* of=/dev/sd"
+              reason: "Direct disk write — potential wipe"
+          warn:
+            - pattern: "rm -rf (?!dist/|build/|.next/)"
+              reason: "Recursive delete outside known build artifacts — verify path"
+            - pattern: "git push --force"
+              reason: "Force-push to non-main branch — confirm intent"
+
+    - name: "Plan directory structure"
+      description: |
+        Each execution plan lives in its own subdirectory under Plans/. The
+        directory contains a machine-readable manifest, one prompt file per
+        autonomous component, and a review subfolder for human checkpoint
+        materials. This layout is what /run-plan reads to drive automatic
+        chaining and what /recover-sessions uses to reconstruct interrupted work.
+      example: |
+        Plans/
+        └── analytics-pipeline/
+            ├── manifest.yaml          # machine-readable plan state
+            ├── prompts/
+            │   ├── 01-scaffolding.md
+            │   ├── 02-data-models.md
+            │   ├── 03-ingestion-worker.md
+            │   └── 04-api-layer.md
+            └── review/
+                ├── schema-review.md   # written at human checkpoint
+                └── visual-review.md   # written at final checkpoint
+
+    - name: "Sync mapping"
+      description: |
+        When using remote cloud execution, a sync mapping records which remote
+        task corresponds to which local path, and how results should be
+        transferred back (via version control push/pull for code repos, or
+        targeted file sync for other outputs). Lives in the plan directory
+        alongside the manifest. Without a sync mapping, /sync-from-cloud cannot
+        route results to the correct local destinations.
+      example: |
+        sync_mapping:
+          - task_id: "data-ingestion"
+            remote_path: "~/tasks/data-ingestion"
+            local_path: "src/workers/"
+            sync_via: "version-control"
+          - task_id: "api-layer"
+            remote_path: "~/tasks/api-layer"
+            local_path: "src/api/"
+            sync_via: "version-control"
+          - task_id: "test-suite"
+            remote_path: "~/tasks/test-suite/results"
+            local_path: "test-results/"
+            sync_via: "file-sync"
+
+    - name: "Session record"
+      description: |
+        A record of a single AI coding session — one conversation with its
+        own working directory and task context. Session records are produced by
+        the AI coding tool's native session storage (for example, Claude Code
+        writes JSONL session files to ~/.claude/projects/). Session recovery
+        reads these records to reconstruct what was happening and assess
+        strategic priority.
+
+        Status values:
+          - done: task completed successfully, output verified
+          - interrupted: session ended mid-flow (crash, reboot, laptop close),
+            partial work exists but task is not complete
+          - stalled: session is alive but waiting on a human decision
+            with no progress for a defined timeout period
+      example: |
+        {
+          "session_id": "s-2026-04-09-14a3",
+          "started": "2026-04-09T10:15:00Z",
+          "ended": "2026-04-09T11:42:00Z",
+          "status": "interrupted",
+          "task": "API layer — ingestion endpoints",
+          "plan": "analytics-pipeline",
+          "component_id": "api-layer",
+          "working_directory": "analytics/api-layer",
+          "progress_pct": 70,
+          "last_file_modified": "src/api/ingest.ts",
+          "resume_prompt": "prompts/04-api-layer.md",
+          "priority_tier": 1
+        }
+
+    - name: "Session recovery report"
+      description: |
+        A triage document produced after a crash or reboot. Lists all recent
+        sessions with their status, strategic priority tier, and resume
+        instructions. Groups sessions by theme, explains why each outstanding
+        item matters, and recommends a resume order. Written to a timestamped
+        file in the recovery directory so the triage artifact is preserved
+        across sessions.
+      example: |
+        Recovery Report — 2026-04-09 12:00
+        Scanned: 18 sessions from the last 24 hours
+
+        ## Done (no action needed) — 10 sessions
+        [...]
+
+        ## Interrupted — 5 sessions
+        | Session           | Task                   | Progress | Priority | Why it matters         |
+        |-------------------|------------------------|----------|----------|------------------------|
+        | s-2026-04-09-e5f6 | api-layer — ingestion  | 70%      | P1       | Blocks Phase 3 launch  |
+        | s-2026-04-09-g7h8 | data-pipeline refactor | 40%      | P1       | Fixes production bug   |
+        | s-2026-04-08-i9j0 | auth integration       | 20%      | P2       | Needed for beta users  |
+
+        ## Stalled — 3 sessions
+        | Session           | Task              | Blocked on             |
+        |-------------------|-------------------|------------------------|
+        | s-2026-04-09-m3n4 | health-api        | Missing config value   |
+        | s-2026-04-08-o5p6 | export formatter  | Schema question        |
+
+        ## Recommended order
+        1. api-layer (70% complete, clean stopping point)
+        2. data-pipeline refactor (fix production bug first)
+        3. Resolve health-api config question, then resume
+
+    - name: "Safety evaluation record"
+      description: |
+        When the smart approval automation intercepts a command, it records
+        its reasoning — the command matched, the risk category, the contextual
+        factors it weighed, and the decision (approve, block, or escalate).
+        This record accumulates over time and informs future pattern definitions,
+        creating a learning loop where edge cases improve the guardrails.
+      example: |
+        {
+          "timestamp": "2026-04-09T11:33:00Z",
+          "command": "rm -rf dist/",
+          "matched_pattern": "recursive_force_delete",
+          "risk_category": "destructive_delete",
+          "context_evaluated": {
+            "path_is_build_artifact": true,
+            "path_contains_source": false,
+            "recent_build_ran": true,
+            "git_tracked": false
+          },
+          "decision": "approve",
+          "reasoning": "dist/ is a generated build directory, not source. Deletion is safe and expected before a clean build."
+        }
+
+  integrations:
+    - name: "Terminal multiplexer"
+      examples: ["cmux", "tmux", "Warp workspaces", "iTerm2 tabs"]
+      required: false
+      value: "Enables true parallel execution in isolated workspaces with a unified view across all sessions. Without this, tasks run sequentially in a single terminal — the workflow still functions, just without parallelism."
+    - name: "Version control isolation"
+      examples: ["git worktrees", "separate branches"]
+      required: false
+      value: "Git worktrees let you check out multiple branches of a repository into separate directories simultaneously, so parallel agents can each work in their own copy without affecting each other. Ensures parallel agents working on the same codebase don't conflict with each other's changes. Without this, parallel tasks must work on separate directories rather than shared repositories — the workflow still functions, you just can't run multiple agents against the same repository simultaneously."
+    - name: "Remote cloud compute"
+      examples: ["VPS", "cloud VM", "GitHub Codespaces"]
+      required: false
+      value: "Offloads server-compatible work to a remote machine so agents run there while you continue local work. Requires sync to push code up and pull results back. Without this, all agents run locally — still parallel, just constrained to your machine's resources."
+    - name: "Project management"
+      examples: ["GitHub Issues", "Linear", "Jira"]
+      required: false
+      value: "Each autonomous task becomes a tracked issue that moves through statuses as the plan executes. Without this, plan state is tracked in the execution plan manifest only."
+    - name: "Semantic search"
+      examples: ["QMD", "local vector search"]
+      required: false
+      value: "Session recovery uses semantic search to surface related past decisions and context when prioritising interrupted work. Without this, recovery prioritises by recency and file modification time."
+
+  behaviors:
+    - description: "When a task completes its completion signal (file written, exit code, or status update), automatically mark it done and start the next unblocked task in the sequence"
+      trigger: "After an autonomous task signals completion"
+      automatic: true
+    - description: "When all dependencies for a queued task are satisfied, promote it to running and start execution"
+      trigger: "After a blocking task completes"
+      automatic: true
+    - description: "Before every shell command executes, check it against blocked patterns (catastrophic filesystem operations, force pushes to protected branches, disk wipes). Block immediately if matched — no confirmation, no override"
+      trigger: "Before every shell command"
+      automatic: true
+    - description: "For commands that pass blocked-pattern checks but match a risk pattern, invoke the smart approval gate to evaluate actual context before allowing execution. Approve silently, block with explanation, or escalate to the user"
+      trigger: "When a command matches a risk pattern but is not blocked outright"
+      automatic: true
+    - description: "When execution reaches a human checkpoint, pause the chain, save state to the plan manifest, and notify the user with context about what decision is needed and how to resume"
+      trigger: "When the plan reaches a human-required step"
+      automatic: true
+    - description: "After a crash or reboot, offer to scan recent sessions and triage outstanding work by strategic priority"
+      trigger: "At session start after unexpected interruption"
+      automatic: false
+    - description: "When remote agents finish work, notify the user and offer to sync results back to the correct local paths"
+      trigger: "After remote task completion is detected"
+      automatic: false
+
+  roles:
+    - name: "Engineering Leader"
+      adaptation: |
+        Plan decomposition inserts explicit quality gates between phases —
+        automated checks for formatting, test coverage, and build health that
+        must pass before the next phase starts. Safety guardrails are configured
+        more strictly: any branch operation on a protected branch requires
+        escalation, not just pattern matching. Session recovery prioritises
+        work that unblocks team pipelines or fixes production issues, not just
+        personal throughput.
+      example_output: |
+        Phase 2 complete. Quality gate:
+          Code formatting:  PASS
+          Test coverage:    PASS (84%, threshold 80%)
+          Build:            PASS (0 errors, 2 warnings)
+        All criteria met — proceeding to Phase 3.
+
+    - name: "Product Leader"
+      adaptation: |
+        Plan decomposition distinguishes user-facing from infrastructure work.
+        Human checkpoints include a stakeholder alignment template — surfacing
+        the right questions to ask (scope changes, sign-off requirements,
+        preview audiences) rather than a code review checklist. Safety guardrails
+        focus on protecting published or shared assets from overwrite.
+      example_output: |
+        HUMAN CHECKPOINT: Stakeholder alignment before Phase 3
+          1. Does this match the agreed user journey from the last review?
+          2. Any scope changes needing sign-off?
+          3. Who should see a preview before build continues?
+        Review: plans/dashboard/review/stakeholder-alignment.md
+        Resume: /run-plan --resume plans/dashboard
+
+    - name: "Solo Founder / Technical Generalist"
+      adaptation: |
+        Plans bias toward maximum autonomy — minimal human checkpoints, only
+        pausing when a decision genuinely cannot be automated. Remote offloading
+        is emphasised to maximise throughput across limited time. Session
+        recovery prioritises revenue-blocking and launch-blocking work explicitly,
+        with a tight "30-second version" — if you only have one hour, here's
+        the one thing to resume.
+      example_output: |
+        Plan: launch-mvp (max-throughput mode)
+        Running 4 tasks in parallel:
+          api-endpoints     — running
+          db-migrations     — running
+          auth-flow         — running
+          landing-page      — running
+        Next human checkpoint: final integration review (Phase 3)
+        Estimated time to checkpoint: ~20 minutes
+
+    - name: "Platform / Infrastructure Engineer"
+      adaptation: |
+        Safety guardrails are the primary value. Patterns are extended to
+        cover infrastructure-specific risk: database migration rollbacks,
+        load balancer config changes, and certificate operations all require
+        smart approval gate evaluation. Plan decomposition separates rollback
+        paths as first-class components — not afterthoughts.
+      example_output: |
+        SMART APPROVAL: certificate rotation command
+        Risk category: certificate_operation
+        Context: production environment, rotation scheduled
+        Decision: ESCALATE — certificate operations in production require
+                  explicit confirmation. Proceed? [Y/n]
+
+    - name: "Knowledge Worker (non-technical)"
+      adaptation: |
+        Plan decomposition and command vocabulary are simplified — "tasks"
+        not "components", "steps" not "phases". Safety guardrails run
+        silently with no visible output unless they block something. Session
+        recovery presents a minimal view: what was I working on, what's the
+        one thing to pick up next. Remote offloading is not surfaced.
+      example_output: |
+        You were working on: market research synthesis (70% done)
+        One thing to pick up: /run-plan plans/market-research --resume
+
+
+# ---- MATCHING ----
+
+matching:
+  roles: ["Engineering", "Product", "Founder", "Technical Lead", "Platform", "Infrastructure"]
+  requires_any: ["ai-coding-assistant", "project-specs", "multi-step-projects"]
+  enhanced_by: ["terminal-multiplexer", "version-control", "remote-compute", "github-issues", "linear", "semantic-search"]
+  signals:
+    - trigger: "user starts 3+ AI sessions with the same root directory or project name in a single day"
+      suggestion: "You're juggling several threads for the same project. There's a workflow that runs them in parallel with automatic chaining — want to try it?"
+    - trigger: "user asks AI to execute a large multi-step task sequentially"
+      suggestion: "Some of those steps look independent. Want me to run them in parallel instead of one after another?"
+    - trigger: "user recovers from a crash and asks what they were working on"
+      suggestion: "There's a session recovery workflow that triages all your interrupted work by priority. Takes 30 seconds."
+    - trigger: "user has a detailed spec or PRD and asks to start building"
+      suggestion: "This spec has multiple independent pieces. Want me to decompose it into an execution plan with parallel tasks and human checkpoints?"
+    - trigger: "user experiences an agent making a destructive mistake"
+      suggestion: "There are safety guardrails that block catastrophic operations before they execute. Want me to add them?"
+  share_signals:
+    - trigger: "user runs /launch-parallel or /run-plan with 2+ parallel components 3+ times per week for 3+ weeks"
+      nudge: "Your multi-agent setup is clearly working for you. Want to diff it so others can parallelise their work too?"
+
+
+# ---- COMPOUND LOOPS ----
+
+compounds_with:
+  - diff_id: "autonomous-safety"
+    relationship: "overlaps"
+    description: "The safety automation in this diff is the foundation of autonomous-safety. If you have both, adopt agent-orchestration first — the safety layer comes with it."
+  - diff_id: "product-ideation"
+    relationship: "extends"
+    description: "Product ideas flow into specifications which become execution plans. Ideation defines what to build; this workflow parallelises and safeguards the building."
+  - diff_id: "compound-learning"
+    relationship: "amplifies"
+    description: "Each completed plan generates learnings about what needed human intervention, what stalled, and what the safety gate caught. Those learnings improve future plan decomposition and refine the safety patterns over time."
+  - diff_id: "meeting-intelligence"
+    relationship: "enables"
+    description: "The orchestration layer can run meeting intelligence pipelines as autonomous background tasks — processing recordings, updating person pages, and generating prep briefs while you work on something else."
+
+
+# ---- SOCIAL PROOF ----
+
+love_letter:
+  text: ""
+  author: ""
+  metrics: []
+  verified: false
+
+
+# ---- POPULATED BY DEX-CLOUD POST-PUBLISH ----
+# stats:
+#   adoptions: 0
+#   active_users: 0
+#   avg_weekly_skill_runs: 0
+#   rating: null
+#   retention_30d: null

@@ -1,0 +1,575 @@
+# ==========================================
+# DEXDIFF METHODOLOGY SCHEMA v2.0
+# ==========================================
+
+# ---- IDENTITY ----
+
+id: meeting-intelligence
+name: "Meeting Intelligence"
+version: 1.0.0
+dexdiff_schema: "2.0"
+
+author:
+  handle: dave
+  display_name: "Dave Killeen"
+  linkedin_url: ""
+  verified: true
+
+description: "Never walk into a meeting cold, and never let a follow-up slip. A closed-loop system that prepares you before every conversation, processes what happened after, updates your network of contacts and commitments automatically, and feeds everything back into the next prep."
+
+tags: [meeting-intelligence, meeting-prep, relationship-context, action-extraction, people-linking, compound-loop]
+
+created: 2026-04-09
+updated: 2026-04-09
+
+
+# ---- DISTRIBUTION ----
+
+distribution:
+  visibility: curated
+  targets:
+    orgs: []
+    groups: []
+    individuals: []
+  delivery: available
+  required: false
+
+
+# ---- THE METHODOLOGY ----
+
+methodology:
+
+  problem: |
+    Meetings are where relationships are built and commitments are made, but
+    most of that value evaporates within hours. You walk in without remembering
+    what you discussed last time, what you owe them, or what they owe you. You
+    waste the opening minutes catching up on context you already earned.
+
+    The real cost is compound. Every unprocessed meeting is relationship context
+    that never enters your knowledge base. Over weeks, your contact pages go
+    stale, commitments slip through cracks, and each conversation starts from
+    scratch instead of building on the last.
+
+    After the meeting, it gets worse. Action items live in a transcript nobody
+    reads again. You met someone new but never recorded their name. You
+    discussed a deal but the account page still reflects last month. A week
+    later, a missed follow-up damages a relationship that took months to build.
+
+  solution: |
+    A closed-loop system that wraps around every meeting: prep, process,
+    update, and feed forward.
+
+    Before the meeting, a single command looks up each attendee in your vault
+    (your personal knowledge base), pulls their recent meeting history, checks for open commitments in both
+    directions, and — if you have messaging or email connected — surfaces
+    recent threads and unanswered messages. The output is a brief: per-attendee
+    context (role, last interaction, open items, suggested talking points) plus
+    meeting-level overview sections (related projects, recent history across all
+    attendees). The system adapts by role — a salesperson sees deal stage and
+    buying signals, a product leader sees feature requests and roadmap
+    commitments.
+
+    After the meeting, another command processes the recording (or your manual
+    notes) into a structured note: summary, decisions, action items split by
+    owner, and customer intelligence. Automations run immediately — each
+    attendee's contact page gets a new meeting entry, their last-interaction
+    date updates, and any action items flow to the right pages. New contacts
+    get pages created. A summary index builds over time for fast lookups.
+
+    A separate command does a second-pass scan for commitments the initial
+    processing missed — using AI analysis, not keyword matching. It presents
+    findings ranked by how certain the analysis is, for human review, so
+    nothing falls through. First-pass extraction prioritises speed and explicit
+    action items; the second pass runs deeper semantic analysis to catch
+    implicit commitments that only read as obligations in context.
+
+    A review command surfaces suggestions generated during processing: new
+    contacts to add, account connections to confirm, project associations to
+    link. A people-linking command scans any file for contact mentions and
+    wires them back to the right pages.
+
+    The loop closes when the next prep command reads the enriched contact pages
+    and meeting history. Each conversation makes the next one better.
+
+  # -- What does the user type and see? --
+  user_experience:
+    commands:
+      - name: "meeting-prep"
+        trigger: "/meeting-prep [topic] [attendees]"
+        description: "Generates a context brief before any meeting. Looks up each attendee, pulls recent history, checks open commitments, and surfaces activity from connected sources. If arguments are omitted, prompts interactively."
+        example_input: '/meeting-prep "Quarterly Review" "Sarah Chen, Mike Rodriguez"'
+        example_output: |
+          # Meeting Prep: Quarterly Review
+
+          **Attendees:** Sarah Chen, Mike Rodriguez
+
+          ---
+
+          ## Sarah Chen
+          - **Role:** VP Engineering at Acme Corp
+          - **Last interaction:** 2026-03-15 -- Sprint Review
+          - **Open items:**
+            - [ ] You owe her: revised timeline for Phase 2
+            - [ ] She owes you: feedback on architecture doc
+          - **Recent messages:** 3 threads this week about deployment pipeline
+          - **Unanswered email:** You sent pricing on March 14 -- no reply yet
+          - **Suggested talking points:**
+            1. Follow up on Phase 2 timeline commitment
+            2. Ask about deployment concerns from recent threads
+            3. Nudge on architecture doc feedback
+
+          ---
+
+          ## Related Projects
+
+          | Project | Status | Relevance |
+          |---------|--------|-----------|
+          | Phase 2 Rollout | In Progress | Sarah is key stakeholder |
+
+          ---
+
+          ## Recent History
+
+          | Date | Topic | Key Outcomes |
+          |------|-------|--------------|
+          | 2026-03-15 | Sprint Review | Agreed to revisit timeline in 2 weeks |
+          | 2026-03-01 | Kickoff | Scoped Phase 1 deliverables |
+
+      - name: "process-meeting"
+        trigger: "/process-meeting [search term or date]"
+        description: "Process a single meeting recording into a structured note. Pulls the transcript, generates a summary, extracts action items split by owner, captures customer intelligence, and runs automatic contact page updates."
+        example_input: '/process-meeting "Quarterly Review"'
+        example_output: |
+          # Quarterly Review -- 2026-04-08
+
+          **Participants:** Sarah Chen, Mike Rodriguez
+          **Duration:** 45 minutes
+
+          ## Summary
+          Reviewed Phase 2 progress. Sarah flagged deployment risks that could
+          push the timeline. Agreed to descope analytics dashboard.
+
+          ## Decisions Made
+          - Descope analytics dashboard from Phase 2
+          - You to own vendor evaluation by end of week
+
+          ## Action Items
+
+          ### For Me
+          - [ ] Send revised timeline by Friday
+          - [ ] Run vendor evaluation for monitoring tools
+
+          ### For Others
+          - [ ] @Sarah Chen: Share architecture doc feedback by Wednesday
+          - [ ] @Mike Rodriguez: Confirm QA capacity for April
+
+          ## Customer Intelligence
+          **Pain Points:** Deployment pipeline reliability
+          **Feature Requests:** Better rollback mechanisms
+          **Competitive Mentions:** Evaluated a competitor but found it too expensive
+
+          ---
+          Updated contact pages: Sarah Chen, Mike Rodriguez
+
+      - name: "process-daily-meetings"
+        trigger: "/process-daily-meetings"
+        description: "Batch-process all of today's meeting recordings. Runs the single-meeting workflow for each, then generates a daily digest with totals."
+        example_input: "/process-daily-meetings"
+        example_output: |
+          Processing 4 meetings from today...
+
+          1. Stand-up (9:00) -- 3 action items captured
+          2. Quarterly Review (10:30) -- 2 decisions, 4 action items
+          3. 1:1 with Sarah (14:00) -- 1 decision, 2 action items
+          4. Strategy Sync (16:00) -- 3 decisions, 5 action items
+
+          ---
+
+          ## Daily Summary
+
+          **Meetings processed:** 4
+          **Total action items:** 14 (8 for you, 6 for others)
+          **Key decisions:** 6
+          **Contact pages updated:** 7
+          **New contacts created:** 1 (Mike Rodriguez)
+
+      - name: "extract-missed-actions"
+        trigger: "/extract-missed-actions [date or search term]"
+        description: "Second-pass scan for commitments missed during initial processing. Uses AI analysis (not keyword matching) to find implicit promises, accepted requests, and follow-up commitments. Presents findings ranked by how certain the analysis is, for human review. When no argument is given, defaults to scanning the last 7 days."
+        example_input: "/extract-missed-actions"
+        example_output: |
+          Scanning 5 meetings from last 7 days...
+
+          ## Missed Action Items Detected
+
+          ### High Confidence
+
+          **1. Send competitive analysis to the team**
+          - Source: "I'll pull together the competitive landscape before the board deck"
+          - Why: Direct commitment with implied deadline (before board meeting)
+
+          **2. Schedule follow-up with procurement**
+          - Source: "Let me get procurement on a call next week"
+          - Why: Explicit commitment to arrange a meeting
+
+          ### Medium Confidence
+
+          **3. Update onboarding documentation**
+          - Source: "The onboarding docs are out of date -- someone should fix that"
+          - Why: Implied ownership but not explicitly accepted
+
+          ---
+          Add items? [all / 1,2 / review 3 / dismiss]
+
+      - name: "review-suggestions"
+        trigger: "/review-suggestions"
+        description: "Review auto-generated suggestions for new contact pages, account connections, and project associations from recent meetings. Approve, skip, or defer each suggestion."
+        example_input: "/review-suggestions --week"
+        example_output: |
+          ## Connection Suggestions Review
+
+          **Period:** This week (5 meetings)
+
+          ### Summary
+          - Contacts to create: 3
+          - Account connections: 2
+          - Project suggestions: 1
+
+          ### Contacts
+
+          **1. Mike Rodriguez** -- appeared in 2 meetings
+          - Company: Acme Corp (from email domain)
+          - Action: [Create page / Skip / Defer]
+
+          **2. Lisa Park** -- appeared in 1 meeting
+          - Company: Unknown
+          - Action: [Create page / Skip / Defer]
+
+      - name: "link-people"
+        trigger: "/link-people [meeting or note reference]"
+        description: "Scan a file for contact mentions and wire them back to contact pages. Updates each referenced page with a new mention entry, context snippet, and any relevant action items."
+        example_input: '/link-people "Quarterly Review 2026-04-08"'
+        example_output: |
+          Scanning file...
+
+          Found 4 people:
+            - Sarah Chen (External)
+            - Mike Rodriguez (External)
+            - Brian (Internal)
+            - Lisa Park (new -- not yet in vault)
+
+          Updated 3 contact pages.
+          Suggested: Create page for Lisa Park? [y/n]
+
+  # -- What vault structure does it expect? --
+  vault_structure:
+    description: |
+      The workflow expects a folder for meeting notes (organised by date),
+      a folder for contact pages (split by relationship type — external
+      contacts and internal colleagues), and optionally a folder for
+      unprocessed recordings, a company folder for account-level context,
+      and a summary index for fast lookups by the prep command.
+    folders:
+      - purpose: "Meeting notes -- one markdown file per meeting, grouped by date"
+        typical_path: "Meetings/"
+        required: true
+      - purpose: "Contact pages -- external contacts (customers, partners, vendors)"
+        typical_path: "People/External/"
+        required: true
+      - purpose: "Contact pages -- internal colleagues"
+        typical_path: "People/Internal/"
+        required: true
+      - purpose: "Company/account pages -- one per organisation you interact with"
+        typical_path: "Companies/"
+        required: false
+      - purpose: "Unprocessed meeting recordings -- waiting recordings for batch processing"
+        typical_path: "Inbox/Meeting_Recordings/"
+        required: false
+      - purpose: "Meeting summary index -- a structured lookup index of summaries for fast retrieval by prep and planning commands"
+        typical_path: "System/meeting-index"
+        required: false
+      - purpose: "Connection suggestions -- auto-generated suggestions waiting for review"
+        typical_path: "Inbox/Suggestions/"
+        required: false
+
+  # -- What data patterns does it use? --
+  data_patterns:
+    - name: "Meeting note"
+      description: |
+        Each meeting produces a markdown file with a structured header
+        (date, time, participants, company, duration, source) and sections
+        for summary, key discussion points, decisions made, action items
+        split by owner (for me vs for others), customer intelligence (pain
+        points, feature requests, competitive mentions), and follow-up items.
+        Action items use unique references (format: ^mt-DATE-HASH, e.g.
+        ^mt-2026-04-08-a1b2) so tasks can link back to the source meeting.
+      example: |
+        ---
+        date: 2026-04-08
+        type: meeting-note
+        title: "Quarterly Review"
+        participants: [Sarah Chen, Mike Rodriguez]
+        company: "Acme Corp"
+        duration: 45
+        ---
+
+        # Quarterly Review -- 2026-04-08
+
+        **Participants:** Sarah Chen, Mike Rodriguez
+
+        ## Summary
+        Reviewed Phase 2 progress. Agreed to descope analytics.
+
+        ## Action Items
+
+        ### For Me
+        - [ ] Send revised timeline by Friday ^mt-2026-04-08-a1b2
+
+        ### For Others
+        - [ ] @Sarah Chen: Share architecture feedback by Wednesday
+
+        ## Customer Intelligence
+        **Pain Points:** Deployment pipeline reliability
+
+    - name: "Contact page"
+      description: |
+        Each contact has a markdown page with a structured header (type,
+        company, role, last_interaction) and sections for context, recent
+        meetings (as a table with date, topic, and notes), open items (as
+        a checklist), and freeform notes. The workflow updates these
+        automatically after each meeting: adding rows, updating dates,
+        and linking action items.
+      example: |
+        ---
+        type: person
+        company: "Acme Corp"
+        role: "VP Engineering"
+        last_interaction: "2026-04-08"
+        ---
+
+        # Sarah Chen
+
+        ## Recent Meetings
+
+        | Date | Topic | Notes |
+        |------|-------|-------|
+        | 2026-04-08 | Quarterly Review | Flagged deployment risks |
+        | 2026-03-15 | Sprint Review | Agreed Phase 1 scope |
+
+        ## Open Items
+        - [ ] Send revised Phase 2 timeline
+
+    - name: "Meeting summary index entry"
+      description: |
+        A structured record per meeting stored in a central index file.
+        Contains date, title, participants, summary, decisions, and action
+        items in a format optimised for fast lookup by prep and planning
+        commands. Entries older than 90 days are pruned automatically.
+      example: |
+        - date: 2026-04-08
+          title: "Quarterly Review"
+          participants: [Sarah Chen, Mike Rodriguez]
+          company: "Acme Corp"
+          summary: "Reviewed Phase 2 progress. Agreed to descope analytics."
+          decisions: ["Descope analytics dashboard", "Vendor eval by EOW"]
+          action_count: 4
+          action_owners: [Dave, Sarah Chen, Mike Rodriguez]
+
+    - name: "Company page"
+      description: |
+        Each organisation you interact with gets a page tracking the
+        relationship over time -- key contacts, meeting timeline, deal
+        status, and notes. Updated automatically when meeting notes
+        reference the company.
+      example: |
+        ---
+        type: company
+        industry: "Enterprise Software"
+        deal_stage: "Evaluation"
+        health: "Green"
+        ---
+
+        # Acme Corp
+
+        ## Key Contacts
+
+        | Name | Role | Last Interaction |
+        |------|------|------------------|
+        | Sarah Chen | VP Engineering | 2026-04-08 |
+        | Mike Rodriguez | QA Lead | 2026-04-08 |
+
+        ## Meeting Timeline
+
+        | Date | Topic | Outcome |
+        |------|-------|---------|
+        | 2026-04-08 | Quarterly Review | Descoped analytics |
+        | 2026-03-15 | Sprint Review | Agreed Phase 1 scope |
+
+        ## Customer Intelligence
+        **Pain Points:** Deployment pipeline reliability
+        **Feature Requests:** Better rollback mechanisms
+
+  # -- What integrations make it better? --
+  integrations:
+    - name: "Meeting recording tool"
+      examples: ["Granola", "Zoom", "Otter.ai", "Fireflies"]
+      required: false
+      value: "Pulls transcripts and AI-generated summaries automatically from recordings, enabling richer action extraction and customer intelligence capture."
+      degradation: "You write meeting notes manually. The entire post-processing pipeline (contact page updates, action extraction, indexing, people linking) works identically on hand-written notes."
+    - name: "Calendar"
+      examples: ["Google Calendar", "Outlook Calendar"]
+      required: false
+      value: "Auto-detects upcoming meetings for prep and today's completed meetings for batch processing. Matches attendee emails to contact pages."
+      degradation: "You specify meetings and attendees manually by name. Prep and processing work the same once you provide the inputs."
+    - name: "Chat/messaging"
+      examples: ["Slack", "Microsoft Teams"]
+      required: false
+      value: "Surfaces recent threads and direct messages with attendees in the prep brief. Catches context that lives in chat rather than in your vault."
+      degradation: "Prep brief shows vault-only context (past meetings, open items). Still valuable -- you just miss the chat signal."
+    - name: "Email"
+      examples: ["Gmail", "Outlook"]
+      required: false
+      value: "Flags unanswered emails from attendees and surfaces recent threads. Prevents walking into a meeting with an unread ask sitting in your inbox."
+      degradation: "Prep brief omits email context. You check email manually before meetings -- the rest of the workflow is unaffected."
+    - name: "Semantic search"
+      examples: ["local AI-powered vector search"]
+      required: false
+      value: "Finds thematically related vault content that keyword search misses -- past discussions, decisions, and commitments discovered through meaning rather than exact name matches."
+      degradation: "Prep and processing use keyword matching for vault lookups. Works well for exact names and topics; misses fuzzy connections."
+    - name: "Task manager"
+      examples: ["Things 3", "Todoist", "Linear", "Trello"]
+      required: false
+      value: "Extracted action items flow directly into your task system with source links back to the meeting."
+      degradation: "Action items stay in meeting notes and contact pages. You move them to your task system manually."
+    - name: "Video conferencing"
+      examples: ["Zoom"]
+      required: false
+      value: "Surfaces past Zoom recordings with attendees in the prep brief -- when you last met on video, whether a recording is available, and any AI-generated highlights."
+      degradation: "You lose the ability to surface whether a recording exists and any AI-generated highlights from past video calls. Prep brief still shows vault-based meeting notes."
+    - name: "Project tracker"
+      examples: ["Jira", "Confluence", "Trello"]
+      required: false
+      value: "Surfaces open tickets assigned to attendees and recent documents they've contributed to. Gives prep briefs a project-work dimension."
+      degradation: "Prep brief covers relationship and meeting context only. You may walk into a meeting unaware of a ticket the attendee filed yesterday or a document they recently updated. You check your project tracker separately before the meeting."
+
+  # -- What automatic behaviors make the loop work? --
+  behaviors:
+    - description: "After writing a meeting note, update each attendee's contact page -- add a meeting row, update last-interaction date, and link any action items assigned to them. Triggered by an automation that runs after any file matching the Meetings/ pattern is written."
+      trigger: "After a meeting note is saved"
+      automatic: true
+    - description: "After writing a meeting note, scan for people mentions and create clickable links to their contact pages throughout the note. Triggered by an automation that runs after any file matching the Meetings/ pattern is written."
+      trigger: "After a meeting note is saved"
+      automatic: true
+    - description: "When a meeting note mentions attendees not yet in the vault, save a suggestion to create their contact page. Also save account connections and project associations for later review. Triggered by an automation that runs after any file matching the Meetings/ pattern is written."
+      trigger: "After a meeting note is saved"
+      automatic: true
+    - description: "After an external meeting note is saved, update the company page with a timeline entry and any customer intelligence captured. Triggered by an automation that runs after any file matching the Meetings/ pattern is written and the meeting type is detected as external."
+      trigger: "After an external meeting note is saved"
+      automatic: true
+    - description: "After batch-processing daily meetings, rebuild the meeting summary index so prep and planning commands have fast access to recent context. Runs as part of the /process-daily-meetings command after all individual meeting notes are written."
+      trigger: "After daily meeting processing completes"
+      automatic: true
+    - description: "At session start, check whether unprocessed recordings are waiting and surface a count so nothing sits forgotten. Triggered by the session-start hook that runs each time a new Claude Code session opens."
+      trigger: "Session startup"
+      automatic: true
+    - description: "Before daily planning, surface any meetings today that have not been prepped for"
+      trigger: "During morning planning"
+      automatic: false
+    - description: "During weekly review, run a missed-actions scan over the past 7 days and surface any findings for human approval"
+      trigger: "During weekly review"
+      automatic: false
+
+  # -- How does this adapt by role? --
+  roles:
+    - name: "Sales / Account Executive"
+      adaptation: |
+        Prep briefs emphasise deal stage, competitive context, and buying signals. Post-meeting processing routes customer intelligence into deal pages and highlights pipeline-relevant action items (send proposal, schedule demo, loop in procurement).
+
+        Example prep sections: "Deal Stage: Technical Eval (60 days)", "Competitive Context: Evaluated CompetitorX last quarter — too expensive", "Buying Signal: Asked about enterprise pricing on March call".
+        Example post-meeting extraction: Action items tagged as pipeline-critical; customer intelligence routed to account deal page with win/loss indicators.
+    - name: "Customer Success"
+      adaptation: |
+        Prep briefs emphasise health score, renewal timeline, and open support tickets. Post-meeting processing flags risk signals (churn language, escalation tone) and expansion opportunities for health dashboards.
+
+        Example prep sections: "Health Score: Amber — 2 open P1 tickets", "Renewal: 90 days out, no exec sponsor confirmed", "Support: 3 tickets open, longest 12 days".
+        Example post-meeting extraction: Risk signals flagged with severity (e.g. "Churn risk: mentioned evaluating alternatives"); expansion signals logged separately.
+    - name: "Product Leader"
+      adaptation: |
+        Prep briefs emphasise feature requests, usage data, and roadmap commitments made to each person. Post-meeting processing structures customer intelligence for roadmap consumption and tracks what each stakeholder has asked for over time.
+
+        Example prep sections: "Open Requests: 2 features requested (rollback mechanism, audit log)", "Roadmap Commitments: Promised analytics dashboard by Q3", "Usage: Active on API, low adoption of dashboard".
+        Example post-meeting extraction: Feature requests tagged by theme and requester; roadmap commitments tracked with promise date and status.
+    - name: "Engineering Leader"
+      adaptation: |
+        Prep briefs emphasise project status, technical blockers, and team capacity. Post-meeting processing focuses on technical decisions, debt flagged, and action items tagged by system area.
+
+        Example prep sections: "Project Status: Phase 2 at 60%, blocked on infra", "Technical Debt: 3 items flagged in last 2 sprints", "Team Capacity: QA at 80%, backend has 1 open headcount".
+        Example post-meeting extraction: Decisions tagged by system area (e.g. "Backend: switch to async processing"); tech debt items logged with severity.
+    - name: "Executive"
+      adaptation: |
+        Prep briefs emphasise strategic context, organisational implications, and key stakeholder dynamics. Post-meeting processing generates executive-length summaries and filters action items to delegation-worthy commitments only.
+
+        Example prep sections: "Strategic Context: Board review in 2 weeks, Phase 2 is the headline", "Stakeholder Dynamics: Sarah pushing for more scope, Mike cautious on timeline", "Key Decisions Pending: Vendor selection, Q3 headcount".
+        Example post-meeting extraction: Summary compressed to 3-4 sentences; only delegation-worthy actions surfaced (e.g. "Delegate: vendor eval to engineering lead"). Items like "send revised timeline by Friday" are surfaced as delegation candidates; items like "approve vendor by EOW" are flagged as exec-owned.
+
+
+# ---- MATCHING ----
+
+matching:
+  roles: ["Sales", "Customer Success", "Product", "Engineering", "Executive"]
+  requires_any: ["people-pages", "meeting-notes"]
+  enhanced_by: ["slack", "teams", "gmail", "calendar", "granola", "zoom", "jira", "trello", "semantic-search"]
+  signals:
+    - trigger: "user opens 3+ contact pages without editing them in one session"
+      suggestion: "Looks like you're prepping for a meeting. There's a workflow that does this automatically -- want to try it?"
+    - trigger: "user processes a meeting note manually and doesn't update contact pages"
+      suggestion: "You just wrote a meeting note but didn't update the attendees' pages. There's a workflow that does that automatically after every meeting."
+    - trigger: "user has 3+ unprocessed meeting recordings waiting"
+      suggestion: "You have meetings waiting to be processed. Want to batch-process them and update your contact pages in one go?"
+    - trigger: "user writes meeting notes manually 3+ times"
+      suggestion: "You've been writing meeting notes from scratch. There's a workflow that structures them automatically and keeps your contact pages current."
+    - trigger: "user connects a meeting recording tool for the first time"
+      suggestion: "Now that you have meeting recordings, you can auto-process them into structured notes with contact page updates. Want me to set that up?"
+    - trigger: "user has 5+ meetings on calendar today"
+      suggestion: "Busy day -- want to run meeting prep to get context on everyone you're seeing?"
+    - trigger: "user connects email integration for the first time"
+      suggestion: "Your meeting prep can now flag unanswered emails from attendees before you walk in. Want me to add that?"
+    - trigger: "user searches for 'what did we discuss' or 'last time we spoke'"
+      suggestion: "Looking for past meeting context? There's a workflow that indexes meeting summaries so you can find them instantly."
+  share_signals:
+    - trigger: "user processes 10+ meetings per week for 3+ weeks"
+      nudge: "Your meeting intelligence workflow is clearly part of your routine. Want to diff it so others can build their own?"
+    - trigger: "user has processed 30+ meetings and their contact pages each have 5+ meeting references"
+      nudge: "Your contact network has grown significantly from meeting processing. That's compound value others would love."
+
+
+# ---- COMPOUND LOOPS ----
+
+compounds_with:
+  - diff_id: "deal-intelligence"
+    relationship: "extends"
+    description: "Customer intelligence extracted from meetings (pain points, competitive mentions, feature requests) flows into deal pages, enriching deal context without manual data entry. Deal reviews pull meeting history for each account."
+  - diff_id: "daily-operating-rhythm"
+    relationship: "amplifies"
+    description: "Morning planning surfaces unprepped meetings and unprocessed recordings. Evening review checks whether meetings were captured. The daily rhythm drives consistent meeting hygiene; meeting intelligence gives the rhythm richer data to work with."
+  - diff_id: "compound-learning"
+    relationship: "amplifies"
+    description: "Each processed meeting adds contact context, commitment history, and intelligence that makes the next meeting more prepared. The compound effect is a relationship memory that grows with every conversation -- prep briefs get richer, missed follow-ups get rarer, and the knowledge gap between first and fiftieth meeting shrinks to near zero."
+
+
+# ---- SOCIAL PROOF ----
+
+love_letter:
+  text: ""
+  author: ""
+  metrics: []
+  verified: false
+
+
+# ---- POPULATED BY DEX-CLOUD POST-PUBLISH ----
+# stats:
+#   adoptions: 0
+#   active_users: 0
+#   avg_weekly_skill_runs: 0
+#   rating: null
+#   retention_30d: null

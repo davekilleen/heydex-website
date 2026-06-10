@@ -1,0 +1,313 @@
+{
+  "exportedAt": "2026-06-10T17:54:03.147507+00:00",
+  "user": {
+    "handle": "davekilleen",
+    "displayName": "Dave Killeen",
+    "role": "Field CPO, EMEA",
+    "function": "Product",
+    "company": "Pendo",
+    "linkedinUrl": "https://linkedin.com/in/davekilleen"
+  },
+  "diffs": [
+    {
+      "diffId": "meeting-intelligence",
+      "name": "Meeting Intelligence",
+      "description": "Never walk into a meeting cold, and never let a follow-up slip. A closed-loop system that prepares you before every conversation, processes what happened after, updates your network of contacts and commitments automatically, and feeds everything back into the next prep.",
+      "tags": [
+        "meeting-intelligence",
+        "meeting-prep",
+        "relationship-context",
+        "action-extraction",
+        "people-linking",
+        "compound-loop"
+      ],
+      "roles": [
+        "Sales",
+        "Customer Success",
+        "Product",
+        "Engineering",
+        "Executive"
+      ],
+      "integrations": [
+        "slack",
+        "teams",
+        "gmail",
+        "calendar",
+        "granola",
+        "zoom",
+        "jira",
+        "trello",
+        "semantic-search"
+      ],
+      "methodologyFile": "seed-data/dave-profile-v2/meeting-intelligence.yaml",
+      "methodologyBytes": 29688,
+      "sha256": "acf48cf27b26ea0dd5f830f12fd53af8b4393e0f0800d651ab782491cb3bad1e",
+      "sourceVaultPath": "04-Projects/DexDiff/beta/profile/meeting-intelligence.yaml"
+    },
+    {
+      "diffId": "deal-intelligence",
+      "name": "Deal Intelligence System",
+      "description": "Know which deals need attention \u2014 and why \u2014 before anyone has to ask. Track accounts, surface staleness and qualification gaps, catch slipped commitments, draft the right messages, run competitive intel, and generate stakeholder updates. Works inside any markdown-based workspace where you keep account pages, meeting notes, and contact pages (pages that track the people you interact with \u2014 one per person).",
+      "tags": [
+        "deal-intelligence",
+        "pipeline-health",
+        "account-management",
+        "competitive-intel",
+        "stakeholder-reporting",
+        "commitment-tracking"
+      ],
+      "roles": [
+        "Sales",
+        "Sales Engineering",
+        "Customer Success",
+        "Product",
+        "Revenue Leadership"
+      ],
+      "integrations": [
+        "salesforce",
+        "hubspot",
+        "clari",
+        "gong",
+        "momentum",
+        "granola",
+        "slack",
+        "calendar",
+        "linkedin",
+        "semantic-search"
+      ],
+      "methodologyFile": "seed-data/dave-profile-v2/deal-intelligence.yaml",
+      "methodologyBytes": 35575,
+      "sha256": "5452b8263a1e85dd27312815a33020bb9e5e884ad8bcd85f9657c92382a4046e",
+      "sourceVaultPath": "04-Projects/DexDiff/beta/profile/deal-intelligence.yaml"
+    },
+    {
+      "diffId": "relationship-intelligence",
+      "name": "Relationship Intelligence",
+      "description": "Every file you open is silently enriched with relationship context \u2014 who these people are, where you left things with them, what's still open \u2014 so your working memory never starts from zero.",
+      "tags": [
+        "relationship-intelligence",
+        "people",
+        "accounts",
+        "context-aware",
+        "automation"
+      ],
+      "roles": [
+        "Sales",
+        "Customer Success",
+        "Product",
+        "Engineering",
+        "Executive",
+        "Founder",
+        "Partnerships"
+      ],
+      "integrations": [
+        "meeting-notes",
+        "calendar",
+        "semantic-search",
+        "meeting-recording"
+      ],
+      "methodologyFile": "seed-data/dave-profile-v2/relationship-intelligence.yaml",
+      "methodologyBytes": 21530,
+      "sha256": "a3d7d726b2830b915dd99d3ded1b4c0c7e9224716a9895aea1ffd50cb7372f9f",
+      "sourceVaultPath": "04-Projects/DexDiff/beta/profile/relationship-intelligence.yaml"
+    },
+    {
+      "diffId": "operating-rhythm",
+      "name": "Operating Rhythm",
+      "description": "A complete daily-to-weekly operating system. Every session starts with strategic\ncontext already loaded. Every morning builds a focused plan from real data. Every\nevening closes the loop. Every week opens with aligned priorities and closes with\na narrative ready for leadership. Between cadences, automated scans catch slipped\ncommitments before they become problems.",
+      "tags": [
+        "daily-planning",
+        "weekly-planning",
+        "review",
+        "commitment-tracking",
+        "operating-rhythm",
+        "accountability"
+      ],
+      "roles": [
+        "Sales",
+        "Customer Success",
+        "Product",
+        "Founder",
+        "Operations",
+        "Executive"
+      ],
+      "integrations": [
+        "calendar",
+        "crm",
+        "semantic-search",
+        "meeting-recording",
+        "intelligence-sources"
+      ],
+      "methodologyFile": "seed-data/dave-profile-v2/operating-rhythm.yaml",
+      "methodologyBytes": 30429,
+      "sha256": "1b805e79d4236c3308640566ba9a911979fdd54f2b6fbe752e2fbbbac75bc3c0",
+      "sourceVaultPath": "04-Projects/DexDiff/beta/profile/operating-rhythm.yaml"
+    },
+    {
+      "diffId": "content-thought-leadership",
+      "name": "Content & Thought Leadership",
+      "description": "A complete publishing pipeline \u2014 from raw idea to polished article, social post, or branded presentation \u2014 with 22 parallel quality reviewers that catch what single-pass editing misses and a dedicated step to remove AI-generated language before anything goes live.",
+      "tags": [
+        "thought-leadership",
+        "content-creation",
+        "voice-authenticity",
+        "quality-review",
+        "presentations",
+        "social-media",
+        "publishing"
+      ],
+      "roles": [
+        "Product",
+        "Sales",
+        "Customer Success",
+        "Marketing",
+        "Executive"
+      ],
+      "integrations": [
+        "linkedin",
+        "google-slides",
+        "podcast-transcripts",
+        "web-fetch",
+        "local-vector-search"
+      ],
+      "methodologyFile": "seed-data/dave-profile-v2/content-thought-leadership.yaml",
+      "methodologyBytes": 33380,
+      "sha256": "31178889f9f8a0eaa41ac4c27ee2c9a085f4b03d6d0a1cd38311317d79bab37e",
+      "sourceVaultPath": "04-Projects/DexDiff/beta/profile/content-thought-leadership.yaml"
+    },
+    {
+      "diffId": "compound-learning",
+      "name": "Compound Learning",
+      "description": "Every interaction makes the system smarter. Mistakes become guardrails, preferences become defaults, patterns become insights \u2014 all without you lifting a finger.",
+      "tags": [
+        "ambient-intelligence",
+        "learning-loops",
+        "self-improving",
+        "pattern-detection"
+      ],
+      "roles": [
+        "Sales",
+        "Customer Success",
+        "Product",
+        "Engineering",
+        "Executive",
+        "Founder"
+      ],
+      "integrations": [
+        "langfuse",
+        "screenpipe",
+        "semantic-search",
+        "calendar"
+      ],
+      "methodologyFile": "seed-data/dave-profile-v2/compound-learning.yaml",
+      "methodologyBytes": 32821,
+      "sha256": "d5f962bfdcec1c92290142f70abafd51df07ee4478dc55ebb4641f0e8dd71dde",
+      "sourceVaultPath": "04-Projects/DexDiff/beta/profile/compound-learning.yaml"
+    },
+    {
+      "diffId": "agent-orchestration",
+      "name": "Autonomous Agent Orchestration",
+      "description": "Run multiple AI agents in parallel, chain them through an execution plan, keep dangerous operations safely gated, and recover everything cleanly after a crash. Delegation without chaos \u2014 and without catastrophic mistakes.",
+      "tags": [
+        "multi-agent",
+        "orchestration",
+        "parallel-execution",
+        "safety",
+        "session-recovery",
+        "autonomous-work",
+        "remote-compute"
+      ],
+      "roles": [
+        "Engineering",
+        "Product",
+        "Founder",
+        "Technical Lead",
+        "Platform",
+        "Infrastructure"
+      ],
+      "integrations": [
+        "terminal-multiplexer",
+        "version-control",
+        "remote-compute",
+        "github-issues",
+        "linear",
+        "semantic-search"
+      ],
+      "methodologyFile": "seed-data/dave-profile-v2/agent-orchestration.yaml",
+      "methodologyBytes": 34211,
+      "sha256": "44ded61ffb8372357dfe43aaa7f07ddf22b1f84c12287466a20e3de28cbc45c4",
+      "sourceVaultPath": "04-Projects/DexDiff/beta/profile/agent-orchestration.yaml"
+    },
+    {
+      "diffId": "market-intelligence",
+      "name": "Market Intelligence System",
+      "description": "A network of intelligence pipelines that monitor your industry across sources \u2014 competitor moves, thought leadership, deal signals, community conversations \u2014 and synthesise everything into a single daily briefing and on-demand reports.",
+      "tags": [
+        "market-intelligence",
+        "competitive-intel",
+        "signal-synthesis",
+        "research",
+        "automation"
+      ],
+      "roles": [
+        "Sales",
+        "Product",
+        "Executive",
+        "Customer Success",
+        "Marketing",
+        "Founder"
+      ],
+      "integrations": [
+        "firecrawl",
+        "granola",
+        "gmail",
+        "local-semantic-search",
+        "yt-dlp",
+        "github-api",
+        "calendar"
+      ],
+      "methodologyFile": "seed-data/dave-profile-v2/market-intelligence.yaml",
+      "methodologyBytes": 26677,
+      "sha256": "936e299237e82884091397d413c8cb7450e77cd22a88bc41e727e5fd541e73f5",
+      "sourceVaultPath": "04-Projects/DexDiff/beta/profile/market-intelligence.yaml"
+    }
+  ],
+  "dedupDecisions": {
+    "agent-orchestration": [
+      "profile/agentic-orchestration.yaml (older, smaller)",
+      "profile/multi-agent-orchestration.yaml (16:10 run, superseded)",
+      "diffs/agentic-orchestration.yaml (same as profile copy)"
+    ],
+    "operating-rhythm": [
+      "profile/daily-operating-rhythm.yaml (16:10 run, superseded)",
+      "profile/planning-rhythm.yaml (older 14:29 copy)",
+      "diffs/planning-rhythm.yaml (same as profile copy)"
+    ],
+    "deal-intelligence": [
+      "profile/deal-command-center.yaml (overlapping job, weaker description)",
+      "diffs/deal-intelligence.yaml (older, smaller)"
+    ],
+    "relationship-intelligence": [
+      "profile/people-intelligence.yaml (subsumed)",
+      "diffs/people-intelligence.yaml (same as profile copy)"
+    ],
+    "content-thought-leadership": [
+      "profile/content-engine.yaml (older 14:29 copy)"
+    ],
+    "market-intelligence": [
+      "profile/intelligence-gathering.yaml (older 14:29 copy)"
+    ],
+    "not-exported": [
+      "profile/product-ideation.yaml (strong but cut to keep the profile at 8)",
+      "profile/workflow-distribution.yaml (meta-workflow, confusing first adopt)",
+      "profile/autonomous-safety.yaml (cut to keep the profile at 8)",
+      "diffs/meeting-prep.yaml (subsumed by meeting-intelligence)",
+      "diffs/meeting-intelligence.yaml (older, smaller than profile copy)",
+      "diffs/content-engine.yaml / diffs/intelligence-gathering.yaml (older copies)"
+    ]
+  },
+  "notes": [
+    "methodology fields are seeded as the FULL YAML text of each file, verbatim",
+    "legacy v1 production diffIds not carried forward: relationship-compounding, weekly-operating-rhythm, accountability-cracks, thought-leadership, self-improving-system (superseded by the v2 set; archive them at go-live)"
+  ]
+}
