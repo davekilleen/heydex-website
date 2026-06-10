@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Build install-diff.sh — the one-command bootstrap that drops the six
+ * Build install-diff.sh, the one-command bootstrap that drops the six
  * /diff-* skills into a user's Dex vault.
  *
  * Why it exists: the DexDiff command surface has never shipped in public
  * dex-core (break 0 in the 2026-06-10 review), so a stranger's fresh install
  * has no diff commands at all. Hosting this script on heydex.ai sidesteps
  * the dex-core release train for the keynote. This is product-code
- * distribution by the product's own site — not foreign-workflow installation,
+ * distribution by the product's own site, not foreign-workflow installation,
  * so it does not violate the v2 "never install foreign code" principle.
  *
  * Source of truth for the skills: the dex-core branch checkout passed via
@@ -16,7 +16,7 @@
  *   node scripts/build-install-diff.mjs \
  *     --skills-root /path/to/dex-core-checkout/.claude/skills
  *
- * Output: install-diff.sh at the repo root (commit it — deploy-funnel.sh
+ * Output: install-diff.sh at the repo root (commit it, deploy-funnel.sh
  * ships it to the web root, served at https://heydex.ai/install-diff).
  */
 
@@ -96,7 +96,7 @@ const generatedAt = new Date().toISOString();
 
 const script = `#!/bin/bash
 # ============================================================================
-# Dex diff commands — one-command installer
+# Dex diff commands, one-command installer
 #
 #   curl -fsSL https://heydex.ai/install-diff | bash
 #
@@ -109,7 +109,7 @@ const script = `#!/bin/bash
 #   - prints exactly what it added and what it left alone
 #   - re-running is always safe
 #
-# GENERATED FILE — do not edit by hand.
+# GENERATED FILE, do not edit by hand.
 # Built by scripts/build-install-diff.mjs from dex-core ${sourceCommit}
 # at ${generatedAt} (${files.length} files).
 # ============================================================================
@@ -172,26 +172,26 @@ fi
 say "Vault: \${BOLD}$VAULT\${NC}"
 
 # ----------------------------------------------------------------------------
-# 2. Prerequisites (warn-only — nothing here blocks the install)
+# 2. Prerequisites (warn-only, nothing here blocks the install)
 # ----------------------------------------------------------------------------
 if command -v python3 >/dev/null 2>&1; then
   say "\${GREEN}ok\${NC}    python3 found ($(python3 -V 2>&1))"
 else
-  say "\${YELLOW}note\${NC}  python3 not found — /diff-adopt-profile will use its manual fallback"
+  say "\${YELLOW}note\${NC}  python3 not found, /diff-adopt-profile will use its manual fallback"
 fi
 
 if command -v curl >/dev/null 2>&1; then
   if curl -fsS --max-time 5 -o /dev/null "https://api.heydex.ai/api/diffs" 2>/dev/null; then
     say "\${GREEN}ok\${NC}    api.heydex.ai reachable"
   else
-    say "\${YELLOW}note\${NC}  could not reach api.heydex.ai right now — adopting will need internet"
+    say "\${YELLOW}note\${NC}  could not reach api.heydex.ai right now, adopting will need internet"
   fi
 fi
 
 say ""
 
 # ----------------------------------------------------------------------------
-# 3. Install files (never overwrite — your existing files always win)
+# 3. Install files (never overwrite, your existing files always win)
 # ----------------------------------------------------------------------------
 ADDED=0
 KEPT=0
@@ -202,7 +202,7 @@ install_file() {
   target="$VAULT/.claude/skills/$1"
   if [ -e "$target" ]; then
     KEPT=$((KEPT + 1))
-    KEPT_LIST="\${KEPT_LIST}  kept   .claude/skills/$1 (you already have this — not touched)\\n"
+    KEPT_LIST="\${KEPT_LIST}  kept   .claude/skills/$1 (you already have this, not touched)\\n"
     # still consume the heredoc payload from stdin
     cat > /dev/null
     return 0
@@ -225,7 +225,7 @@ say ""
 [ -n "$KEPT_LIST" ] && printf "%b" "$KEPT_LIST"
 say ""
 if [ "$ADDED" -eq 0 ]; then
-  say "Everything was already installed — nothing changed."
+  say "Everything was already installed, nothing changed."
 fi
 say "\${BOLD}Next:\${NC} open Claude Code in your Dex folder and say:"
 say ""

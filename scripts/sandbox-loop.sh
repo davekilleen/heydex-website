@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# DexDiff funnel — sandboxed end-to-end loop closure
+# DexDiff funnel, sandboxed end-to-end loop closure
 #
 # Proves the full QR chain in a temp vault against a LOCAL stub of
 # api.heydex.ai serving the real v2 re-seed payload:
@@ -162,7 +162,7 @@ check("generated skill exists", (vault / ".claude/skills/meeting-intelligence/SK
 
 print()
 if failures:
-    print(f"LOOP DID NOT CLOSE — {len(failures)} failure(s)")
+    print(f"LOOP DID NOT CLOSE, {len(failures)} failure(s)")
     sys.exit(1)
 print("LOOP CLOSED: bootstrap -> fetch -> save -> generate -> adoption record. All green.")
 PY

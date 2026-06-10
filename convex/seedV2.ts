@@ -6,13 +6,13 @@ import { v } from "convex/values";
 //
 // Differences from the legacy seed.ts:
 //   - seeds diffs under an EXISTING registered user found by handle
-//     (never creates a user — the legacy seedDave created an orphan user
+//     (never creates a user, the legacy seedDave created an orphan user
 //     row with tokenIdentifier "seed:dave" that was never linked to the
 //     real account)
 //   - methodology is expected to be the FULL v2 YAML text, passed as a
 //     real JSON argument by scripts/reseed-v2.cjs (the legacy script
 //     interpolated methodology into a shell string, which silently
-//     mangles multi-line YAML — that is how production ended up with
+//     mangles multi-line YAML, that is how production ended up with
 //     227-character summaries)
 //
 // All three are internalMutations: callable only via `npx convex run`
@@ -38,7 +38,7 @@ export const seedProfileDiff = internalMutation({
 
     if (!user) {
       throw new Error(
-        `No user with handle "${args.handle}" — connect/rename the real ` +
+        `No user with handle "${args.handle}", connect/rename the real ` +
           "account first (this mutation never creates users)."
       );
     }

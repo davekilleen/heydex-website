@@ -9,11 +9,11 @@
 #
 # It does NOT touch the React surfaces, the Caddy config, Convex, or the
 # database. The Convex side (waitlist endpoint, seedV2 mutations) deploys
-# separately via `npm run convex:deploy` — see docs/funnel-go-live-checklist.md
+# separately via `npm run convex:deploy`, see docs/funnel-go-live-checklist.md
 # for the full ordered go-live.
 #
 # Note: deploy.sh also carries diff/like-dave/ (it is in STATIC_SUBDIRS), but
-# nothing else deploys install-diff — this script is the canonical way to ship
+# nothing else deploys install-diff, this script is the canonical way to ship
 # the funnel pair together and verify them.
 #
 # Usage:  ./deploy-funnel.sh
@@ -23,7 +23,7 @@ VPS="ubuntu@57.129.134.24"
 SSH_KEY="$HOME/.ssh/acfs_ed25519"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-[ -f "$DIR/install-diff.sh" ] || { echo "✗ install-diff.sh missing — run: node scripts/build-install-diff.mjs --skills-root <dex-core>/.claude/skills" >&2; exit 1; }
+[ -f "$DIR/install-diff.sh" ] || { echo "✗ install-diff.sh missing, run: node scripts/build-install-diff.mjs --skills-root <dex-core>/.claude/skills" >&2; exit 1; }
 [ -f "$DIR/diff/like-dave/index.html" ] || { echo "✗ diff/like-dave/index.html missing" >&2; exit 1; }
 
 echo "→ Pre-flight: installer self-test against fixture vaults..."

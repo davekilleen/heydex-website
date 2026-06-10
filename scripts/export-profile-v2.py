@@ -5,7 +5,7 @@ Reads the vault READ-ONLY. Writes only into seed-data/dave-profile-v2/.
 
 Why this exists: production was seeded on 2026-04-07 from
 seed-data/dave-diffs.json, whose "methodology" fields are ~227-character v1
-summaries — too thin for the v2 promise (the adopter's AI regenerates the
+summaries, too thin for the v2 promise (the adopter's AI regenerates the
 workflow from the methodology). The real v2 YAMLs live in the vault's DexDiff
 draft area. This script exports a deduplicated, curated set plus a manifest
 that scripts/reseed-v2.cjs consumes.
@@ -114,7 +114,7 @@ def main() -> int:
 
         # Validation gates
         if "/Users/" in text:
-            problems.append(f"{diff_id}: contains an absolute /Users/ path — sanitize before seeding")
+            problems.append(f"{diff_id}: contains an absolute /Users/ path, sanitize before seeding")
         try:
             parsed = yaml.safe_load(text)
         except yaml.YAMLError as error:

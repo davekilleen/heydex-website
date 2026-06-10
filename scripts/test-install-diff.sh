@@ -37,7 +37,7 @@ count_skill_files() {
   find "$1/.claude/skills" -type f 2>/dev/null | wc -l | tr -d ' '
 }
 
-[ -f "$INSTALLER" ] || { echo "install-diff.sh not built — run scripts/build-install-diff.mjs first"; exit 1; }
+[ -f "$INSTALLER" ] || { echo "install-diff.sh not built, run scripts/build-install-diff.mjs first"; exit 1; }
 
 # ---------------------------------------------------------------------------
 echo "1. Fresh install"

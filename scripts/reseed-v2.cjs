@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Re-seed production with the real v2 methodology YAMLs — SAFELY.
+ * Re-seed production with the real v2 methodology YAMLs, SAFELY.
  *
  * Modes:
  *   node scripts/reseed-v2.cjs                          DRY RUN (default, no network)
@@ -17,7 +17,7 @@
  *
  * Why this replaces scripts/seed-database.cjs for diffs: the legacy script
  * interpolated `methodology="${diff.methodology}"` into a shell string, which
- * cannot carry multi-line YAML — that is how production ended up serving
+ * cannot carry multi-line YAML, that is how production ended up serving
  * 227-character v1 summaries. This script passes a single JSON argument via
  * execFileSync (argv array, no shell), so the full YAML survives verbatim.
  */
@@ -45,7 +45,7 @@ function fail(message) {
 // ---------------------------------------------------------------------------
 function loadValidatedPayload() {
   if (!fs.existsSync(MANIFEST_PATH)) {
-    fail(`Manifest not found: ${MANIFEST_PATH} — run scripts/export-profile-v2.py first`);
+    fail(`Manifest not found: ${MANIFEST_PATH}, run scripts/export-profile-v2.py first`);
   }
   const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf-8"));
   const problems = [];
@@ -61,7 +61,7 @@ function loadValidatedPayload() {
     const sha = crypto.createHash("sha256").update(methodology, "utf-8").digest("hex");
 
     if (sha !== entry.sha256) {
-      problems.push(`${entry.diffId}: file changed since export (sha mismatch) — re-run export-profile-v2.py`);
+      problems.push(`${entry.diffId}: file changed since export (sha mismatch), re-run export-profile-v2.py`);
     }
     if (!methodology.includes('dexdiff_schema: "2.0"')) {
       problems.push(`${entry.diffId}: missing dexdiff_schema 2.0 marker`);
@@ -73,7 +73,7 @@ function loadValidatedPayload() {
       problems.push(`${entry.diffId}: contains an absolute /Users/ path`);
     }
     if (methodology.length < 5000) {
-      problems.push(`${entry.diffId}: only ${methodology.length} chars — that is v1-summary territory`);
+      problems.push(`${entry.diffId}: only ${methodology.length} chars, that is v1-summary territory`);
     }
 
     diffs.push({ ...entry, methodology });
@@ -94,12 +94,12 @@ function printPlan(manifest, diffs) {
   const total = diffs.reduce((sum, diff) => sum + diff.methodology.length, 0);
   console.log(`\n  total methodology payload: ${total.toLocaleString()} chars`);
   console.log(
-    "  (production today serves ~230-char v1 summaries — this is the fix for break 3)"
+    "  (production today serves ~230-char v1 summaries, this is the fix for break 3)"
   );
 }
 
 // ---------------------------------------------------------------------------
-// Bundle emit — exactly the shape api.heydex.ai/api/profile-bundle returns
+// Bundle emit, exactly the shape api.heydex.ai/api/profile-bundle returns
 // (mirrors convex/profiles.ts getBundle) so local stubs serve the real thing
 // ---------------------------------------------------------------------------
 function emitBundle(manifest, diffs, outPath) {
@@ -181,7 +181,7 @@ function main() {
   }
 
   if (!prod) {
-    console.log("\nDRY RUN — nothing was written anywhere.");
+    console.log("\nDRY RUN, nothing was written anywhere.");
     console.log("To write to production:");
     console.log(`  ${PROD_ENV_FLAG}=${PROD_ENV_VALUE} node scripts/reseed-v2.cjs --prod`);
     return;
@@ -191,7 +191,7 @@ function main() {
   if (process.env[PROD_ENV_FLAG] !== PROD_ENV_VALUE) {
     fail(
       `--prod refused: set ${PROD_ENV_FLAG}=${PROD_ENV_VALUE} in the environment. ` +
-        "This is the explicit two-key gate — the flag alone is not enough."
+        "This is the explicit two-key gate, the flag alone is not enough."
     );
   }
 
