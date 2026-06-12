@@ -2,7 +2,7 @@
 # Tests for install-diff.sh against temp fixture vaults.
 #
 # Proves the seeding invariant the bootstrap must honor:
-#   1. fresh install adds all 7 files
+#   1. fresh install adds all 8 files
 #   2. re-run is idempotent (adds nothing, says so)
 #   3. an existing user file survives byte-for-byte (NEVER overwritten)
 #   4. piped stdin mode works (curl ... | bash equivalent)
@@ -13,7 +13,7 @@ set -e
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 INSTALLER="$REPO_ROOT/install-diff.sh"
-EXPECTED_FILES=7
+EXPECTED_FILES=8
 
 FAILURES=0
 check() { # name, condition-result(0/1)

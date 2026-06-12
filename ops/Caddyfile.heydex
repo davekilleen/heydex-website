@@ -5,6 +5,7 @@ heydex.ai, www.heydex.ai {
 	# Redirect slashless product roots so relative asset paths resolve correctly.
 	redir /diff /diff/ 308
 	redir /connect /connect/ 308
+	redir /desktop /desktop/ 308
 	redir /diff/profile /diff/profile/ 308
 	redir /diff/review /diff/review/ 308
 
@@ -48,6 +49,33 @@ heydex.ai, www.heydex.ai {
 		uri strip_prefix /connect
 		try_files {path}/index.html {path} /index.html
 		file_server
+	}
+
+	@desktopStatic {
+		path /desktop/help /desktop/help/* /desktop/downloads /desktop/downloads/*
+	}
+	handle @desktopStatic {
+		root * /var/www/heydex
+		try_files {path}/index.html {path}
+		file_server
+	}
+
+	@desktop {
+		path /desktop /desktop/*
+	}
+	handle @desktop {
+		root * /var/www/heydex/desktop
+		uri strip_prefix /desktop
+		try_files {path}/index.html {path} /index.html
+		file_server
+	}
+
+	@settings {
+		path /settings /settings/*
+	}
+	handle @settings {
+		header X-Robots-Tag "noindex, nofollow, noarchive"
+		respond "Gone" 410
 	}
 
 	file_server

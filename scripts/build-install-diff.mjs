@@ -69,7 +69,7 @@ for (const skill of SKILLS) {
   const walk = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
+      if (entry.isDirectory() && entry.name !== "__pycache__") walk(full);
       else if (entry.isFile() && !entry.name.startsWith(".")) {
         files.push({
           relative: path.relative(skillsRoot, full),
