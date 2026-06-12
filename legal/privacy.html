@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy · Dex</title>
+  <meta name="description" content="How Dex handles your data. Dex is local-first: your data and your connected accounts stay on your device.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --void:#070709; --panel:#0F0F14;
+      --rose:#FF4FA6; --rose-deep:#E06399;
+      --text:#FAF7FB; --text2:#CBC2CA; --muted:#A69CA7; --dim:#8F8791;
+      --hair:rgba(255,255,255,0.06);
+      --display:'Manrope','Inter',system-ui,sans-serif;
+      --body:'Inter',system-ui,sans-serif;
+      --mono:'IBM Plex Mono',SFMono-Regular,Menlo,monospace;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ background:var(--void); }
+    body{ margin:0; color:var(--text2); font-family:var(--body); font-size:17px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+    body::before{ content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background:radial-gradient(900px 520px at 88% -10%, rgba(255,79,166,0.10), transparent 60%); }
+    .wrap{ position:relative; z-index:1; max-width:740px; margin:0 auto; padding:88px 28px 120px; }
+    .kicker{ font-family:var(--mono); font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); margin:0 0 20px; }
+    h1{ font-family:var(--display); font-weight:800; font-size:3rem; line-height:0.98; letter-spacing:-0.04em; color:var(--text); margin:0 0 14px; }
+    .dates{ font-family:var(--mono); font-size:12px; letter-spacing:0.08em; color:var(--dim); margin:0 0 30px; text-transform:uppercase; }
+    .lead{ font-size:1.22rem; line-height:1.5; color:var(--text); margin:0 0 8px; }
+    h2{ font-family:var(--display); font-weight:700; font-size:1.4rem; letter-spacing:-0.02em; color:var(--text); margin:50px 0 12px; }
+    h3{ font-family:var(--display); font-weight:600; font-size:1.08rem; color:var(--text); margin:28px 0 6px; }
+    p,li{ color:var(--text2); }
+    strong{ color:var(--text); font-weight:600; }
+    a{ color:var(--rose); text-decoration:none; border-bottom:1px solid rgba(255,79,166,0.35); }
+    a:hover{ border-bottom-color:var(--rose); }
+    .callout{ background:var(--panel); border:1px solid var(--hair); border-left:2px solid var(--rose); padding:18px 22px; border-radius:12px; margin:24px 0; }
+    ul{ padding-left:1.2rem; } li{ margin:7px 0; }
+    hr{ border:0; border-top:1px solid var(--hair); margin:50px 0; }
+    .foot{ font-family:var(--mono); font-size:12px; letter-spacing:0.06em; color:var(--dim); text-transform:uppercase; }
+    .foot a{ color:var(--muted); border:0; } .foot a:hover{ color:var(--rose); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kicker">Dex · heydex.ai</p>
+  <h1>Privacy Policy</h1>
+  <p class="dates">Last updated 2 June 2026</p>
+  <p class="lead">Dex is a local-first personal knowledge system. The core idea below shapes everything in this policy:
+    <strong>your data, and the accounts you connect, stay on your device.</strong> We have built Dex so that we — the
+    people behind Dex — see as little of your information as possible.</p>
+
+  <div class="callout">
+    <strong>The short version.</strong> Your notes, meetings, files, and the data Dex reads from services you connect
+    (such as Google, Atlassian, or Slack) are stored and processed <strong>on your own device</strong>. The credentials
+    for those connections are encrypted and held locally in your operating system's secure storage. <strong>We do not
+    receive, transmit to our servers, or store that data or those credentials.</strong> The only information we process
+    is what you explicitly choose to share with our web services at heydex.ai, plus basic account and product-analytics
+    data described below.
+  </div>
+
+  <h2>1. Who we are</h2>
+  <p>This policy applies to the Dex application and the website and services at <strong>heydex.ai</strong>
+    (together, “Dex”, “we”, “us”). For any privacy question or request, contact us at
+    <a href="mailto:dave@heydex.ai">dave@heydex.ai</a>.</p>
+
+  <h2>2. Our local-first principle</h2>
+  <p>The Dex application runs on your computer. Your knowledge vault — notes, meetings, tasks, people and project pages —
+    is stored as files on your device. Processing that makes Dex useful (search, summarisation, linking) happens locally
+    or, where you have configured an AI model, is sent directly from your device to the AI provider you have chosen under
+    that provider's terms. Except for the limited cases in Section 5, this information is never sent to us.</p>
+
+  <h2>3. Connected accounts and integrations</h2>
+  <p>Dex lets you connect third-party services (for example Google Workspace, Atlassian, Salesforce, Slack, Linear, and
+    others) so it can work with your information in those services on your behalf.</p>
+  <ul>
+    <li><strong>Credentials stay local.</strong> When you connect a service, the resulting access token (or API key) is
+      encrypted and stored on your device — in your operating system keychain or an equivalent secure local store. These
+      credentials are not sent to or stored by us.</li>
+    <li><strong>Data stays local.</strong> Information Dex reads from a connected service is processed on your device to
+      perform the task you asked for. We do not receive a copy of it.</li>
+    <li><strong>You stay in control.</strong> You can disconnect any service at any time, which removes its stored
+      credentials from your device. You can also revoke Dex's access directly in that service's own account settings.</li>
+  </ul>
+  <h3>Google API Limited Use</h3>
+  <p>Dex's use of information received from Google APIs adheres to the
+    <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API
+    Services User Data Policy</a>, including its Limited Use requirements. Data obtained from Google is used only on your
+    device to provide features you request, is not transferred to us or to others except as necessary to provide those
+    features at your direction, is not used for advertising, and is not used to train generalised AI/ML models.</p>
+
+  <h2>4. Information we do not collect</h2>
+  <p>Because of the design above, we do not collect, receive, or store: the contents of your vault; the data Dex reads
+    from your connected services; or the access tokens and API keys for those connections.</p>
+
+  <h2>5. Information we do process</h2>
+  <p>A small amount of information is processed by our web services at heydex.ai, and only in these situations:</p>
+  <ul>
+    <li><strong>Content you publish to heydex.ai.</strong> Some features let you publish content to <strong>Dex's own
+      infrastructure at heydex.ai</strong> — for example, a public profile of how you work, shown at heydex.ai. When you
+      choose to do this, the content you publish is stored by us so it can be displayed there. You decide what, if
+      anything, to publish, and you can remove it.
+      <br><br>
+      This is different from using Dex to help you create content destined for <strong>somewhere else</strong> — such as
+      drafting a LinkedIn post, an email, or an article. Content meant for a third-party platform is sent to that platform
+      at your direction and under your control: <strong>we do not claim ownership of it and we do not store it on our
+      servers.</strong></li>
+    <li><strong>Account and sign-in.</strong> If a feature requires an account, we process the identity information needed
+      to authenticate you (such as your name and email, or details from a sign-in provider you choose to use).</li>
+    <li><strong>Product analytics.</strong> Dex may collect limited, privacy-respecting usage analytics to improve the
+      product. Analytics can be turned off at any time, and where required we ask for your choice. Analytics never include
+      the contents of your vault or your connected-service data.</li>
+    <li><strong>Support.</strong> If you contact us, we process the information you provide so we can help.</li>
+  </ul>
+
+  <h2>6. How we use information</h2>
+  <p>We use the limited information in Section 5 to operate and secure our web services, to provide features you ask for
+    (such as publishing to heydex.ai), to authenticate you, to understand and improve the product in aggregate, and to
+    respond to your requests. We do not sell your personal information.</p>
+
+  <h2>7. Sharing</h2>
+  <p>We share information only: with service providers who host or operate our web services, under confidentiality
+    obligations; to comply with law or protect rights and safety; or with your direction (for example, content you publish
+    to heydex.ai is shown publicly). We do not sell personal information or share it for cross-context behavioural
+    advertising.</p>
+
+  <h2>8. Retention and deletion</h2>
+  <p>Locally stored data lives on your device for as long as you keep it; deleting it in the app or removing a connection
+    removes it from your device. For the limited information we process (Section 5), we keep it for as long as needed to
+    provide the service and then delete or anonymise it. You can ask us to delete information we hold by emailing
+    <a href="mailto:dave@heydex.ai">dave@heydex.ai</a>.</p>
+
+  <h2>9. Security</h2>
+  <p>Connection credentials are encrypted at rest on your device using your operating system's secure storage. For our web
+    services we use industry-standard measures appropriate to the limited data we process. No method of storage or
+    transmission is perfectly secure, but minimising the data we hold is our primary protection.</p>
+
+  <h2>10. Your rights</h2>
+  <p>Under UK data-protection law (the UK GDPR and Data Protection Act 2018), and depending on where you live, you may have
+    rights to access, correct, delete, or port the personal information we hold, to object to or restrict certain
+    processing, and to withdraw consent. Because most of your data never leaves your device, you already control it
+    directly; for anything we process, contact <a href="mailto:dave@heydex.ai">dave@heydex.ai</a> and we will respond as
+    required by applicable law. You also have the right to complain to the UK Information Commissioner's Office (ICO).</p>
+
+  <h2>11. International users</h2>
+  <p>Our web services may process the limited information in Section 5 in countries other than yours. Where required, we
+    use appropriate safeguards for such transfers.</p>
+
+  <h2>12. Children</h2>
+  <p>Dex is not directed to children under 16, and we do not knowingly collect their personal information.</p>
+
+  <h2>13. Changes</h2>
+  <p>We may update this policy. When we make material changes, we will update the “Last updated” date above and, where
+    appropriate, provide additional notice.</p>
+
+  <h2>14. Contact</h2>
+  <p>Questions or requests: <a href="mailto:dave@heydex.ai">dave@heydex.ai</a>.</p>
+
+  <hr>
+  <p class="foot">Dex · <a href="https://heydex.ai">heydex.ai</a> · <a href="/terms">Terms of Service</a></p>
+</div>
+</body>
+</html>

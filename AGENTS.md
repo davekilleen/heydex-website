@@ -66,3 +66,4 @@ If you need to change the portable CLI behavior, update the shared contract in `
 
 - root marketing landing is still separate from the React deployment path
 - validation coverage is still smoke-test level, not full E2E
+- Caddy config drift from `ops/Caddyfile.heydex` is now detected (advisory) via `scripts/check-caddy-drift.sh` in `test-production.sh`, but not auto-reconciled — manual edits on the live host still require a manual sync back

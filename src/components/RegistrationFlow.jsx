@@ -284,6 +284,7 @@ function Footer() {
   return (
     <div style={styles.footer}>
       <a href="/privacy/" style={styles.footerLink}>Privacy policy</a>
+      <a href="/terms/" style={styles.footerLink}>Terms of Service</a>
     </div>
   );
 }

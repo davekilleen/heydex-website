@@ -212,7 +212,7 @@ export default function DiffPage() {
         <footer className="footer">
           <div className="footer-logo">&#9670; Dex</div>
           <div className="footer-right">
-            Your data never leaves your machine &middot; <a href="/privacy/">Privacy</a>
+            Your data never leaves your machine &middot; <a href="/privacy/">Privacy</a> &middot; <a href="/terms/">Terms</a>
           </div>
         </footer>
       </main>

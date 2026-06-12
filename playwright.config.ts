@@ -1,7 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
-const reuseExistingServer = process.env.CI ? false : true;
+const reuseExistingServer =
+  process.env.E2E_REUSE_EXISTING_SERVER === "0" ? false : process.env.CI ? false : true;
+const webServerCommand =
+  process.env.E2E_WEB_SERVER_COMMAND ?? "npm run dev -- --host 127.0.0.1";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -28,7 +31,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev -- --host 127.0.0.1",
+    command: webServerCommand,
     url: baseURL,
     reuseExistingServer,
     timeout: 120_000,
