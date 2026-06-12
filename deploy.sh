@@ -79,8 +79,8 @@ echo "→ Syncing to staging..."
 ssh -i "$SSH_KEY" "$VPS" "mkdir -p \"$STAGING/diff\" \"$STAGING/connect\" \"$STAGING/desktop/help\""   # ensure staging dirs exist (rsync won't create missing parents)
 rsync -avz --delete -e "ssh -i $SSH_KEY" "$TMP_DIFF/" "$VPS:$STAGING/diff/"
 rsync -avz --delete -e "ssh -i $SSH_KEY" "$TMP_CONNECT/" "$VPS:$STAGING/connect/"
-rsync -avz --delete --chmod=D755,F644 -e "ssh -i $SSH_KEY" "$TMP_DESKTOP/" "$VPS:$STAGING/desktop/"
-rsync -avz --delete --chmod=D755,F644 -e "ssh -i $SSH_KEY" "$DESKTOP_HELP_SITE" "$VPS:$STAGING/desktop/help/"
+rsync -avz --delete --chmod=u=rwX,go=rX -e "ssh -i $SSH_KEY" "$TMP_DESKTOP/" "$VPS:$STAGING/desktop/"
+rsync -avz --delete --chmod=u=rwX,go=rX -e "ssh -i $SSH_KEY" "$DESKTOP_HELP_SITE" "$VPS:$STAGING/desktop/help/"
 
 echo "→ Promoting to live..."
 ssh -i "$SSH_KEY" "$VPS" "sudo rm -rf ${LIVE_DIFF}* ${LIVE_CONNECT}* && sudo cp -r $STAGING/diff/* $LIVE_DIFF && sudo cp -r $STAGING/connect/* $LIVE_CONNECT && sudo chown -R dex:dex $LIVE_DIFF $LIVE_CONNECT"
