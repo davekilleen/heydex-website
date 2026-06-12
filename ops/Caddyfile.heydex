@@ -9,6 +9,12 @@ heydex.ai, www.heydex.ai {
 	redir /diff/profile /diff/profile/ 308
 	redir /diff/review /diff/review/ 308
 
+	# Private beta gate: everything under /desktop (page, help pages, downloads)
+	# sits behind HTTP basic auth. The matcher + credential hash live ONLY on the
+	# host in /etc/caddy/desktop-gate.caddy. This repo is public; never commit
+	# password hashes here.
+	import /etc/caddy/desktop-gate.caddy
+
 	# Exact/special-case React ownership must win before generic /diff/* handling.
 	@profile {
 		path /diff/profile /diff/profile/*

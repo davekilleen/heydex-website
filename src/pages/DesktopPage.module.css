@@ -58,16 +58,12 @@
 .section {
   width: min(1120px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 112px 0;
+  padding: 64px 0;
 }
 
 .hero {
-  min-height: 86vh;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
-  padding-top: 80px;
-  padding-bottom: 80px;
+  padding-top: 96px;
+  padding-bottom: 72px;
 }
 
 .heroCopy {
@@ -96,7 +92,7 @@
 
 .hero h1 {
   max-width: 760px;
-  font-size: clamp(56px, 8vw, 108px);
+  font-size: clamp(44px, 5.5vw, 76px);
 }
 
 .heroCopy p,
@@ -113,9 +109,9 @@
 
 .heroCopy p {
   max-width: 650px;
-  margin-top: 28px;
+  margin-top: 20px;
   color: #c9c9c9;
-  font-size: 20px;
+  font-size: 19px;
   line-height: 1.65;
 }
 
@@ -124,7 +120,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 16px;
-  margin-top: 40px;
+  margin-top: 28px;
 }
 
 .primaryButton,
@@ -183,24 +179,24 @@
 .stepsSection {
   display: grid;
   grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1fr);
-  gap: 88px;
+  gap: 56px;
 }
 
 .copyGrid h2,
 .stepsSection h2,
 .feedbackIntro h2 {
-  font-size: clamp(36px, 5vw, 64px);
+  font-size: clamp(30px, 3.6vw, 46px);
 }
 
 .bodyStack {
   display: grid;
-  gap: 28px;
+  gap: 22px;
 }
 
 .letterCard {
   max-width: 860px;
   margin: 0 auto;
-  padding: 48px;
+  padding: 40px;
   border: 1px solid var(--border-default);
   border-radius: 2px;
   background: var(--bg-surface);
@@ -208,7 +204,7 @@
 
 .letterBody {
   display: grid;
-  gap: 24px;
+  gap: 20px;
 }
 
 .signature {
@@ -217,7 +213,7 @@
 
 .stepsList {
   display: grid;
-  gap: 22px;
+  gap: 18px;
   margin: 0 0 32px;
   padding: 0;
   list-style: none;
@@ -228,7 +224,7 @@
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   gap: 24px;
-  padding-bottom: 22px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--border-default);
 }
 
@@ -252,23 +248,19 @@
   background: var(--accent-bg);
 }
 
-.feedbackSection {
-  padding-top: 96px;
-}
-
 .feedbackIntro {
   max-width: 820px;
 }
 
 .feedbackIntro p {
-  margin-top: 28px;
+  margin-top: 20px;
 }
 
 .visualStrip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin: 42px 0 24px;
+  margin: 28px 0 20px;
 }
 
 .visualItem {
@@ -303,7 +295,7 @@
 .footer {
   width: min(1120px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 32px 0 56px;
+  padding: 28px 0 44px;
   border-top: 1px solid var(--border-default);
   color: var(--text-tertiary);
   display: flex;
@@ -352,19 +344,19 @@
 @media (max-width: 900px) {
   .section {
     width: min(100% - 32px, 640px);
-    padding: 72px 0;
+    padding: 48px 0;
   }
 
   .hero,
   .copyGrid,
   .stepsSection {
     grid-template-columns: 1fr;
-    gap: 44px;
+    gap: 32px;
   }
 
   .hero {
     min-height: auto;
-    padding-top: 64px;
+    padding-top: 56px;
   }
 
   .hero h1 {

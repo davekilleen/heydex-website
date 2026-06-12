@@ -86,7 +86,7 @@ export default function DesktopPage() {
               <span>Download for Mac</span>
               <span className={styles.buttonMeta}>v1.0.0 · Apple Silicon · 136 MB</span>
             </a>
-            <a className={styles.secondaryLink} href={HELP_HOME_HREF}>
+            <a className={styles.outlineButton} href={HELP_HOME_HREF}>
               Read the guide first
             </a>
           </div>
