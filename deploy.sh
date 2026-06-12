@@ -79,12 +79,12 @@ echo "→ Syncing to staging..."
 ssh -i "$SSH_KEY" "$VPS" "mkdir -p \"$STAGING/diff\" \"$STAGING/connect\" \"$STAGING/desktop/help\""   # ensure staging dirs exist (rsync won't create missing parents)
 rsync -avz --delete -e "ssh -i $SSH_KEY" "$TMP_DIFF/" "$VPS:$STAGING/diff/"
 rsync -avz --delete -e "ssh -i $SSH_KEY" "$TMP_CONNECT/" "$VPS:$STAGING/connect/"
-rsync -avz --delete -e "ssh -i $SSH_KEY" "$TMP_DESKTOP/" "$VPS:$STAGING/desktop/"
-rsync -avz --delete -e "ssh -i $SSH_KEY" "$DESKTOP_HELP_SITE" "$VPS:$STAGING/desktop/help/"
+rsync -avz --delete --chmod=D755,F644 -e "ssh -i $SSH_KEY" "$TMP_DESKTOP/" "$VPS:$STAGING/desktop/"
+rsync -avz --delete --chmod=D755,F644 -e "ssh -i $SSH_KEY" "$DESKTOP_HELP_SITE" "$VPS:$STAGING/desktop/help/"
 
 echo "→ Promoting to live..."
 ssh -i "$SSH_KEY" "$VPS" "sudo rm -rf ${LIVE_DIFF}* ${LIVE_CONNECT}* && sudo cp -r $STAGING/diff/* $LIVE_DIFF && sudo cp -r $STAGING/connect/* $LIVE_CONNECT && sudo chown -R dex:dex $LIVE_DIFF $LIVE_CONNECT"
-ssh -i "$SSH_KEY" "$VPS" "sudo mkdir -p $LIVE_DESKTOP && sudo rsync -a --delete --exclude downloads/ $STAGING/desktop/ $LIVE_DESKTOP && sudo chown -R dex:dex $LIVE_DESKTOP"
+ssh -i "$SSH_KEY" "$VPS" "sudo mkdir -p $LIVE_DESKTOP && sudo rsync -a --delete --exclude downloads/ $STAGING/desktop/ $LIVE_DESKTOP && sudo chmod 755 $LIVE_DESKTOP && sudo chown -R dex:dex $LIVE_DESKTOP"
 
 # Beta DMG: ship the installer through the same staging pipeline when provided.
 # Usage: DESKTOP_DMG=~/Downloads/Dex-1.0.0-arm64.dmg ./deploy.sh
