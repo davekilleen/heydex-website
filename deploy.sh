@@ -86,6 +86,19 @@ echo "→ Promoting to live..."
 ssh -i "$SSH_KEY" "$VPS" "sudo rm -rf ${LIVE_DIFF}* ${LIVE_CONNECT}* && sudo cp -r $STAGING/diff/* $LIVE_DIFF && sudo cp -r $STAGING/connect/* $LIVE_CONNECT && sudo chown -R dex:dex $LIVE_DIFF $LIVE_CONNECT"
 ssh -i "$SSH_KEY" "$VPS" "sudo mkdir -p $LIVE_DESKTOP && sudo rsync -a --delete --exclude downloads/ $STAGING/desktop/ $LIVE_DESKTOP && sudo chown -R dex:dex $LIVE_DESKTOP"
 
+# Beta DMG: ship the installer through the same staging pipeline when provided.
+# Usage: DESKTOP_DMG=~/Downloads/Dex-1.0.0-arm64.dmg ./deploy.sh
+if [ -n "${DESKTOP_DMG:-}" ]; then
+  if [ ! -f "$DESKTOP_DMG" ]; then
+    echo "DESKTOP_DMG set but file not found: $DESKTOP_DMG" >&2
+    exit 1
+  fi
+  echo "-> Shipping beta DMG..."
+  ssh -i "$SSH_KEY" "$VPS" "mkdir -p \"$STAGING/desktop-dmg\""
+  rsync -avz -e "ssh -i $SSH_KEY" "$DESKTOP_DMG" "$VPS:$STAGING/desktop-dmg/"
+  ssh -i "$SSH_KEY" "$VPS" "sudo mkdir -p ${LIVE_DESKTOP}downloads && sudo rsync -a $STAGING/desktop-dmg/ ${LIVE_DESKTOP}downloads/ && sudo chown -R dex:dex ${LIVE_DESKTOP}downloads"
+fi
+
 echo "→ Deploying static HTML subdirectories..."
 STATIC_SUBDIRS="community company love-letters roadmap welcome admin like-dave"
 for subdir in $STATIC_SUBDIRS; do
