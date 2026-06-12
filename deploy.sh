@@ -12,8 +12,18 @@ if [[ "$1" != "--skip-tests" ]] && [[ "$2" != "--skip-tests" ]]; then
 fi
 
 echo "🏗️ Building React app..."
+# Production builds must always point at the prod Convex deployment.
+# Without this, Vite falls back to .env.local (dev) and ships a live site
+# wired to the dev backend, which is exactly what broke /connect on 2026-06-12.
+export VITE_CONVEX_URL="${VITE_CONVEX_URL:-https://focused-mouse-723.eu-west-1.convex.cloud}"
 npm run build
 echo ""
+
+# Tripwire: refuse to deploy a bundle that references a dev Convex deployment.
+if grep -rqs "brave-ibex-877" dist/assets/; then
+  echo "ABORT: built bundle references the dev Convex deployment (brave-ibex-877)." >&2
+  exit 1
+fi
 
 VPS="ubuntu@57.129.134.24"
 SSH_KEY="~/.ssh/acfs_ed25519"
