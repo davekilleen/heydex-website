@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { NIGHTFALL } from '../theme';
 
 // ── Function pill config ────────────────────────────
 const FUNCTIONS = [
@@ -66,7 +67,7 @@ const MicrosoftLogo = () => (
 );
 
 const AppleLogo = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="#f0f0f0" style={{ flexShrink: 0 }}>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill={NIGHTFALL.textPrimary} style={{ flexShrink: 0 }}>
     <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
   </svg>
 );
@@ -86,23 +87,24 @@ const PROVIDER_CONFIG = {
 
 // ── Shared style constants ──────────────────────────
 const S = {
-  bgBase: '#0a0a0a',
-  bgSurface: '#111111',
-  bgElevated: '#161616',
-  borderDefault: '#222222',
-  borderStrong: '#333333',
-  textPrimary: '#f0f0f0',
-  textSecondary: '#888888',
-  textTertiary: '#555555',
-  textInverse: '#0a0a0a',
-  accent: '#FF3870',
-  accentDim: '#992244',
-  accentBg: '#1f0f15',
-  accentBorder: '#3d0a1e',
-  error: '#ef4444',
-  success: '#22c55e',
-  fontMono: "'Geist Mono', 'Berkeley Mono', 'JetBrains Mono', monospace",
-  fontSans: "'Geist', system-ui, sans-serif",
+  bgBase: NIGHTFALL.bgBase,
+  bgSurface: NIGHTFALL.bgSurface,
+  bgElevated: NIGHTFALL.bgElevated,
+  borderDefault: NIGHTFALL.borderDefault,
+  borderStrong: NIGHTFALL.borderStrong,
+  textPrimary: NIGHTFALL.textPrimary,
+  textSecondary: NIGHTFALL.textSecondary,
+  textTertiary: NIGHTFALL.textTertiary,
+  textInverse: NIGHTFALL.accentFillText,
+  accent: NIGHTFALL.accent,
+  accentDim: 'rgba(255, 64, 129, 0.72)',
+  accentBg: 'rgba(255, 64, 129, 0.12)',
+  accentBorder: 'rgba(255, 64, 129, 0.28)',
+  error: NIGHTFALL.statusError,
+  success: NIGHTFALL.statusGreen,
+  fontMono: NIGHTFALL.fontMono,
+  fontSans: NIGHTFALL.fontSans,
+  radius: NIGHTFALL.radius,
 };
 
 const styles = {
@@ -145,7 +147,7 @@ const styles = {
     color: S.textPrimary,
     background: S.bgSurface,
     border: `1px solid ${S.borderDefault}`,
-    borderRadius: 2,
+    borderRadius: S.radius,
     outline: 'none',
     caretColor: S.accent,
     transition: 'border-color 80ms ease',
@@ -159,7 +161,7 @@ const styles = {
     color: S.textInverse,
     background: S.accent,
     border: 'none',
-    borderRadius: 2,
+    borderRadius: S.radius,
     cursor: 'pointer',
     transition: 'opacity 80ms ease',
     marginTop: 8,
@@ -177,7 +179,7 @@ const styles = {
     color: S.textPrimary,
     background: S.bgSurface,
     border: `1px solid ${S.borderDefault}`,
-    borderRadius: 2,
+    borderRadius: S.radius,
     cursor: 'pointer',
     transition: 'background 80ms ease, border-color 80ms ease',
     marginBottom: 12,
@@ -206,7 +208,7 @@ const styles = {
 
 // ── Global CSS injected once ────────────────────────
 const GLOBAL_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @keyframes rf-spin {
   to { transform: rotate(360deg); }
@@ -269,7 +271,7 @@ function ConsentBanner() {
         color: S.textInverse,
         background: S.accent,
         border: 'none',
-        borderRadius: 2,
+        borderRadius: S.radius,
         padding: '6px 16px',
         cursor: 'pointer',
         flexShrink: 0,
@@ -338,6 +340,7 @@ export function RegistrationFlow({
   const [marketingOptIn, setMarketingOptIn] = useState(true);
   const [isLoading, setIsLoading] = useState(null);
   const [error, setError] = useState('');
+  const [enrichmentNotice, setEnrichmentNotice] = useState('');
   const [enrichedLinkedinUrl, setEnrichedLinkedinUrl] = useState(initialProfile?.linkedinUrl || '');
   const [enrichedIndustry, setEnrichedIndustry] = useState(initialProfile?.industry || '');
   const [enrichedPhotoUrl, setEnrichedPhotoUrl] = useState(initialProfile?.photoUrl || initialProfile?.image || '');
@@ -415,9 +418,14 @@ export function RegistrationFlow({
     }
     setIsLoading('linkedin');
     setError('');
+    setEnrichmentNotice('');
     try {
       const enriched = await onEnrichProfile(url);
       hasEnrichedRef.current = true;
+      const hasMeaningfulFields = Boolean(enriched.title || enriched.company || enriched.summary);
+      if (enriched.warning || !hasMeaningfulFields) {
+        setEnrichmentNotice("Couldn't pull your LinkedIn details, fill these in yourself.");
+      }
       if (enriched.name) setProfileName(enriched.name);
       const tc = [enriched.title, enriched.company].filter(Boolean).join(' at ');
       if (tc) setTitleCompany(tc);
@@ -449,6 +457,7 @@ export function RegistrationFlow({
 
   // ── Skip LinkedIn ──
   function skipLinkedIn() {
+    setEnrichmentNotice('');
     setStep('profile');
   }
 
@@ -595,7 +604,7 @@ export function RegistrationFlow({
                   color: S.accent,
                   marginBottom: 16,
                   lineHeight: 1,
-                }}>&#9670;</div>
+                }}>✳</div>
               </div>
 
               <h1 style={styles.pageTitle}>Connect to Dex</h1>
@@ -712,6 +721,18 @@ export function RegistrationFlow({
                 Dex uses this to personalise your briefings, meeting prep, and intelligence. Edit anything that doesn't look right.
               </p>
 
+              {enrichmentNotice && (
+                <p style={{
+                  fontFamily: S.fontSans,
+                  fontSize: 12,
+                  color: S.textTertiary,
+                  margin: '-16px 0 20px',
+                  lineHeight: 1.6,
+                }}>
+                  {enrichmentNotice}
+                </p>
+              )}
+
               <div
                 className="rf-confirm-grid"
                 style={{
@@ -762,7 +783,7 @@ export function RegistrationFlow({
                               color: selected ? S.textInverse : S.textSecondary,
                               background: selected ? S.accent : 'transparent',
                               border: `1px solid ${selected ? S.accent : S.borderDefault}`,
-                              borderRadius: 2,
+                              borderRadius: S.radius,
                               padding: '6px 14px',
                               cursor: 'pointer',
                               transition: 'all 80ms ease',
@@ -834,7 +855,7 @@ export function RegistrationFlow({
                         resize: 'none',
                         overflow: 'hidden',
                         borderLeft: `3px solid ${S.accent}`,
-                        borderRadius: '0 2px 2px 0',
+                        borderRadius: `0 ${S.radius}px ${S.radius}px 0`,
                         paddingLeft: 14,
                         minHeight: '120px',
                       }}
@@ -863,7 +884,7 @@ export function RegistrationFlow({
               <div style={styles.pageMeta}>HEYDEX.AI</div>
               <h1 style={styles.pageTitle}>Claim your handle.</h1>
               <p style={styles.pageSubtitle}>
-                Your handle is your identity on DexDiff &mdash; it's how colleagues and the community find your workflows. When you share how you use AI, they'll find you at heydex.ai/@yourhandle
+                Your handle is your identity on DexDiff. It's how colleagues and the community find your workflows. When you share how you use AI, they'll find you at heydex.ai/diff/yourhandle
               </p>
 
               <div style={{ marginTop: 24, marginBottom: 16 }}>
@@ -898,7 +919,9 @@ export function RegistrationFlow({
                     handleAvailability.available ? (
                       <span style={{ color: S.success }}>&#10003; Available</span>
                     ) : (
-                      <span style={{ color: S.error }}>Already taken</span>
+                      <span style={{ color: S.error }}>
+                        {handleAvailability.message || 'Already taken'}
+                      </span>
                     )
                   )}
                 </div>
@@ -924,7 +947,7 @@ export function RegistrationFlow({
                             color: S.accent,
                             background: S.accentBg,
                             border: `1px solid ${S.accentBorder}`,
-                            borderRadius: 2,
+                            borderRadius: S.radius,
                             padding: '4px 10px',
                             cursor: 'pointer',
                             transition: 'background 80ms ease',

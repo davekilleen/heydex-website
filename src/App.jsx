@@ -19,6 +19,8 @@ export default function App() {
       <Route path="/connect/" element={<ConnectPage />} />
       <Route path="/desktop" element={<DesktopPage />} />
       <Route path="/desktop/" element={<DesktopPage />} />
+      <Route path="/desktop/connect" element={<ConnectPage />} />
+      <Route path="/desktop/connect/" element={<ConnectPage />} />
       <Route path="/diff" element={withAuthGate(<DiffPage />)} />
       <Route path="/diff/" element={withAuthGate(<DiffPage />)} />
       <Route path="/diff/profile" element={withAuthGate(<MyProfilePage />)} />

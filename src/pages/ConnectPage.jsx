@@ -3,6 +3,7 @@ import { useConvexAuth, useAction, useMutation, useQuery } from 'convex/react';
 import { useState, useEffect } from 'react';
 import { RegistrationFlow } from '../components/RegistrationFlow';
 import { api } from '../../convex/_generated/api';
+import { NIGHTFALL } from '../theme';
 
 const DEFAULT_AUTH_PROVIDERS = 'google,microsoft,apple';
 
@@ -52,7 +53,7 @@ function CliProviderLogo({ provider }) {
 
   if (provider === 'apple') {
     return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="#f0f0f0">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill={NIGHTFALL.textPrimary}>
         <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
       </svg>
     );
@@ -164,9 +165,9 @@ export default function ConnectPage() {
         <div style={{
           minHeight: '100vh',
           width: '100%',
-          background: '#000',
-          color: '#f0f0f0',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          background: NIGHTFALL.bgBase,
+          color: NIGHTFALL.textPrimary,
+          fontFamily: NIGHTFALL.fontSans,
           fontSize: 14,
           lineHeight: 1.6,
         }}>
@@ -175,19 +176,19 @@ export default function ConnectPage() {
             margin: '0 auto',
             padding: '80px 24px',
           }}>
-            <div style={{ fontSize: 11, letterSpacing: '0.1em', color: '#666', marginBottom: 32, textAlign: 'center' }}>HEYDEX.AI</div>
+            <div style={{ fontSize: 11, letterSpacing: '0.1em', color: NIGHTFALL.textTertiary, marginBottom: 32, textAlign: 'center' }}>HEYDEX.AI</div>
             
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
               <div style={{
                 fontSize: 48,
-                color: '#ff3366',
+                color: NIGHTFALL.accent,
                 marginBottom: 16,
                 lineHeight: 1,
-              }}>&#9670;</div>
+              }}>✳</div>
             </div>
 
             <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>Connect Dex to Heydex</h1>
-            <p style={{ fontSize: 14, color: '#999', marginBottom: 32, textAlign: 'center' }}>
+            <p style={{ fontSize: 14, color: NIGHTFALL.textSecondary, marginBottom: 32, textAlign: 'center' }}>
               Sign in once to connect your Dex app and your Heydex profile.
             </p>
             
@@ -202,18 +203,18 @@ export default function ConnectPage() {
                   gap: 12,
                   width: '100%',
                   padding: '12px 20px',
-                  background: '#1a1a1a',
-                  color: '#f0f0f0',
-                  border: '1px solid #333',
-                  borderRadius: 6,
+                  background: NIGHTFALL.bgSurface,
+                  color: NIGHTFALL.textPrimary,
+                  border: `1px solid ${NIGHTFALL.borderDefault}`,
+                  borderRadius: NIGHTFALL.radius,
                   cursor: 'pointer',
                   fontSize: 14,
                   fontWeight: 500,
                   transition: 'all 0.15s ease',
                   marginBottom: 12,
                 }}
-                onMouseOver={(e) => e.currentTarget.style.background = '#262626'}
-                onMouseOut={(e) => e.currentTarget.style.background = '#1a1a1a'}
+                onMouseOver={(e) => e.currentTarget.style.background = NIGHTFALL.bgElevated}
+                onMouseOut={(e) => e.currentTarget.style.background = NIGHTFALL.bgSurface}
               >
                 <CliProviderLogo provider={provider} />
                 {CLI_PROVIDER_LABELS[provider] ?? `Continue with ${formatProviderName(provider)}`}
@@ -228,8 +229,8 @@ export default function ConnectPage() {
       return (
         <div style={{
           minHeight: '100vh',
-          background: '#000',
-          color: '#f0f0f0',
+          background: NIGHTFALL.bgBase,
+          color: NIGHTFALL.textPrimary,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -239,14 +240,14 @@ export default function ConnectPage() {
               display: 'inline-block',
               width: 24,
               height: 24,
-              border: '2px solid #333',
-              borderTopColor: '#ff3366',
+              border: `2px solid ${NIGHTFALL.borderStrong}`,
+              borderTopColor: NIGHTFALL.accent,
               borderRadius: '50%',
               animation: 'spin 0.6s linear infinite',
               marginBottom: 24,
             }} />
-            <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16, color: '#f0f0f0' }}>Creating your sign-in code</h1>
-            <p style={{ color: '#999', fontSize: 14 }}>This usually takes a second or two.</p>
+            <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16, color: NIGHTFALL.textPrimary }}>Creating your sign-in code</h1>
+            <p style={{ color: NIGHTFALL.textSecondary, fontSize: 14 }}>This usually takes a second or two.</p>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         </div>
@@ -257,17 +258,17 @@ export default function ConnectPage() {
       return (
         <div style={{
           minHeight: '100vh',
-          background: '#000',
-          color: '#f0f0f0',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          background: NIGHTFALL.bgBase,
+          color: NIGHTFALL.textPrimary,
+          fontFamily: NIGHTFALL.fontSans,
         }}>
           <div style={{ maxWidth: '400px', margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 11, letterSpacing: '0.1em', color: '#666', marginBottom: 32 }}>HEYDEX.AI</div>
+            <div style={{ fontSize: 11, letterSpacing: '0.1em', color: NIGHTFALL.textTertiary, marginBottom: 32 }}>HEYDEX.AI</div>
 
-            <div style={{ fontSize: 48, color: '#ff3366', marginBottom: 32, lineHeight: 1 }}>&#9670;</div>
+            <div style={{ fontSize: 48, color: NIGHTFALL.accent, marginBottom: 32, lineHeight: 1 }}>✳</div>
 
             <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16 }}>You&apos;re signed in</h1>
-            <p style={{ fontSize: 14, color: '#999', marginBottom: 32 }}>
+            <p style={{ fontSize: 14, color: NIGHTFALL.textSecondary, marginBottom: 32 }}>
               Next, create a short one-time code. You&apos;ll paste it back into Dex to finish connecting.
             </p>
 
@@ -275,10 +276,10 @@ export default function ConnectPage() {
               <div style={{
                 marginBottom: 16,
                 padding: '12px 16px',
-                background: '#2a1117',
-                border: '1px solid #5b1c2d',
-                borderRadius: '8px',
-                color: '#ffb4c7',
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                borderRadius: NIGHTFALL.radius,
+                color: NIGHTFALL.statusError,
                 fontSize: 13,
                 textAlign: 'left',
               }}>
@@ -290,10 +291,10 @@ export default function ConnectPage() {
               onClick={handleGenerateCode}
               style={{
                 padding: '12px 24px',
-                background: '#ff3366',
-                color: 'white',
+                background: NIGHTFALL.accent,
+                color: NIGHTFALL.accentFillText,
                 border: 'none',
-                borderRadius: '6px',
+                borderRadius: NIGHTFALL.radius,
                 cursor: 'pointer',
                 marginBottom: 16,
                 width: '100%',
@@ -309,9 +310,9 @@ export default function ConnectPage() {
               style={{
                 padding: '12px 24px',
                 background: 'transparent',
-                color: '#999',
-                border: '1px solid #333',
-                borderRadius: '6px',
+                color: NIGHTFALL.textSecondary,
+                border: `1px solid ${NIGHTFALL.borderDefault}`,
+                borderRadius: NIGHTFALL.radius,
                 cursor: 'pointer',
                 width: '100%',
                 fontSize: 14,
@@ -328,17 +329,17 @@ export default function ConnectPage() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: '#000',
-        color: '#f0f0f0',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        background: NIGHTFALL.bgBase,
+        color: NIGHTFALL.textPrimary,
+        fontFamily: NIGHTFALL.fontSans,
       }}>
         <div style={{ maxWidth: '400px', margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: 11, letterSpacing: '0.1em', color: '#666', marginBottom: 32 }}>HEYDEX.AI</div>
+          <div style={{ fontSize: 11, letterSpacing: '0.1em', color: NIGHTFALL.textTertiary, marginBottom: 32 }}>HEYDEX.AI</div>
           
-          <div style={{ fontSize: 48, color: '#ff3366', marginBottom: 32, lineHeight: 1 }}>&#9670;</div>
+          <div style={{ fontSize: 48, color: NIGHTFALL.accent, marginBottom: 32, lineHeight: 1 }}>✳</div>
           
           <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16 }}>Your sign-in code</h1>
-          <p style={{ fontSize: 14, color: '#999', marginBottom: 32 }}>
+          <p style={{ fontSize: 14, color: NIGHTFALL.textSecondary, marginBottom: 32 }}>
             Copy this code, go back to Dex, and paste it when Dex asks for it.
           </p>
           
@@ -347,12 +348,12 @@ export default function ConnectPage() {
             fontWeight: 700,
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
             padding: '24px',
-            background: '#1a1a1a',
-            border: '1px solid #333',
-            borderRadius: '8px',
+            background: NIGHTFALL.bgSurface,
+            border: `1px solid ${NIGHTFALL.borderDefault}`,
+            borderRadius: NIGHTFALL.radius,
             marginBottom: 16,
             letterSpacing: '0.2em',
-            color: '#f0f0f0'
+            color: NIGHTFALL.textPrimary
           }}>
             {code || '------'}
           </div>
@@ -361,10 +362,10 @@ export default function ConnectPage() {
             <div style={{
               marginBottom: 16,
               padding: '12px 16px',
-              background: '#2a1117',
-              border: '1px solid #5b1c2d',
-              borderRadius: '8px',
-              color: '#ffb4c7',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              borderRadius: NIGHTFALL.radius,
+              color: NIGHTFALL.statusError,
               fontSize: 13,
               textAlign: 'left',
             }}>
@@ -374,16 +375,16 @@ export default function ConnectPage() {
 
           <div style={{
             textAlign: 'left',
-            background: '#101010',
-            border: '1px solid #262626',
-            borderRadius: '8px',
+            background: NIGHTFALL.bgSurface,
+            border: `1px solid ${NIGHTFALL.borderDefault}`,
+            borderRadius: NIGHTFALL.radius,
             padding: '16px',
             marginBottom: 16,
           }}>
-            <div style={{ color: '#f0f0f0', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+            <div style={{ color: NIGHTFALL.textPrimary, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
               What happens next
             </div>
-            <div style={{ color: '#999', fontSize: 13, lineHeight: 1.6 }}>
+            <div style={{ color: NIGHTFALL.textSecondary, fontSize: 13, lineHeight: 1.6 }}>
               1. Copy this code.
               <br />
               2. Go back to Dex in Cursor, Claude Code, or the app you started from.
@@ -401,10 +402,10 @@ export default function ConnectPage() {
             disabled={!code}
             style={{
               padding: '12px 24px',
-              background: '#ff3366',
-              color: 'white',
+              background: NIGHTFALL.accent,
+              color: NIGHTFALL.accentFillText,
               border: 'none',
-              borderRadius: '6px',
+              borderRadius: NIGHTFALL.radius,
               marginBottom: 24,
               width: '100%',
               fontSize: 14,
@@ -421,9 +422,9 @@ export default function ConnectPage() {
             style={{
               padding: '12px 24px',
               background: 'transparent',
-              color: '#999',
-              border: '1px solid #333',
-              borderRadius: '6px',
+              color: NIGHTFALL.textSecondary,
+              border: `1px solid ${NIGHTFALL.borderDefault}`,
+              borderRadius: NIGHTFALL.radius,
               cursor: 'pointer',
               width: '100%',
               fontSize: 14,

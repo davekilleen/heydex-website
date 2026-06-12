@@ -54,17 +54,30 @@ function authorizeTestHarness(req: Request) {
   return null;
 }
 
+function normalizeHandleParam(handle: string): string {
+  let decoded = handle;
+  try {
+    decoded = decodeURIComponent(handle);
+  } catch {
+    decoded = handle;
+  }
+  return decoded.trim().replace(/^@/, "");
+}
+
 // Convex Auth routes (sign-in, sign-out, OAuth callbacks)
 auth.addHttpRoutes(http);
 
-// GET /api/diffs/:author/:diffId — fetch a single diff's methodology YAML
+// GET /api/diffs/:author/:diffId - fetch a single diff's methodology YAML
 // Used by the CLI: /diff-adopt @author/diff-id
 http.route({
   path: "/api/diff",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
     const url = new URL(req.url);
-    const authorHandle = url.searchParams.get("author");
+    const rawAuthorHandle = url.searchParams.get("author");
+    const authorHandle = rawAuthorHandle
+      ? normalizeHandleParam(rawAuthorHandle)
+      : null;
     const diffId = url.searchParams.get("id");
 
     if (!authorHandle || !diffId) {
@@ -94,14 +107,15 @@ http.route({
   }),
 });
 
-// GET /api/profile?handle=dave — fetch a user's profile with their diffs
+// GET /api/profile?handle=dave - fetch a user's profile with their diffs
 // Used by the CLI: /diff-adopt-profile @handle
 http.route({
   path: "/api/profile",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
     const url = new URL(req.url);
-    const handle = url.searchParams.get("handle");
+    const rawHandle = url.searchParams.get("handle");
+    const handle = rawHandle ? normalizeHandleParam(rawHandle) : null;
 
     if (!handle) {
       return new Response(
@@ -123,14 +137,15 @@ http.route({
   }),
 });
 
-// GET /api/profile-bundle?handle=dave — fetch the full profile clone payload
+// GET /api/profile-bundle?handle=dave - fetch the full profile clone payload
 // Used by the CLI: /diff-adopt-profile @handle
 http.route({
   path: "/api/profile-bundle",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
     const url = new URL(req.url);
-    const handle = url.searchParams.get("handle");
+    const rawHandle = url.searchParams.get("handle");
+    const handle = rawHandle ? normalizeHandleParam(rawHandle) : null;
 
     if (!handle) {
       return new Response(
@@ -152,21 +167,27 @@ http.route({
   }),
 });
 
-// GET /api/diffs — list published diffs (optional role filter)
+// GET /api/diffs - list published diffs (optional role filter)
 http.route({
   path: "/api/diffs",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
     const url = new URL(req.url);
     const role = url.searchParams.get("role") ?? undefined;
+    const limitParam = url.searchParams.get("limit");
+    const parsedLimit = limitParam ? parseInt(limitParam, 10) : undefined;
+    const limit =
+      parsedLimit !== undefined && Number.isFinite(parsedLimit)
+        ? parsedLimit
+        : undefined;
 
-    const diffs = await ctx.runQuery(api.diffs.list, { role });
+    const diffs = await ctx.runQuery(api.diffs.list, { role, limit });
 
     return jsonResponse(diffs);
   }),
 });
 
-// POST /api/connect/redeem — exchange a connection code for user info
+// POST /api/connect/redeem - exchange a connection code for user info
 // Used by the CLI after user pastes their code
 http.route({
   path: "/api/connect/redeem",
@@ -434,7 +455,7 @@ http.route({
   }),
 });
 
-// POST /api/publish — publish a diff, authenticated via connection code
+// POST /api/publish - publish a diff, authenticated via connection code
 // Used by the CLI: /diff-push
 http.route({
   path: "/api/publish",
@@ -503,7 +524,7 @@ http.route({
   }),
 });
 
-// POST /api/love-letter — submit a love letter, authenticated via connection code
+// POST /api/love-letter - submit a love letter, authenticated via connection code
 http.route({
   path: "/api/love-letter",
   method: "POST",
@@ -579,7 +600,7 @@ http.route({
   }),
 });
 
-// GET /api/love-letters — public list of published love letters with optional filters
+// GET /api/love-letters - public list of published love letters with optional filters
 http.route({
   path: "/api/love-letters",
   method: "GET",
@@ -588,7 +609,8 @@ http.route({
     const function_ = url.searchParams.get("function") ?? undefined;
     const seniority = url.searchParams.get("seniority") ?? undefined;
     const diffSlug = url.searchParams.get("diffSlug") ?? undefined;
-    const handle = url.searchParams.get("handle") ?? undefined;
+    const rawHandle = url.searchParams.get("handle") ?? undefined;
+    const handle = rawHandle ? normalizeHandleParam(rawHandle) : undefined;
     const limitParam = url.searchParams.get("limit");
     const limit = limitParam ? parseInt(limitParam, 10) : undefined;
 
@@ -731,14 +753,14 @@ http.route({
   }),
 });
 
-// POST /api/waitlist — email capture for the QR funnel page (/diff/like-dave/)
+// POST /api/waitlist - email capture for the QR funnel page (/diff/like-dave/)
 http.route({
   path: "/api/waitlist",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     if (!checkRateLimit(ip)) {
-      return jsonResponse({ error: "Too many requests — try again in a minute" }, 429);
+      return jsonResponse({ error: "Too many requests - try again in a minute" }, 429);
     }
 
     let body: { email?: unknown; source?: unknown };

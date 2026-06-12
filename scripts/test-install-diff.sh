@@ -72,7 +72,7 @@ check "exit 0" $?
 USER_SHA_AFTER="$(shasum -a 256 "$VAULT3/.claude/skills/diff-adopt/SKILL.md" | cut -d' ' -f1)"
 [ "$USER_SHA_BEFORE" = "$USER_SHA_AFTER" ]; check "user file untouched (sha identical)" $?
 echo "$OUTPUT3" | grep -q "kept   .claude/skills/diff-adopt/SKILL.md"; check "reports the kept file" $?
-echo "$OUTPUT3" | grep -q "Added 6 file(s), kept 1"; check "adds the other 6" $?
+echo "$OUTPUT3" | grep -q "Added 7 file(s), kept 1"; check "adds the other 7" $?
 
 # ---------------------------------------------------------------------------
 echo "4. Piped stdin mode (curl | bash equivalent)"

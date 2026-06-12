@@ -2,6 +2,7 @@ import { useQuery } from 'convex/react';
 import { useConvexAuth } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../../convex/_generated/api';
+import { TEXT_TERTIARY } from '../theme';
 import './DiffPage.css';
 
 export default function DiffPage() {
@@ -109,7 +110,7 @@ export default function DiffPage() {
                   <span className="contributor-tag">Weekly Rhythm</span>
                   <span className="contributor-tag more">+4 more</span>
                 </div>
-                <a href="/diff/@dave/" className="contributor-view">View profile &rarr;</a>
+                <a href="/diff/dave/" className="contributor-view">View profile &rarr;</a>
               </div>
             </div>
           </div>
@@ -117,7 +118,7 @@ export default function DiffPage() {
           <div className="ghost-card">
             <div className="ghost-text">Help others become more AI-fluent. Share how you work.</div>
             <div className="ghost-cmd">/diff-profile</div>
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: '#777777', marginTop: '8px', textAlign: 'center', lineHeight: 1.6 }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: TEXT_TERTIARY, marginTop: '8px', textAlign: 'center', lineHeight: 1.6 }}>
               Type this into your Dex. It scans your vault, finds your custom workflows, and generates a shareable profile in 30 seconds.
             </div>
           </div>
@@ -159,7 +160,7 @@ export default function DiffPage() {
                     @{diff.authorHandle}
                   </div>
                   <div className="browse-card-desc">{diff.description}</div>
-                  <a href={`/diff/@${diff.authorHandle}/`} className="browse-card-link">
+                  <a href={`/diff/${diff.authorHandle}/`} className="browse-card-link">
                     View &rarr;
                   </a>
                 </div>

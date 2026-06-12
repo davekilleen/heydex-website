@@ -221,7 +221,7 @@ export default function ReviewPage() {
 
   const profileUrl = useMemo(() => {
     if (!sessionData?.userHandle) return null;
-    return `heydex.ai/diff/@${sessionData.userHandle}`;
+    return `heydex.ai/diff/${sessionData.userHandle}`;
   }, [sessionData?.userHandle]);
 
   const profileInitials =
@@ -428,7 +428,7 @@ export default function ReviewPage() {
         window.location.href = '/diff/profile/';
         return;
       }
-      window.location.href = `/diff/@${result.handle}/`;
+      window.location.href = `/diff/${result.handle}/`;
     } catch (error) {
       const normalizedError = normalizeMutationError(error);
       if (normalizedError.errorCode !== 'UNKNOWN') {

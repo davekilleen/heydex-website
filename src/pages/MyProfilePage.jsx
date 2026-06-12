@@ -72,7 +72,7 @@ export default function MyProfilePage() {
   const userDiffs = myDiffs || [];
   const isEmpty = userDiffs.length === 0;
   const visibility = currentUser.visibility ?? (currentUser.isPublic ? 'public' : 'private');
-  const publicProfileUrl = `/diff/@${currentUser.handle}/`;
+  const publicProfileUrl = `/diff/${currentUser.handle}/`;
   const profileCommand = `/diff-adopt-profile @${currentUser.handle}`;
   const publicProfileLabel =
     visibility === 'public'

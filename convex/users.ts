@@ -3,6 +3,65 @@ import { query, mutation, internalMutation, internalQuery } from "./_generated/s
 import { Id } from "./_generated/dataModel";
 import { getViewerOrNull, requireViewerForMutation } from "./viewer";
 
+const RESERVED_HANDLES = new Set([
+  "admin",
+  "community",
+  "company",
+  "love-letters",
+  "roadmap",
+  "welcome",
+  "like-dave",
+  "review",
+  "profile",
+  "connect",
+  "desktop",
+  "diff",
+  "api",
+  "install",
+  "install-diff",
+  "help",
+  "settings",
+  "privacy",
+  "terms",
+  "legal",
+  "assets",
+  "static",
+  "app",
+  "www",
+  "mail",
+  "docs",
+  "blog",
+  "support",
+  "about",
+  "login",
+  "logout",
+  "signin",
+  "signup",
+  "register",
+  "me",
+  "user",
+  "users",
+  "dex",
+  "heydex",
+]);
+
+function normalizeHandle(handle: string): string {
+  return handle.trim().toLowerCase().replace(/^@/, "");
+}
+
+function isReservedHandle(handle: string): boolean {
+  return RESERVED_HANDLES.has(normalizeHandle(handle));
+}
+
+function reservedHandleResult(handle: string) {
+  return {
+    handle,
+    available: false,
+    reason: "reserved",
+    message: "That name is reserved.",
+  };
+}
+
 // Blocklist of generic email providers that don't indicate a company
 const GENERIC_DOMAINS = new Set([
   "gmail.com", "googlemail.com", "outlook.com", "hotmail.com",
@@ -67,15 +126,21 @@ export const register = mutation({
   handler: async (ctx, args) => {
     const { user, identity } = await requireViewerForMutation(ctx);
 
-    // User exists — if they already have a handle, they're fully registered.
+    // User exists. If they already have a handle, they're fully registered.
     if (user.handle) {
       return user._id;
     }
 
-    // User exists from auth but hasn't completed profile — patch with profile fields.
+    // User exists from auth but hasn't completed profile. Patch with profile fields.
+    const handle = normalizeHandle(args.handle);
+
+    if (isReservedHandle(handle)) {
+      throw new Error("That name is reserved.");
+    }
+
     const handleTaken = await ctx.db
       .query("users")
-      .withIndex("by_handle", (q) => q.eq("handle", args.handle))
+      .withIndex("by_handle", (q) => q.eq("handle", handle))
       .unique();
 
     if (handleTaken && handleTaken._id !== user._id) {
@@ -114,7 +179,7 @@ export const register = mutation({
       name: user.name ?? identity.name ?? args.displayName,
       domain,
       displayName: args.displayName,
-      handle: args.handle,
+      handle,
       role: canonicalTitle,
       function_: args.function_,
       company: args.company,
@@ -129,7 +194,7 @@ export const register = mutation({
       source: args.source,
       onboardingCompleted: true,
       marketingOptOut: args.marketingOptOut ?? false,
-      isPublic: false, // Private by default - user must explicitly make public
+      isPublic: false, // Private by default. User must explicitly make public.
       visibility: "private",
       tokenIdentifier: identity.tokenIdentifier,
     });
@@ -142,22 +207,28 @@ export const register = mutation({
 export const getByHandle = internalQuery({
   args: { handle: v.string() },
   handler: async (ctx, args) => {
+    const handle = normalizeHandle(args.handle);
     return await ctx.db
       .query("users")
-      .withIndex("by_handle", (q) => q.eq("handle", args.handle))
+      .withIndex("by_handle", (q) => q.eq("handle", handle))
       .unique();
   },
 });
 
-// Check if a handle is available (public — no auth needed)
+// Check if a handle is available (public - no auth needed)
 export const checkHandle = query({
   args: { handle: v.string() },
   handler: async (ctx, args) => {
+    const handle = normalizeHandle(args.handle);
+    if (isReservedHandle(handle)) {
+      return reservedHandleResult(handle);
+    }
+
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_handle", (q) => q.eq("handle", args.handle))
+      .withIndex("by_handle", (q) => q.eq("handle", handle))
       .unique();
-    return { available: existing === null };
+    return { handle, available: existing === null };
   },
 });
 
@@ -165,11 +236,15 @@ export const checkHandle = query({
 export const checkHandles = query({
   args: { handles: v.array(v.string()) },
   handler: async (ctx, args) => {
-    const uniqueHandles = [...new Set(args.handles.map((handle) => handle.trim().toLowerCase()))]
+    const uniqueHandles = [...new Set(args.handles.map((handle) => normalizeHandle(handle)))]
       .filter((handle) => handle.length >= 2);
 
     const results = await Promise.all(
       uniqueHandles.map(async (handle) => {
+        if (isReservedHandle(handle)) {
+          return reservedHandleResult(handle);
+        }
+
         const existing = await ctx.db
           .query("users")
           .withIndex("by_handle", (q) => q.eq("handle", handle))

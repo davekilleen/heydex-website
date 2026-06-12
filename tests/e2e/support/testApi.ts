@@ -212,3 +212,7 @@ export async function getReviewStatus(
 export async function getReviewSession(sessionCode: string) {
   return await getConvexClient().query("review:getSession", { sessionCode });
 }
+
+export async function checkHandle(handle: string) {
+  return await getConvexClient().query("users:checkHandle", { handle });
+}

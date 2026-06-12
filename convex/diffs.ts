@@ -1,7 +1,36 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import { sanitizeContent } from "./sanitization";
-import { requireViewerForMutation } from "./viewer";
+import { getViewerOrNull, requireViewerForMutation } from "./viewer";
+
+const LIST_FETCH_BUFFER_MULTIPLIER = 3;
+const LIST_FETCH_BUFFER_CAP = 200;
+
+async function getPublicAuthorByHandle(ctx: QueryCtx, handle: string) {
+  const author = await ctx.db
+    .query("users")
+    .withIndex("by_handle", (q) => q.eq("handle", handle))
+    .unique();
+
+  return author?.visibility === "public" ? author : null;
+}
+
+async function getPublicAuthorHandles(ctx: QueryCtx, handles: string[]) {
+  const uniqueHandles = [...new Set(handles)];
+  const publicHandles = new Set<string>();
+
+  await Promise.all(
+    uniqueHandles.map(async (handle) => {
+      const author = await getPublicAuthorByHandle(ctx, handle);
+      if (author) {
+        publicHandles.add(handle);
+      }
+    })
+  );
+
+  return publicHandles;
+}
 
 // Fetch a single diff by @author/diff-id
 export const get = query({
@@ -10,6 +39,11 @@ export const get = query({
     diffId: v.string(),
   },
   handler: async (ctx, args) => {
+    const author = await getPublicAuthorByHandle(ctx, args.authorHandle);
+    if (!author) {
+      return null;
+    }
+
     const diff = await ctx.db
       .query("diffs")
       .withIndex("by_authorHandle_and_diffId", (q) =>
@@ -17,7 +51,7 @@ export const get = query({
       )
       .unique();
 
-    if (!diff || diff.status !== "published") {
+    if (!diff || diff.status !== "published" || diff.authorId !== author._id) {
       return null;
     }
 
@@ -45,16 +79,27 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 50;
+    const fetchLimit = Math.min(
+      Math.max(limit * LIST_FETCH_BUFFER_MULTIPLIER, limit),
+      LIST_FETCH_BUFFER_CAP
+    );
 
     const diffs = await ctx.db
       .query("diffs")
       .withIndex("by_status", (q) => q.eq("status", "published"))
       .order("desc")
-      .take(limit);
+      .take(fetchLimit);
 
-    const results = args.role
+    const roleFiltered = args.role
       ? diffs.filter((d) => d.roles.includes(args.role!))
       : diffs;
+    const publicAuthorHandles = await getPublicAuthorHandles(
+      ctx,
+      roleFiltered.map((d) => d.authorHandle)
+    );
+    const results = roleFiltered
+      .filter((d) => publicAuthorHandles.has(d.authorHandle))
+      .slice(0, limit);
 
     return results.map((d) => ({
       diffId: d.diffId,
@@ -79,6 +124,12 @@ export const listByAuthor = query({
       .unique();
 
     if (!author) return [];
+    if (author.visibility !== "public") {
+      const viewer = await getViewerOrNull(ctx);
+      if (viewer?.userId !== author._id) {
+        return [];
+      }
+    }
 
     const diffs = await ctx.db
       .query("diffs")
@@ -182,12 +233,13 @@ export const publish = mutation({
     if (!user.handle) {
       throw new Error("Complete registration first");
     }
+    const authorHandle = user.handle;
 
     // Check for existing diff with same ID by this author
     const existing = await ctx.db
       .query("diffs")
       .withIndex("by_authorHandle_and_diffId", (q) =>
-        q.eq("authorHandle", user.handle).eq("diffId", args.diffId)
+        q.eq("authorHandle", authorHandle).eq("diffId", args.diffId)
       )
       .unique();
 
@@ -211,7 +263,7 @@ export const publish = mutation({
     const diffDocId = await ctx.db.insert("diffs", {
       diffId: args.diffId,
       authorId: user._id,
-      authorHandle: user.handle,
+      authorHandle,
       name: sanitizeContent(args.name),
       description: sanitizeContent(args.description),
       methodology: sanitizeContent(args.methodology),

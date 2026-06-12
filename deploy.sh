@@ -11,23 +11,8 @@ if [[ "$1" != "--skip-tests" ]] && [[ "$2" != "--skip-tests" ]]; then
   echo ""
 fi
 
-echo "🏗️ Building React app..."
-# Production builds must always point at the prod Convex deployment.
-# Without this, Vite falls back to .env.local (dev) and ships a live site
-# wired to the dev backend, which is exactly what broke /connect on 2026-06-12.
-export VITE_CONVEX_URL="${VITE_CONVEX_URL:-https://focused-mouse-723.eu-west-1.convex.cloud}"
-npm run build
-echo ""
-
-# Tripwire: refuse to deploy a bundle that references a dev Convex deployment.
-if grep -rqs "brave-ibex-877" dist/assets/; then
-  echo "ABORT: built bundle references the dev Convex deployment (brave-ibex-877)." >&2
-  exit 1
-fi
-
 VPS="ubuntu@57.129.134.24"
 SSH_KEY="~/.ssh/acfs_ed25519"
-LOCAL="$(dirname "$0")/dist/"
 TMP_DIFF="$(mktemp -d /tmp/heydex-diff.XXXXXX)"
 TMP_CONNECT="$(mktemp -d /tmp/heydex-connect.XXXXXX)"
 TMP_DESKTOP="$(mktemp -d /tmp/heydex-desktop.XXXXXX)"
@@ -37,6 +22,9 @@ LIVE_CONNECT="/var/www/heydex/connect/"
 LIVE_DESKTOP="/var/www/heydex/desktop/"
 DESKTOP_HELP_SITE="${DESKTOP_HELP_SITE:-$(dirname "$0")/../dex-desktop-concierge/help/site/}"
 DESKTOP_HELP_SITE="${DESKTOP_HELP_SITE%/}/"
+DIFF_CONVEX_URL="${DIFF_CONVEX_URL:-https://brave-ibex-877.eu-west-1.convex.cloud}"
+DESKTOP_CONVEX_URL="${DESKTOP_CONVEX_URL:-https://focused-mouse-723.eu-west-1.convex.cloud}"
+DIFF_REQUIRE_AUTH="${VITE_REQUIRE_AUTH:-1}"
 
 # The live route precedence is defined by Caddy on the host and mirrored in
 # ops/Caddyfile.heydex. This script only updates the static assets under those roots.
@@ -47,21 +35,37 @@ DESKTOP_HELP_SITE="${DESKTOP_HELP_SITE%/}/"
 # test-production.sh. ops/Caddyfile.heydex is the source of truth; if the
 # drift check fires, reconcile manually on the host before treating the Caddy
 # contract as accurate.
-
-if [ "$1" = "--dry-run" ]; then
-  echo "=== DRY RUN ==="
-  rsync -avzn --delete -e "ssh -i $SSH_KEY" "$LOCAL" "$VPS:$STAGING"
-  exit 0
-fi
+#
+# The React app is deployed as three route-scoped copies, but those copies do
+# not all talk to the same Convex deployment. DexDiff routes (/diff and
+# /connect) use brave-ibex-877. The desktop beta portal (/desktop) uses
+# focused-mouse-723. Build each backend target independently so Vite bakes the
+# right Convex URL into each bundle. The DexDiff build also carries the
+# temporary auth gate flag; the desktop build does not.
 
 cleanup() {
   rm -rf "$TMP_DIFF" "$TMP_CONNECT" "$TMP_DESKTOP"
 }
 trap cleanup EXIT
 
-cp -R "$LOCAL". "$TMP_DIFF/"
-cp -R "$LOCAL". "$TMP_CONNECT/"
-cp -R "$LOCAL". "$TMP_DESKTOP/"
+echo "🏗️ Building DexDiff React app..."
+(
+  export VITE_CONVEX_URL="$DIFF_CONVEX_URL"
+  export VITE_REQUIRE_AUTH="$DIFF_REQUIRE_AUTH"
+  npm run build
+)
+cp -R dist/. "$TMP_DIFF/"
+cp -R dist/. "$TMP_CONNECT/"
+echo ""
+
+echo "🏗️ Building desktop React app..."
+(
+  unset VITE_REQUIRE_AUTH
+  export VITE_CONVEX_URL="$DESKTOP_CONVEX_URL"
+  npm run build
+)
+cp -R dist/. "$TMP_DESKTOP/"
+echo ""
 
 python3 - <<'PY' "$TMP_DIFF/index.html" "/diff/" "$TMP_CONNECT/index.html" "/connect/" "$TMP_DESKTOP/index.html" "/desktop/"
 from pathlib import Path
@@ -78,6 +82,29 @@ def inject_base(index_path: str, base_href: str) -> None:
 for index in range(1, len(sys.argv), 2):
     inject_base(sys.argv[index], sys.argv[index + 1])
 PY
+
+if grep -rqs "focused-mouse-723" "$TMP_DIFF"; then
+  echo "ABORT: diff copy references the desktop Convex deployment (focused-mouse-723)." >&2
+  exit 1
+fi
+
+if grep -rqs "focused-mouse-723" "$TMP_CONNECT"; then
+  echo "ABORT: connect copy references the desktop Convex deployment (focused-mouse-723)." >&2
+  exit 1
+fi
+
+if grep -rqs "brave-ibex-877" "$TMP_DESKTOP"; then
+  echo "ABORT: desktop copy references the DexDiff Convex deployment (brave-ibex-877)." >&2
+  exit 1
+fi
+
+if [ "$1" = "--dry-run" ]; then
+  echo "=== DRY RUN ==="
+  rsync -avzn --delete -e "ssh -i $SSH_KEY" "$TMP_DIFF/" "$VPS:$STAGING/diff/"
+  rsync -avzn --delete -e "ssh -i $SSH_KEY" "$TMP_CONNECT/" "$VPS:$STAGING/connect/"
+  rsync -avzn --delete -e "ssh -i $SSH_KEY" "$TMP_DESKTOP/" "$VPS:$STAGING/desktop/"
+  exit 0
+fi
 
 if [ ! -d "$DESKTOP_HELP_SITE" ]; then
   echo "Desktop help site not found at $DESKTOP_HELP_SITE"

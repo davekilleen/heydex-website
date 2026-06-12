@@ -67,7 +67,7 @@ export default function DesktopPage() {
 
   useEffect(() => {
     if (isLoading || isAuthenticated) return;
-    window.location.href = '/connect/?return=/desktop/';
+    window.location.href = '/desktop/connect/?return=/desktop/';
   }, [isAuthenticated, isLoading]);
 
   if (isLoading || !isAuthenticated || userIsLoading) {

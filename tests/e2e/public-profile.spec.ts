@@ -24,7 +24,7 @@ test("public profile shows profile-level and workflow-level adoption commands", 
     ],
   });
 
-  await page.goto(`/diff/@${handle}/`);
+  await page.goto(`/diff/${handle}/`);
 
   await expect(page.getByRole("heading", { name: "Public Profile Test" })).toBeVisible();
   await expect(page.getByText(`/diff-adopt-profile @${handle}`)).toBeVisible();

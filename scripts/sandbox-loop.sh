@@ -139,7 +139,7 @@ def check(label, ok):
         failures.append(label)
 
 skills = vault / ".claude/skills"
-check("7 bootstrap files installed", sum(1 for p in skills.rglob("*") if p.is_file() and "meeting-intelligence" not in str(p)) == 7)
+check("8 bootstrap files installed", sum(1 for p in skills.rglob("*") if p.is_file() and "meeting-intelligence" not in str(p)) == 8)
 
 adopted = vault / "04-Projects/DexDiff/beta/profile/adopted/davekilleen"
 check("bundle manifest saved", (adopted / "profile-bundle.json").is_file())

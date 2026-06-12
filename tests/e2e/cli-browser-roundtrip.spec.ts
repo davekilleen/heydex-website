@@ -81,7 +81,7 @@ test("CLI link to browser review to publish works end to end", async ({
   await page.locator(".review-audience-option").filter({ hasText: "Public" }).click();
   await page.getByRole("button", { name: /Publish publicly/i }).click();
 
-  await page.waitForURL(new RegExp(`/diff/@${handle}/?$`), { timeout: 30_000 });
+  await page.waitForURL(new RegExp(`/diff/${handle}/?$`), { timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "CLI Roundtrip Published" })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Roundtrip Workflow Published" })

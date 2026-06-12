@@ -38,7 +38,7 @@ test("public profiles cold-load for other people and expose browse surfaces", as
     ],
   });
 
-  await page.goto(`/diff/@${handle}/`);
+  await page.goto(`/diff/${handle}/`);
   await expect(page.getByRole("heading", { name: "Browse Test Person" })).toBeVisible();
   await expect(page.locator(".public-profile-meta")).toHaveText(`@${handle}`);
   await expect(page.getByRole("heading", { name: "Browse Meeting Prep" })).toBeVisible();

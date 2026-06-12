@@ -371,7 +371,7 @@ export const createPublicProfileBundle = internalMutation({
 
     return {
       handle,
-      profileUrl: `/diff/@${handle}/`,
+      profileUrl: `/diff/${handle}/`,
       diffIds: diffs.map((diff) => diff.diffId),
     };
   },

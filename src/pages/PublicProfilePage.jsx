@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { useParams } from 'react-router-dom';
 import { api } from '../../convex/_generated/api';
@@ -53,6 +53,14 @@ function hasSavedAuthState() {
   );
 }
 
+function decodeHandleParam(rawHandle) {
+  try {
+    return decodeURIComponent(rawHandle);
+  } catch {
+    return rawHandle;
+  }
+}
+
 function CommandSurface({
   label,
   command,
@@ -90,7 +98,8 @@ function CommandSurface({
 
 export default function PublicProfilePage() {
   const { handle: rawHandle = '' } = useParams();
-  const handle = rawHandle.replace(/^@/, '');
+  const decodedHandle = useMemo(() => decodeHandleParam(rawHandle), [rawHandle]);
+  const handle = decodedHandle.replace(/^@/, '');
   const viewerState = useQuery(api.users.viewerState);
   const savedAuthStatePresent = useMemo(() => hasSavedAuthState(), []);
   const isAuthenticated =
@@ -99,6 +108,19 @@ export default function PublicProfilePage() {
   const adoptions = useQuery(api.adoptions.mine, isAuthenticated ? {} : 'skip');
   const loveLetters = useQuery(api.loveLetters.list, handle ? { handle, limit: 3 } : 'skip');
   const [copied, setCopied] = useState('');
+
+  useEffect(() => {
+    if (!handle || !decodedHandle.startsWith('@') || typeof window === 'undefined') {
+      return;
+    }
+
+    const canonicalPath = `/diff/${encodeURIComponent(handle)}/`;
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${canonicalPath}${window.location.search}${window.location.hash}`,
+    );
+  }, [decodedHandle, handle]);
 
   const adoptedSlugs = useMemo(
     () => new Set((adoptions || []).map((item) => item.diffSlug)),

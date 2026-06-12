@@ -47,7 +47,7 @@ test("review page persists edits and publishes to the public profile", async ({
   await page.locator(".review-audience-option").filter({ hasText: "Public" }).click();
   await page.getByRole("button", { name: /Publish publicly/i }).click();
 
-  await page.waitForURL(new RegExp(`/diff/@${handle}/?$`), { timeout: 30_000 });
+  await page.waitForURL(new RegExp(`/diff/${handle}/?$`), { timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "DexDiff Review Updated" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Executive Meeting Prep Updated" })).toBeVisible();
 });

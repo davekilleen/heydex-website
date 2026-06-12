@@ -1,24 +1,24 @@
 /* DiffPage - Port of diff/index.html design */
 
 :root {
-  --bg-base: #0a0a0a;
-  --bg-surface: #111111;
-  --bg-elevated: #161616;
-  --bg-hover: #1a1a1a;
-  --bg-selected: #1f1a0f;
-  --border-subtle: #1c1c1c;
-  --border-default: #222222;
-  --border-strong: #333333;
-  --text-primary: #f0f0f0;
-  --text-secondary: #888888;
-  --text-tertiary: #777777;
-  --text-inverse: #0a0a0a;
-  --accent: #FF3870;
-  --accent-dim: #992244;
-  --accent-bg: #1f0f15;
-  --accent-border: #3d0a1e;
+  --bg-base: #0D0E12;
+  --bg-surface: #15161C;
+  --bg-elevated: #1C1D25;
+  --bg-hover: #1C1D25;
+  --bg-selected: var(--bg-elevated);
+  --border-subtle: #1D1F25;
+  --border-default: #24262E;
+  --border-strong: #32343F;
+  --text-primary: #E4E5E7;
+  --text-secondary: #9B9DA6;
+  --text-tertiary: #787B87;
+  --text-inverse: #111111;
+  --accent: #FF4081;
+  --accent-dim: rgba(255, 64, 129, 0.72);
+  --accent-bg: rgba(255, 64, 129, 0.12);
+  --accent-border: rgba(255, 64, 129, 0.28);
   --font-mono: 'Geist Mono', 'Berkeley Mono', 'JetBrains Mono', monospace;
-  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-sans: 'Inter', 'Geist', system-ui, sans-serif;
 }
 
 body {
@@ -41,7 +41,7 @@ body {
   left: 0;
   right: 0;
   z-index: 50;
-  background: rgba(10, 10, 10, 0.9);
+  background: rgba(13, 14, 18, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
@@ -75,7 +75,7 @@ body {
 .nav-link {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: #aaaaaa;
+  color: var(--text-secondary);
   text-decoration: none;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -95,7 +95,7 @@ body {
   background: var(--accent);
   border: none;
   padding: 6px 14px;
-  border-radius: 2px;
+  border-radius: 3px;
   text-decoration: none;
   cursor: pointer;
   transition: opacity 80ms ease;
@@ -117,7 +117,7 @@ body {
   color: var(--text-inverse);
   background: var(--accent);
   padding: 6px 14px;
-  border-radius: 2px;
+  border-radius: 3px;
   text-decoration: none;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -129,7 +129,7 @@ body {
 }
 
 .auth-logout {
-  color: #aaaaaa;
+  color: var(--text-secondary);
   background: transparent;
   border: none;
   padding: 0;
@@ -202,7 +202,7 @@ body {
   background: var(--accent);
   border: none;
   padding: 10px 20px;
-  border-radius: 2px;
+  border-radius: 3px;
   text-decoration: none;
   cursor: pointer;
   transition: opacity 80ms ease;
@@ -220,7 +220,7 @@ body {
   background: transparent;
   border: 1px solid var(--border-strong);
   padding: 9px 20px;
-  border-radius: 2px;
+  border-radius: 3px;
   text-decoration: none;
   cursor: pointer;
   transition: border-color 80ms ease;
@@ -240,7 +240,7 @@ body {
 .section-label {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: #888888;
+  color: var(--text-secondary);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 8px;
@@ -273,7 +273,7 @@ body {
   flex-shrink: 0;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 .carousel-card.center {
@@ -285,7 +285,7 @@ body {
 .carousel-quote {
   font-family: var(--font-sans);
   font-size: 17px;
-  color: #e0e0e0;
+  color: var(--text-primary);
   font-style: italic;
   line-height: 1.5;
   margin-bottom: 20px;
@@ -301,14 +301,14 @@ body {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #992244, #FF3870);
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 500;
-  color: #fff;
+  color: var(--text-inverse);
   flex-shrink: 0;
 }
 
@@ -327,7 +327,7 @@ body {
 .carousel-author-name {
   font-family: var(--font-sans);
   font-size: 13px;
-  color: #fff;
+  color: var(--text-inverse);
   font-weight: 500;
 }
 
@@ -354,7 +354,7 @@ body {
 .contributor-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 2px;
+  border-radius: 3px;
   padding: 24px;
   margin-bottom: 12px;
 }
@@ -404,7 +404,7 @@ body {
 .contributor-stat {
   font-family: var(--font-mono);
   font-size: 11px;
-  color: #888888;
+  color: var(--text-secondary);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -434,12 +434,12 @@ body {
   color: var(--accent);
   border: 1px solid var(--accent-border);
   padding: 3px 10px;
-  border-radius: 2px;
+  border-radius: 3px;
   background: transparent;
 }
 
 .contributor-tag.more {
-  color: #777777;
+  color: var(--text-tertiary);
   border-color: var(--border-default);
 }
 
@@ -457,7 +457,7 @@ body {
 
 .ghost-card {
   border: 1px dashed var(--border-default);
-  border-radius: 2px;
+  border-radius: 3px;
   padding: 32px;
   text-align: center;
 }
@@ -521,7 +521,7 @@ body {
   color: #ccc;
   padding: 4px 12px;
   border: 1px solid #444;
-  border-radius: 2px;
+  border-radius: 3px;
   background: transparent;
   cursor: pointer;
   transition: color 80ms ease, border-color 80ms ease;
@@ -546,7 +546,7 @@ body {
 .browse-card {
   background: #131313;
   border: 1px solid var(--border-default);
-  border-radius: 2px;
+  border-radius: 3px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -591,7 +591,7 @@ body {
 
 .love-letters-stack {
   border: 1px solid var(--border-default);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
@@ -609,7 +609,7 @@ body {
 .love-letter-quote {
   font-family: var(--font-sans);
   font-size: 15px;
-  color: #e0e0e0;
+  color: var(--text-primary);
   font-style: italic;
   line-height: 1.5;
   margin-bottom: 12px;
@@ -634,14 +634,14 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #992244, #FF3870);
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
   font-size: 14px;
   font-weight: 500;
-  color: #fff;
+  color: var(--text-inverse);
   flex-shrink: 0;
 }
 

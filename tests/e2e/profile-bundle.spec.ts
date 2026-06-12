@@ -61,3 +61,74 @@ test("public API exposes single-diff yaml and full profile bundle contracts", as
   expect(bundle.workflows[1].diffId).toBe("follow-through");
   expect(bundle.loveLetter?.text).toContain("less scattered");
 });
+
+test("anonymous diff API hides private authors without starving public results", async ({
+  request,
+}) => {
+  const stamp = Date.now();
+  const publicHandle = `visible-${stamp}`;
+  const privateHandle = `hidden-${stamp}`;
+  const role = `Visibility Role ${stamp}`;
+  const publicDiffId = "visible-methodology";
+  const privateDiffId = "hidden-methodology";
+
+  await bootstrapPublicProfile(request, {
+    handle: publicHandle,
+    displayName: "Visible Author",
+    visibility: "public",
+    diffs: [
+      {
+        diffId: publicDiffId,
+        name: "Visible Methodology",
+        description: "A public workflow that should still fill the browse page.",
+        methodology:
+          "dexdiff_schema: \"2.0\"\nname: Visible Methodology\nproblem: Public rows can be hidden behind private rows.\nsolution: Filter after fetching a small buffer.",
+        tags: ["visibility"],
+        roles: [role],
+        integrations: ["calendar"],
+      },
+    ],
+  });
+
+  await bootstrapPublicProfile(request, {
+    handle: privateHandle,
+    displayName: "Hidden Author",
+    visibility: "private",
+    diffs: [
+      {
+        diffId: privateDiffId,
+        name: "Hidden Methodology",
+        description: "A private workflow that should not appear in anonymous reads.",
+        methodology:
+          "dexdiff_schema: \"2.0\"\nname: Hidden Methodology\nproblem: Private profile data leaked.\nsolution: Require public author visibility.",
+        tags: ["visibility"],
+        roles: [role],
+        integrations: ["calendar"],
+      },
+    ],
+  });
+
+  const apiBaseUrl = getEnv("E2E_API_BASE_URL").replace(/\/$/, "");
+  const listResponse = await request.get(
+    `${apiBaseUrl}/diffs?role=${encodeURIComponent(role)}&limit=1`,
+  );
+  await expect(listResponse).toBeOK();
+  const listedDiffs = (await listResponse.json()) as Array<{
+    authorHandle: string;
+    diffId: string;
+  }>;
+
+  expect(listedDiffs).toEqual([
+    expect.objectContaining({
+      authorHandle: publicHandle,
+      diffId: publicDiffId,
+    }),
+  ]);
+
+  const privateDiffResponse = await request.get(
+    `${apiBaseUrl}/diff?author=${encodeURIComponent(privateHandle)}&id=${encodeURIComponent(privateDiffId)}`,
+  );
+  expect(privateDiffResponse.status()).toBe(404);
+  await expect(privateDiffResponse).not.toBeOK();
+  expect(await privateDiffResponse.json()).toEqual({ error: "Diff not found" });
+});

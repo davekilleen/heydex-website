@@ -71,7 +71,7 @@ test("authenticated public profiles expose adopt copy states", async ({
   await page.evaluate((targetPath) => {
     window.history.pushState({}, "", targetPath);
     window.dispatchEvent(new PopStateEvent("popstate"));
-  }, `/diff/@${handle}/`);
+  }, `/diff/${handle}/`);
 
   await expect(
     page.getByRole("heading", { name: "Adopt Test Person" })

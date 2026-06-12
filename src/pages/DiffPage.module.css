@@ -1,21 +1,21 @@
 :root {
-  --bg-base: #0a0a0a;
-  --bg-surface: #111111;
-  --bg-elevated: #161616;
-  --border-default: #222222;
-  --border-strong: #333333;
-  --text-primary: #f0f0f0;
-  --text-secondary: #888888;
-  --text-tertiary: #555555;
-  --text-inverse: #0a0a0a;
-  --accent: #FF3870;
-  --accent-dim: #992244;
-  --accent-bg: #1f0f15;
-  --accent-border: #3d0a1e;
+  --bg-base: #0D0E12;
+  --bg-surface: #15161C;
+  --bg-elevated: #1C1D25;
+  --border-default: #24262E;
+  --border-strong: #32343F;
+  --text-primary: #E4E5E7;
+  --text-secondary: #9B9DA6;
+  --text-tertiary: #787B87;
+  --text-inverse: #111111;
+  --accent: #FF4081;
+  --accent-dim: rgba(255, 64, 129, 0.72);
+  --accent-bg: rgba(255, 64, 129, 0.12);
+  --accent-border: rgba(255, 64, 129, 0.28);
   --error: #ef4444;
   --success: #22c55e;
   --font-mono: 'Geist Mono', 'Berkeley Mono', 'JetBrains Mono', monospace;
-  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-sans: 'Inter', 'Geist', system-ui, sans-serif;
 }
 
 .page {
@@ -56,7 +56,7 @@
   padding: 12px 16px;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 2px;
+  border-radius: 3px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -69,7 +69,7 @@
   color: var(--accent);
   background: transparent;
   border: 1px solid var(--accent-border);
-  border-radius: 2px;
+  border-radius: 3px;
   cursor: pointer;
   transition: all 80ms ease;
 }
@@ -85,7 +85,7 @@
   padding: 16px;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 2px;
+  border-radius: 3px;
   margin-bottom: 24px;
 }
 
@@ -109,7 +109,7 @@
   padding: 20px;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
-  border-radius: 2px;
+  border-radius: 3px;
   cursor: pointer;
   transition: all 80ms ease;
   text-decoration: none;
@@ -198,7 +198,7 @@
   color: var(--accent);
   background: var(--accent-bg);
   border: 1px solid var(--accent-border);
-  border-radius: 2px;
+  border-radius: 3px;
   padding: 4px 8px;
 }
 
