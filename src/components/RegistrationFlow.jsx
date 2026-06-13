@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { NIGHTFALL } from '../theme';
+import Logomark from './Logomark';
 
 // ── Function pill config ────────────────────────────
 const FUNCTIONS = [
@@ -599,12 +600,7 @@ export function RegistrationFlow({
               <div style={styles.pageMeta}>HEYDEX.AI</div>
 
               <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                <div style={{
-                  fontSize: 48,
-                  color: S.accent,
-                  marginBottom: 16,
-                  lineHeight: 1,
-                }}>✳</div>
+                <Logomark size={44} color={S.accent} style={{ margin: '0 auto 16px' }} />
               </div>
 
               <h1 style={styles.pageTitle}>Connect to Dex</h1>

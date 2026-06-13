@@ -2,6 +2,7 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { useConvexAuth, useAction, useMutation, useQuery } from 'convex/react';
 import { useState, useEffect } from 'react';
 import { RegistrationFlow } from '../components/RegistrationFlow';
+import Logomark from '../components/Logomark';
 import { api } from '../../convex/_generated/api';
 import { NIGHTFALL } from '../theme';
 
@@ -179,12 +180,7 @@ export default function ConnectPage() {
             <div style={{ fontSize: 11, letterSpacing: '0.1em', color: NIGHTFALL.textTertiary, marginBottom: 32, textAlign: 'center' }}>HEYDEX.AI</div>
             
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
-              <div style={{
-                fontSize: 48,
-                color: NIGHTFALL.accent,
-                marginBottom: 16,
-                lineHeight: 1,
-              }}>✳</div>
+              <Logomark size={44} color={NIGHTFALL.accent} style={{ margin: '0 auto 16px' }} />
             </div>
 
             <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>Connect Dex to Heydex</h1>
@@ -265,7 +261,7 @@ export default function ConnectPage() {
           <div style={{ maxWidth: '400px', margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: 11, letterSpacing: '0.1em', color: NIGHTFALL.textTertiary, marginBottom: 32 }}>HEYDEX.AI</div>
 
-            <div style={{ fontSize: 48, color: NIGHTFALL.accent, marginBottom: 32, lineHeight: 1 }}>✳</div>
+            <Logomark size={44} color={NIGHTFALL.accent} style={{ margin: '0 auto 32px' }} />
 
             <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16 }}>You&apos;re signed in</h1>
             <p style={{ fontSize: 14, color: NIGHTFALL.textSecondary, marginBottom: 32 }}>
@@ -336,8 +332,8 @@ export default function ConnectPage() {
         <div style={{ maxWidth: '400px', margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
           <div style={{ fontSize: 11, letterSpacing: '0.1em', color: NIGHTFALL.textTertiary, marginBottom: 32 }}>HEYDEX.AI</div>
           
-          <div style={{ fontSize: 48, color: NIGHTFALL.accent, marginBottom: 32, lineHeight: 1 }}>✳</div>
-          
+          <Logomark size={44} color={NIGHTFALL.accent} style={{ margin: '0 auto 32px' }} />
+
           <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16 }}>Your sign-in code</h1>
           <p style={{ fontSize: 14, color: NIGHTFALL.textSecondary, marginBottom: 32 }}>
             Copy this code, go back to Dex, and paste it when Dex asks for it.
