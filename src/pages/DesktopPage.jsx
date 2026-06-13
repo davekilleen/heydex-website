@@ -1,5 +1,4 @@
-import { useConvexAuth, useQuery } from 'convex/react';
-import { useEffect } from 'react';
+import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import styles from './DesktopPage.module.css';
 
@@ -33,7 +32,7 @@ const feedbackSteps = [
 
 const gettingStartedSteps = [
   'Download the DMG and open it. The build is not yet signed, so the first launch is right click, then Open.',
-  'Sign in with Google or Microsoft. Your account is your identity in the beta.',
+  'Sign in with Google. Your account is your identity in the beta.',
   'Answer a few setup questions. Dex builds your workspace around your role and your goals.',
   'Read the guide. Ten minutes in the help pages will save you an hour of wondering.',
 ];
@@ -48,31 +47,12 @@ function Label({ children }) {
   return <div className={styles.label}>{children}</div>;
 }
 
-function LoadingState() {
-  return (
-    <main className={styles.loadingPage} aria-busy="true">
-      <p>Checking your invite</p>
-    </main>
-  );
-}
-
 export default function DesktopPage() {
-  const { isAuthenticated, isLoading } = useConvexAuth();
   const currentUser = useQuery(api.users.me);
-  const userIsLoading = isAuthenticated && currentUser === undefined;
   const firstName = getFirstName(currentUser);
   const heroSubcopy = firstName
     ? `Your AI chief of staff has lived in a command line. Starting today, it lives on your desktop. Welcome, ${firstName}. You are one of the first people in the world to use it.`
     : 'Your AI chief of staff has lived in a command line. Starting today, it lives on your desktop. You are one of the first people in the world to use it.';
-
-  useEffect(() => {
-    if (isLoading || isAuthenticated) return;
-    window.location.href = '/desktop/connect/?return=/desktop/';
-  }, [isAuthenticated, isLoading]);
-
-  if (isLoading || !isAuthenticated || userIsLoading) {
-    return <LoadingState />;
-  }
 
   return (
     <main className={styles.page}>
