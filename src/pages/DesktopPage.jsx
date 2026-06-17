@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../convex/_generated/api';
 import styles from './DesktopPage.module.css';
 
-const DOWNLOAD_HREF = '/desktop/downloads/Dex-1.0.0-arm64.dmg';
+const DOWNLOAD_HREF = '/desktop/downloads/Dex-arm64.dmg';
 const HELP_HOME_HREF = '/desktop/help/';
 const RELEASE_NOTES_HREF = '/desktop/help/releases.html';
 const FEEDBACK_HREF = '/desktop/help/giving-feedback.html';
@@ -32,7 +32,7 @@ const feedbackSteps = [
 ];
 
 const gettingStartedSteps = [
-  'Download the DMG and open it. The build is not yet signed, so the first launch is right click, then Open.',
+  'Download the DMG, open it, and drag Dex into your Applications folder.',
   'Sign in with Google. Your account is your identity in the beta.',
   'Answer a few setup questions. Dex builds your workspace around your role and your goals.',
   'Read the guide. Ten minutes in the help pages saves you an hour of wondering.',
@@ -133,7 +133,7 @@ export default function DesktopPage() {
           <div className={styles.heroActions}>
             <a className={styles.primaryButton} href={DOWNLOAD_HREF}>
               <span>Download for Mac</span>
-              <span className={styles.buttonMeta}>v1.0.0 · Apple Silicon · 166 MB</span>
+              <span className={styles.buttonMeta}>Beta · Apple Silicon</span>
             </a>
           </div>
           <div className={styles.heroLinks}>
