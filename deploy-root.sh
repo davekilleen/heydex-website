@@ -12,8 +12,9 @@
 # assets move together so the homepage and its images can never diverge again.
 # deploy.sh calls it on every frontend deploy.
 #
-# Additive/idempotent: it only writes /var/www/heydex/index.html and the named
-# image files. It does NOT touch /diff, /connect, or the Caddy config.
+# Additive/idempotent: it only writes /var/www/heydex/index.html, the named
+# image files, and the shots/ and clips/ asset dirs (the homepage references
+# ./shots/* and ./clips/*). It does NOT touch /diff, /connect, or the Caddy config.
 #
 # Usage:  ./deploy-root.sh
 set -e
@@ -33,17 +34,29 @@ PHOTOS=(dave-stage.png ed-biden.png matt-lemay.png og-image.png)
 for f in "${PHOTOS[@]}"; do
   [ -f "$DIR/$f" ] || { echo "✗ missing local source: $f" >&2; exit 1; }
 done
+# Asset dirs the homepage references via ./shots/* and ./clips/* (must be non-empty).
+for d in shots clips; do
+  { [ -d "$DIR/$d" ] && [ -n "$(ls -A "$DIR/$d" 2>/dev/null)" ]; } || { echo "✗ missing or empty local asset dir: $d" >&2; exit 1; }
+done
 
 echo "→ Staging root page + assets on host..."
 ssh -i "$SSH_KEY" "$VPS" "mkdir -p /tmp/heydex-root"
 scp -i "$SSH_KEY" "$DIR/$ROOT_HTML" "${PHOTOS[@]/#/$DIR/}" "$VPS:/tmp/heydex-root/"
+# Stage the asset dirs into the staging area (trailing slashes = sync dir contents).
+# --delete here only mirrors INTO the temp staging subdirs, never the live web root.
+rsync -az --delete -e "ssh -i $SSH_KEY" "$DIR/shots/" "$VPS:/tmp/heydex-root/shots/"
+rsync -az --delete -e "ssh -i $SSH_KEY" "$DIR/clips/" "$VPS:/tmp/heydex-root/clips/"
 
 echo "→ Promoting to live (/var/www/heydex/)..."
 ssh -i "$SSH_KEY" "$VPS" "\
   sudo cp /tmp/heydex-root/$ROOT_HTML /var/www/heydex/index.html && \
   sudo cp /tmp/heydex-root/*.png /var/www/heydex/ && \
   sudo chown dex:dex /var/www/heydex/index.html && \
-  for f in ${PHOTOS[*]}; do sudo chown dex:dex \"/var/www/heydex/\$f\"; done"
+  for f in ${PHOTOS[*]}; do sudo chown dex:dex \"/var/www/heydex/\$f\"; done && \
+  sudo mkdir -p /var/www/heydex/shots /var/www/heydex/clips && \
+  sudo rsync -a --delete /tmp/heydex-root/shots/ /var/www/heydex/shots/ && \
+  sudo rsync -a --delete /tmp/heydex-root/clips/ /var/www/heydex/clips/ && \
+  sudo chown -R dex:dex /var/www/heydex/shots /var/www/heydex/clips"
 
 echo "→ Verifying live..."
 fail=0
@@ -59,6 +72,12 @@ fi
 for f in "${PHOTOS[@]}"; do
   code=$(curl -sS -o /dev/null -w "%{http_code}" "https://heydex.ai/$f")
   echo "  https://heydex.ai/$f → $code"
+  [ "$code" = "200" ] || fail=1
+done
+# Spot-check one asset from each synced dir.
+for a in shots/brief-home.png clips/plan.mp4; do
+  code=$(curl -sS -o /dev/null -w "%{http_code}" "https://heydex.ai/$a")
+  echo "  https://heydex.ai/$a → $code"
   [ "$code" = "200" ] || fail=1
 done
 
