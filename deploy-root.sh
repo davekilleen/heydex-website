@@ -27,16 +27,24 @@ ROOT_HTML="index-landing.html"
 # Root-relative image assets the landing page references.
 # og-image.png is the Open Graph social-share card (source: og-image.html).
 PHOTOS=(dave-stage.png ed-biden.png matt-lemay.png og-image.png)
+# Asset directories (shots/, clips/) referenced by relative paths in the landing page.
+ASSET_DIRS=(shots clips)
 
 # Fail early if any source is missing locally.
 [ -f "$DIR/$ROOT_HTML" ] || { echo "✗ missing local source: $ROOT_HTML" >&2; exit 1; }
 for f in "${PHOTOS[@]}"; do
   [ -f "$DIR/$f" ] || { echo "✗ missing local source: $f" >&2; exit 1; }
 done
+for d in "${ASSET_DIRS[@]}"; do
+  [ -d "$DIR/$d" ] || { echo "✗ missing local asset dir: $d" >&2; exit 1; }
+done
 
 echo "→ Staging root page + assets on host..."
 ssh -i "$SSH_KEY" "$VPS" "mkdir -p /tmp/heydex-root"
 scp -i "$SSH_KEY" "$DIR/$ROOT_HTML" "${PHOTOS[@]/#/$DIR/}" "$VPS:/tmp/heydex-root/"
+for d in "${ASSET_DIRS[@]}"; do
+  rsync -az --delete -e "ssh -i $SSH_KEY" "$DIR/$d/" "$VPS:/tmp/heydex-root-$d/"
+done
 
 echo "→ Promoting to live (/var/www/heydex/)..."
 ssh -i "$SSH_KEY" "$VPS" "\
@@ -44,6 +52,9 @@ ssh -i "$SSH_KEY" "$VPS" "\
   sudo cp /tmp/heydex-root/*.png /var/www/heydex/ && \
   sudo chown dex:dex /var/www/heydex/index.html && \
   for f in ${PHOTOS[*]}; do sudo chown dex:dex \"/var/www/heydex/\$f\"; done"
+for d in "${ASSET_DIRS[@]}"; do
+  ssh -i "$SSH_KEY" "$VPS" "sudo mkdir -p /var/www/heydex/$d && sudo rsync -a --delete /tmp/heydex-root-$d/ /var/www/heydex/$d/ && sudo chown -R dex:dex /var/www/heydex/$d"
+done
 
 echo "→ Verifying live..."
 fail=0
@@ -61,5 +72,11 @@ for f in "${PHOTOS[@]}"; do
   echo "  https://heydex.ai/$f → $code"
   [ "$code" = "200" ] || fail=1
 done
+code=$(curl -sS -o /dev/null -w "%{http_code}" "https://heydex.ai/shots/brief-home.png")
+echo "  https://heydex.ai/shots/brief-home.png → $code"
+[ "$code" = "200" ] || fail=1
+code=$(curl -sS -o /dev/null -w "%{http_code}" "https://heydex.ai/clips/plan.mp4")
+echo "  https://heydex.ai/clips/plan.mp4 → $code"
+[ "$code" = "200" ] || fail=1
 
 [ "$fail" = "0" ] && echo "✓ Root marketing page + assets deployed" || { echo "✗ verification failed" >&2; exit 1; }
