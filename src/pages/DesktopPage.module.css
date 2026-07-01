@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 :root {
   --bg-base: #0D0E12;
@@ -15,6 +15,7 @@
   --accent-bg: rgba(255, 64, 129, 0.12);
   --font-mono: 'Geist Mono', 'Berkeley Mono', 'JetBrains Mono', monospace;
   --font-sans: 'Inter', 'Geist', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
 }
 
 .page,
@@ -31,6 +32,7 @@
 
 .page {
   width: 100%;
+  position: relative;
   overflow-x: hidden;
 }
 
@@ -55,15 +57,30 @@
   text-transform: uppercase;
 }
 
+/* The constellation: one warm accent glowing in the corner, behind everything. */
+.constellation {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 470px;
+  height: 388px;
+  max-width: 64vw;
+  color: var(--accent);
+  pointer-events: none;
+  z-index: 0;
+}
+
 .section {
+  position: relative;
+  z-index: 1;
   width: min(1120px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 64px 0;
+  padding: 40px 0;
 }
 
 .hero {
-  padding-top: 96px;
-  padding-bottom: 72px;
+  padding-top: 56px;
+  padding-bottom: 44px;
 }
 
 .heroCopy {
@@ -71,12 +88,12 @@
 }
 
 .label {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -86,13 +103,15 @@
 .feedbackIntro h2 {
   margin: 0;
   color: var(--text-primary);
-  font-weight: 500;
-  line-height: 1.02;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
 }
 
 .hero h1 {
   max-width: 760px;
-  font-size: clamp(44px, 5.5vw, 76px);
+  font-size: clamp(40px, 5vw, 64px);
 }
 
 .heroCopy p,
@@ -102,25 +121,48 @@
 .stepsList p {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 17px;
-  font-weight: 300;
-  line-height: 1.75;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 .heroCopy p {
-  max-width: 650px;
-  margin-top: 20px;
+  max-width: 600px;
+  margin-top: 16px;
   color: var(--text-secondary);
-  font-size: 19px;
-  line-height: 1.65;
+  font-size: 18px;
+  line-height: 1.55;
 }
 
 .heroActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  margin-top: 28px;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.heroLinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.heroLinks a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-strong);
+  padding-bottom: 1px;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.heroLinks a:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-dim);
 }
 
 .primaryButton,
@@ -142,7 +184,7 @@
 }
 
 .primaryButton {
-  min-height: 58px;
+  min-height: 56px;
   flex-direction: column;
   gap: 2px;
   padding: 12px 22px;
@@ -179,24 +221,24 @@
 .stepsSection {
   display: grid;
   grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1fr);
-  gap: 56px;
+  gap: 44px;
 }
 
 .copyGrid h2,
 .stepsSection h2,
 .feedbackIntro h2 {
-  font-size: clamp(30px, 3.6vw, 46px);
+  font-size: clamp(26px, 3vw, 38px);
 }
 
 .bodyStack {
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .letterCard {
   max-width: 860px;
   margin: 0 auto;
-  padding: 40px;
+  padding: 36px;
   border: 1px solid var(--border-default);
   border-radius: 3px;
   background: var(--bg-surface);
@@ -204,7 +246,7 @@
 
 .letterBody {
   display: grid;
-  gap: 20px;
+  gap: 14px;
 }
 
 .signature {
@@ -213,8 +255,8 @@
 
 .stepsList {
   display: grid;
-  gap: 18px;
-  margin: 0 0 32px;
+  gap: 14px;
+  margin: 0 0 28px;
   padding: 0;
   list-style: none;
   counter-reset: desktop-steps;
@@ -223,8 +265,8 @@
 .stepsList li {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
-  gap: 24px;
-  padding-bottom: 18px;
+  gap: 22px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--border-default);
 }
 
@@ -236,7 +278,7 @@
 }
 
 .outlineButton {
-  min-height: 48px;
+  min-height: 46px;
   padding: 12px 18px;
   border: 1px solid var(--border-strong);
   color: var(--text-primary);
@@ -253,14 +295,14 @@
 }
 
 .feedbackIntro p {
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .visualStrip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin: 28px 0 20px;
+  margin: 24px 0 18px;
 }
 
 .visualItem {
@@ -269,11 +311,95 @@
 }
 
 .imageFrame {
+  display: block;
+  width: 100%;
+  padding: 0;
   aspect-ratio: 4 / 3;
   overflow: hidden;
   border: 1px solid var(--border-default);
   border-radius: 3px;
   background: var(--bg-surface);
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.imageFrame:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-2px);
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px;
+  background: rgba(5, 5, 7, 0.9);
+}
+
+.lightboxFigure {
+  margin: 0;
+  max-width: min(1000px, 88vw);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lightboxFigure img {
+  width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: var(--bg-surface);
+}
+
+.lightboxFigure figcaption {
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lightboxClose {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lightboxClose:hover {
+  color: var(--text-primary);
+}
+
+.lightboxNav {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 20px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.lightboxNav:hover {
+  border-color: var(--accent-dim);
+  background: var(--bg-elevated);
 }
 
 .imageFrame img {
@@ -293,6 +419,8 @@
 }
 
 .footer {
+  position: relative;
+  z-index: 1;
   width: min(1120px, calc(100% - 48px));
   margin: 0 auto;
   padding: 28px 0 44px;
@@ -344,35 +472,36 @@
 @media (max-width: 900px) {
   .section {
     width: min(100% - 32px, 640px);
-    padding: 48px 0;
+    padding: 36px 0;
   }
 
   .hero,
   .copyGrid,
   .stepsSection {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 28px;
   }
 
   .hero {
     min-height: auto;
-    padding-top: 56px;
-  }
-
-  .hero h1 {
-    font-size: clamp(48px, 14vw, 72px);
+    padding-top: 44px;
   }
 
   .heroCopy p {
-    font-size: 18px;
+    font-size: 17px;
   }
 
   .letterCard {
-    padding: 32px 24px;
+    padding: 28px 22px;
   }
 
   .visualStrip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .constellation {
+    max-width: 80vw;
+    opacity: 0.7;
   }
 
   .footer {
@@ -382,17 +511,12 @@
 
 @media (max-width: 560px) {
   .heroActions,
-  .primaryButton,
-  .outlineButton {
+  .primaryButton {
     width: 100%;
   }
 
   .heroActions {
     align-items: stretch;
-  }
-
-  .secondaryLink {
-    justify-content: center;
   }
 
   .stepsList li {

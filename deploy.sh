@@ -124,7 +124,7 @@ ssh -i "$SSH_KEY" "$VPS" "sudo rm -rf ${LIVE_DIFF}* ${LIVE_CONNECT}* && sudo cp 
 ssh -i "$SSH_KEY" "$VPS" "sudo mkdir -p $LIVE_DESKTOP && sudo rsync -a --delete --exclude downloads/ $STAGING/desktop/ $LIVE_DESKTOP && sudo chmod 755 $LIVE_DESKTOP && sudo chown -R dex:dex $LIVE_DESKTOP"
 
 # Beta DMG: ship the installer through the same staging pipeline when provided.
-# Usage: DESKTOP_DMG=~/Downloads/Dex-1.0.0-arm64.dmg ./deploy.sh
+# Usage: DESKTOP_DMG=~/Downloads/Dex-arm64.dmg ./deploy.sh
 if [ -n "${DESKTOP_DMG:-}" ]; then
   if [ ! -f "$DESKTOP_DMG" ]; then
     echo "DESKTOP_DMG set but file not found: $DESKTOP_DMG" >&2
