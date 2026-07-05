@@ -6,6 +6,7 @@ heydex.ai, www.heydex.ai {
 	redir /diff /diff/ 308
 	redir /connect /connect/ 308
 	redir /desktop /desktop/ 308
+	redir /dispatch /dispatch/ 308
 	redir /diff/profile /diff/profile/ 308
 	redir /diff/review /diff/review/ 308
 
@@ -14,6 +15,12 @@ heydex.ai, www.heydex.ai {
 	# host in /etc/caddy/desktop-gate.caddy. This repo is public; never commit
 	# password hashes here.
 	import /etc/caddy/desktop-gate.caddy
+
+	# Dex Dispatch founder's log: private single-page site for Dave, published by
+	# agent sessions via rsync to /var/www/dispatch (outside the public web root so
+	# a routing mistake can never expose it). Same host-only credential pattern as
+	# the desktop gate: hash lives in /etc/caddy/dispatch-gate.caddy, never here.
+	import /etc/caddy/dispatch-gate.caddy
 
 	# Exact/special-case React ownership must win before generic /diff/* handling.
 	@profile {
@@ -73,6 +80,17 @@ heydex.ai, www.heydex.ai {
 		root * /var/www/heydex/desktop
 		uri strip_prefix /desktop
 		try_files {path}/index.html {path} /index.html
+		file_server
+	}
+
+	@dispatch {
+		path /dispatch /dispatch/*
+	}
+	handle @dispatch {
+		root * /var/www/dispatch
+		uri strip_prefix /dispatch
+		header X-Robots-Tag "noindex, nofollow, noarchive"
+		try_files {path} /index.html
 		file_server
 	}
 
