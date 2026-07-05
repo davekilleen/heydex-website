@@ -1,5 +1,22 @@
 # Deployment
 
+## Convex Deployments
+
+DexDiff has its own dedicated Convex project as of 2026-07-05. It no longer
+shares a project with the desktop app; the hosted `/diff` + `/connect` surface
+and the desktop app backend are intentionally separate.
+
+| Surface | Convex project | Deployment | URL |
+|---|---|---|---|
+| `/diff` + `/connect` (PROD) | `heydex-web` | `gallant-reindeer-229` | `https://gallant-reindeer-229.eu-west-1.convex.cloud` |
+| `/diff` + `/connect` (dev) | `heydex-web` | `bright-sandpiper-976` | `https://bright-sandpiper-976.eu-west-1.convex.cloud` |
+| Legacy dev/test deployment (e2e suites, CI target) | `dex` | `brave-ibex-877` | `https://brave-ibex-877.eu-west-1.convex.cloud` |
+| `/desktop` portal + desktop app backend | `dex` | `focused-mouse-723` | `https://focused-mouse-723.eu-west-1.convex.cloud` |
+
+`deploy.sh` bakes `gallant-reindeer-229` into the `/diff`+`/connect` bundles
+(Google-only sign-in via `VITE_AUTH_PROVIDERS=google`) and aborts if a bundle
+references any other deployment.
+
 ## What Actually Deploys From This Repo
 
 This repo deploys two different things:
