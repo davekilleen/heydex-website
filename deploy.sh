@@ -22,9 +22,10 @@ LIVE_CONNECT="/var/www/heydex/connect/"
 LIVE_DESKTOP="/var/www/heydex/desktop/"
 DESKTOP_HELP_SITE="${DESKTOP_HELP_SITE:-$(dirname "$0")/../dex-desktop-concierge/help/site/}"
 DESKTOP_HELP_SITE="${DESKTOP_HELP_SITE%/}/"
-DIFF_CONVEX_URL="${DIFF_CONVEX_URL:-https://brave-ibex-877.eu-west-1.convex.cloud}"
+DIFF_CONVEX_URL="${DIFF_CONVEX_URL:-https://gallant-reindeer-229.eu-west-1.convex.cloud}"
 DESKTOP_CONVEX_URL="${DESKTOP_CONVEX_URL:-https://focused-mouse-723.eu-west-1.convex.cloud}"
 DIFF_REQUIRE_AUTH="${VITE_REQUIRE_AUTH:-1}"
+DIFF_AUTH_PROVIDERS="${DIFF_AUTH_PROVIDERS:-google}"
 
 # The live route precedence is defined by Caddy on the host and mirrored in
 # ops/Caddyfile.heydex. This script only updates the static assets under those roots.
@@ -38,10 +39,11 @@ DIFF_REQUIRE_AUTH="${VITE_REQUIRE_AUTH:-1}"
 #
 # The React app is deployed as three route-scoped copies, but those copies do
 # not all talk to the same Convex deployment. DexDiff routes (/diff and
-# /connect) use brave-ibex-877. The desktop beta portal (/desktop) uses
-# focused-mouse-723. Build each backend target independently so Vite bakes the
-# right Convex URL into each bundle. The DexDiff build also carries the
-# temporary auth gate flag; the desktop build does not.
+# /connect) use gallant-reindeer-229 (project heydex-web, PROD; dev is
+# bright-sandpiper-976). The desktop beta portal (/desktop) uses focused-mouse-723.
+# Build each backend target independently so Vite bakes the right Convex URL
+# into each bundle. The DexDiff build also carries the temporary auth gate
+# flag and the Google-only sign-in flag; the desktop build does not.
 
 cleanup() {
   rm -rf "$TMP_DIFF" "$TMP_CONNECT" "$TMP_DESKTOP"
@@ -52,6 +54,7 @@ echo "🏗️ Building DexDiff React app..."
 (
   export VITE_CONVEX_URL="$DIFF_CONVEX_URL"
   export VITE_REQUIRE_AUTH="$DIFF_REQUIRE_AUTH"
+  export VITE_AUTH_PROVIDERS="$DIFF_AUTH_PROVIDERS"
   npm run build
 )
 cp -R dist/. "$TMP_DIFF/"
@@ -83,20 +86,35 @@ for index in range(1, len(sys.argv), 2):
     inject_base(sys.argv[index], sys.argv[index + 1])
 PY
 
-if grep -rqs "focused-mouse-723" "$TMP_DIFF"; then
-  echo "ABORT: diff copy references the desktop Convex deployment (focused-mouse-723)." >&2
+# Tripwires: a bundle baked with the wrong Convex deployment is a silent prod
+# outage. Reject every known-wrong URL and require the right one to be present.
+for wrong in focused-mouse-723 brave-ibex-877 bright-sandpiper-976; do
+  if grep -rqs "$wrong" "$TMP_DIFF"; then
+    echo "ABORT: diff copy references the wrong Convex deployment ($wrong)." >&2
+    exit 1
+  fi
+  if grep -rqs "$wrong" "$TMP_CONNECT"; then
+    echo "ABORT: connect copy references the wrong Convex deployment ($wrong)." >&2
+    exit 1
+  fi
+done
+
+if ! grep -rqs "gallant-reindeer-229" "$TMP_DIFF"; then
+  echo "ABORT: diff copy does not reference the DexDiff prod deployment (gallant-reindeer-229)." >&2
   exit 1
 fi
 
-if grep -rqs "focused-mouse-723" "$TMP_CONNECT"; then
-  echo "ABORT: connect copy references the desktop Convex deployment (focused-mouse-723)." >&2
+if ! grep -rqs "gallant-reindeer-229" "$TMP_CONNECT"; then
+  echo "ABORT: connect copy does not reference the DexDiff prod deployment (gallant-reindeer-229)." >&2
   exit 1
 fi
 
-if grep -rqs "brave-ibex-877" "$TMP_DESKTOP"; then
-  echo "ABORT: desktop copy references the DexDiff Convex deployment (brave-ibex-877)." >&2
-  exit 1
-fi
+for wrong in brave-ibex-877 bright-sandpiper-976 gallant-reindeer-229; do
+  if grep -rqs "$wrong" "$TMP_DESKTOP"; then
+    echo "ABORT: desktop copy references a DexDiff Convex deployment ($wrong)." >&2
+    exit 1
+  fi
+done
 
 if [ "$1" = "--dry-run" ]; then
   echo "=== DRY RUN ==="
