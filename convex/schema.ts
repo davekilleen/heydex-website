@@ -67,8 +67,10 @@ export default defineSchema({
       v.literal("archived")
     ),
     publishedAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_authorHandle_and_diffId", ["authorHandle", "diffId"])
+    .index("by_authorId_and_diffId", ["authorId", "diffId"])
     .index("by_authorId", ["authorId"])
     .index("by_status", ["status"])
     .index("by_adoptionCount", ["adoptionCount"]),

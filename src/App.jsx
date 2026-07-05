@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ConnectPage from './pages/ConnectPage';
+import CompanyPage from './pages/CompanyPage';
 import DesktopPage from './pages/DesktopPage';
 import DiffPage from './pages/DiffPage';
 import HadexExplorationPage from './pages/HadexExplorationPage';
@@ -25,6 +26,8 @@ export default function App() {
       <Route path="/diff/" element={withAuthGate(<DiffPage />)} />
       <Route path="/diff/profile" element={withAuthGate(<MyProfilePage />)} />
       <Route path="/diff/profile/" element={withAuthGate(<MyProfilePage />)} />
+      <Route path="/diff/company" element={withAuthGate(<CompanyPage />)} />
+      <Route path="/diff/company/" element={withAuthGate(<CompanyPage />)} />
       <Route path="/diff/review" element={<ReviewPage />} />
       <Route path="/diff/review/" element={<ReviewPage />} />
       <Route path="/explorations/hadex" element={<HadexExplorationPage />} />

@@ -7,19 +7,23 @@ import './MyProfilePage.css';
 
 const VISIBILITY_OPTIONS = [
   {
-    id: 'public',
-    label: 'Public',
-    blurb: 'Anyone can view your profile on Heydex.',
-  },
-  {
     id: 'colleagues',
     label: 'Colleagues only',
-    blurb: 'Only people from your company can view it.',
+    blurb: 'Recommended for V1. Only people from your company can view it.',
+    badge: 'Recommended',
+    requiresCompany: true,
   },
   {
     id: 'private',
     label: 'Private first',
     blurb: 'Only you can view it for now.',
+  },
+  {
+    id: 'public',
+    label: 'Public',
+    blurb:
+      'Coming soon: saved as public, but V1 still requires sign-in before anyone outside your company can view it.',
+    badge: 'Coming soon',
   },
 ];
 
@@ -72,13 +76,15 @@ export default function MyProfilePage() {
   const userDiffs = myDiffs || [];
   const isEmpty = userDiffs.length === 0;
   const visibility = currentUser.visibility ?? (currentUser.isPublic ? 'public' : 'private');
+  const canUseColleagues = Boolean(currentUser.companyId);
+  const companyLabel = currentUser.company || currentUser.domain || 'your company';
   const publicProfileUrl = `/diff/${currentUser.handle}/`;
   const profileCommand = `/diff-adopt-profile @${currentUser.handle}`;
   const publicProfileLabel =
     visibility === 'public'
-      ? `Live at heydex.ai${publicProfileUrl}`
+      ? 'Saved as public. Wider public viewing is coming soon; V1 remains sign-in gated.'
       : visibility === 'colleagues'
-        ? `Visible only to colleagues at ${currentUser.company || 'your company'}`
+        ? `Visible only to colleagues at ${companyLabel}`
         : 'Only you can see this right now';
 
   async function handleSaveProfile() {
@@ -95,6 +101,7 @@ export default function MyProfilePage() {
 
   async function handleVisibilityChange(nextVisibility) {
     if (nextVisibility === visibility) return;
+    if (nextVisibility === 'colleagues' && !canUseColleagues) return;
     await setVisibility({ visibility: nextVisibility });
   }
 
@@ -170,6 +177,11 @@ export default function MyProfilePage() {
             {visibility !== 'private' && (
               <a href={publicProfileUrl} className="profile-link-pill">
                 View profile
+              </a>
+            )}
+            {canUseColleagues && (
+              <a href="/diff/company/" className="profile-link-pill">
+                See how {companyLabel} uses Dex
               </a>
             )}
           </div>
@@ -369,24 +381,33 @@ export default function MyProfilePage() {
               </div>
               <div className="profile-visibility-options">
                 {VISIBILITY_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className={`profile-visibility-option${
-                      visibility === option.id ? ' profile-visibility-option-active' : ''
-                    }`}
-                    onClick={() => handleVisibilityChange(option.id)}
-                  >
-                    <div className="profile-visibility-title">
-                      <span>{option.label}</span>
-                      {option.id === 'public' && <em>Recommended</em>}
-                    </div>
-                    <div>
-                      {option.id === 'colleagues' && currentUser.company
-                        ? `${option.blurb} For you, that means colleagues working at ${currentUser.company}.`
-                        : option.blurb}
-                    </div>
-                  </button>
+                  (() => {
+                    const disabled = option.requiresCompany && !canUseColleagues;
+                    const blurb =
+                      option.id === 'colleagues'
+                        ? disabled
+                          ? 'Use a work email to join a company before sharing with colleagues.'
+                          : `${option.blurb} For you, that means colleagues working at ${companyLabel}.`
+                        : option.blurb;
+
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={`profile-visibility-option${
+                          visibility === option.id ? ' profile-visibility-option-active' : ''
+                        }${disabled ? ' profile-visibility-option-disabled' : ''}`}
+                        onClick={() => handleVisibilityChange(option.id)}
+                        disabled={disabled}
+                      >
+                        <div className="profile-visibility-title">
+                          <span>{option.label}</span>
+                          {option.badge && <em>{option.badge}</em>}
+                        </div>
+                        <div>{blurb}</div>
+                      </button>
+                    );
+                  })()
                 ))}
               </div>
             </section>

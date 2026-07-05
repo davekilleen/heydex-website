@@ -155,7 +155,7 @@ if [ -n "${DESKTOP_DMG:-}" ]; then
 fi
 
 echo "→ Deploying static HTML subdirectories..."
-STATIC_SUBDIRS="community company love-letters roadmap welcome admin like-dave"
+STATIC_SUBDIRS="community love-letters roadmap welcome admin like-dave"
 for subdir in $STATIC_SUBDIRS; do
   echo "  Copying diff/$subdir/..."
   rsync -avz -e "ssh -i $SSH_KEY" "$(dirname "$0")/diff/$subdir/" "$VPS:/tmp/heydex-static-$subdir/"

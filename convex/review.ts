@@ -2,6 +2,10 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { sanitizeContent } from "./sanitization";
+import {
+  assertVisibilityAllowedForUser,
+  canUseColleaguesVisibility,
+} from "./users";
 import { requireViewerForMutation } from "./viewer";
 
 const REVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
@@ -239,6 +243,7 @@ export const getSession = query({
         linkedinUrl: user.linkedinUrl || "",
       },
       visibility: getSessionVisibility(session),
+      canUseColleagues: canUseColleaguesVisibility(user),
       loveLetterDraft: session.loveLetterDraft ?? "",
       makePublic: getSessionVisibility(session) === "public",
       needsRegistration: !user.handle, // True if user hasn't completed registration
@@ -259,6 +264,14 @@ export const updateVisibility = mutation({
   handler: async (ctx, args) => {
     const session = await getReviewSessionByCode(ctx, args.sessionCode);
     assertSessionEditable(session);
+
+    if (args.visibility === "colleagues") {
+      const user = await ctx.db.get(session.userId);
+      if (!user) {
+        throw new Error("User not found");
+      }
+      assertVisibilityAllowedForUser(user, args.visibility);
+    }
 
     await ctx.db.patch(session._id, {
       visibility: args.visibility,
@@ -385,9 +398,11 @@ export const publishFromSession = mutation({
     }
 
     const visibility = getSessionVisibility(session);
+    assertVisibilityAllowedForUser(user, visibility);
 
     // Publish all diffs
     const publishedIds: string[] = [];
+    const now = Date.now();
     for (const diff of session.diffsData) {
       // Sanitize content
       const sanitizedName = sanitizeContent(diff.name);
@@ -397,8 +412,8 @@ export const publishFromSession = mutation({
       // Check if diff already exists
       const existing = await ctx.db
         .query("diffs")
-        .withIndex("by_authorHandle_and_diffId", (q) =>
-          q.eq("authorHandle", user.handle!).eq("diffId", diff.diffId)
+        .withIndex("by_authorId_and_diffId", (q) =>
+          q.eq("authorId", user._id).eq("diffId", diff.diffId)
         )
         .unique();
 
@@ -412,7 +427,8 @@ export const publishFromSession = mutation({
           roles: diff.roles,
           integrations: diff.integrations,
           status: "published" as const,
-          publishedAt: Date.now(),
+          publishedAt: existing.publishedAt ?? now,
+          updatedAt: now,
         });
         publishedIds.push(existing._id);
       } else {
@@ -430,7 +446,8 @@ export const publishFromSession = mutation({
           adoptionCount: 0,
           activeUserCount: 0,
           status: "published",
-          publishedAt: Date.now(),
+          publishedAt: now,
+          updatedAt: now,
         });
         publishedIds.push(id);
       }

@@ -441,6 +441,12 @@
   padding: 16px;
 }
 
+.profile-visibility-option:disabled,
+.profile-visibility-option-disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 .profile-visibility-option-active {
   border-color: var(--accent-border);
   background: var(--accent-bg);
