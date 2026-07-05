@@ -15,7 +15,7 @@ and the desktop app backend are intentionally separate.
 
 `deploy.sh` bakes `gallant-reindeer-229` into the `/diff`+`/connect` bundles
 (Google-only sign-in via `VITE_AUTH_PROVIDERS=google`) and aborts if a bundle
-references any other deployment.
+references a known-wrong deployment.
 
 ## What Actually Deploys From This Repo
 

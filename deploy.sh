@@ -39,7 +39,7 @@ DIFF_AUTH_PROVIDERS="${DIFF_AUTH_PROVIDERS:-google}"
 #
 # The React app is deployed as three route-scoped copies, but those copies do
 # not all talk to the same Convex deployment. DexDiff routes (/diff and
-# /connect) use gallant-reindeer-229 (project heydex-web, PROD — dev is
+# /connect) use gallant-reindeer-229 (project heydex-web, PROD; dev is
 # bright-sandpiper-976). The desktop beta portal (/desktop) uses focused-mouse-723.
 # Build each backend target independently so Vite bakes the right Convex URL
 # into each bundle. The DexDiff build also carries the temporary auth gate
