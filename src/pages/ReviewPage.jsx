@@ -6,22 +6,25 @@ import './ReviewPage.css';
 
 const VISIBILITY_OPTIONS = [
   {
-    id: 'public',
-    label: 'Public',
-    blurb:
-      'Anyone can view it on Heydex. Best for helping more people on their AI journey by sharing how you work with AI.',
-  },
-  {
     id: 'colleagues',
     label: 'Colleagues only',
     blurb:
-      'Only people from your company can view how you work with AI.',
+      'Recommended for V1. Only people from your company can view how you work with AI.',
+    badge: 'Recommended',
+    requiresCompany: true,
   },
   {
     id: 'private',
     label: 'Private first',
     blurb:
       'Only you can view it until you decide to share it more widely later.',
+  },
+  {
+    id: 'public',
+    label: 'Public',
+    blurb:
+      'Coming soon: saved as public, but V1 still requires sign-in before anyone outside your company can view it.',
+    badge: 'Coming soon',
   },
 ];
 
@@ -76,12 +79,12 @@ function getPublishLabel(sessionKind, visibility) {
     return 'Share with colleagues';
   }
   if (sessionKind === 'loveLetter') {
-    return 'Publish love letter publicly';
+    return 'Save public love letter setting';
   }
   if (sessionKind === 'combined') {
-    return 'Publish profile and letter publicly';
+    return 'Save public profile setting';
   }
-  return 'Publish publicly';
+  return 'Save public setting';
 }
 
 function getPublishSummary(sessionKind, visibility, companyName) {
@@ -106,13 +109,13 @@ function getPublishSummary(sessionKind, visibility, companyName) {
   }
 
   return [
-    'Your profile goes live on Heydex.',
+    'Your profile is saved with public visibility.',
     sessionKind === 'loveLetter'
-      ? 'The Love Letter appears with your profile header.'
+      ? 'The Love Letter is ready for the public surface when it opens.'
       : sessionKind === 'combined'
-        ? 'Your Love Letter appears above the workflow list.'
-        : 'Your workflows appear in the order shown below.',
-    'You can come back and edit later.',
+        ? 'Your Love Letter and workflows are ready for the public surface when it opens.'
+        : 'Your workflows are ready for the public surface when it opens.',
+    'For V1, viewing still requires sign-in; wider public discovery is coming soon.',
   ];
 }
 
@@ -174,6 +177,13 @@ function normalizeMutationError(error) {
     return { errorCode: 'NOT_FOUND', error: 'This review link is no longer available.' };
   }
 
+  if (message.includes('COLLEAGUES_REQUIRES_COMPANY')) {
+    return {
+      errorCode: 'UNKNOWN',
+      error: 'Use a work email to join a company before sharing with colleagues.',
+    };
+  }
+
   return { errorCode: 'UNKNOWN', error: message };
 }
 
@@ -218,6 +228,7 @@ export default function ReviewPage() {
 
   const sessionKind = sessionData?.sessionKind ?? 'diffs';
   const hero = getHeroCopy(sessionKind);
+  const canUseColleagues = sessionData?.canUseColleagues === true;
 
   const profileUrl = useMemo(() => {
     if (!sessionData?.userHandle) return null;
@@ -316,6 +327,7 @@ export default function ReviewPage() {
 
   async function handleVisibilityChange(nextVisibility) {
     if (nextVisibility === visibility) return;
+    if (nextVisibility === 'colleagues' && !canUseColleagues) return;
     const previousVisibility = visibility;
     setVisibility(nextVisibility);
     setActionError('');
@@ -736,32 +748,42 @@ export default function ReviewPage() {
                 <span className="review-kicker">Who can see it?</span>
                 <h2>Choose how widely you want to share it.</h2>
                 <p className="review-subcopy">
-                  Public helps more people. Colleagues only keeps it inside your company. Private first lets you publish safely before widening it.
+                  Colleagues only keeps it inside your company. Private first lets you publish safely. Public is parked for the wider surface coming next.
                 </p>
               </div>
 
               <div className="review-audience-options">
                 {VISIBILITY_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className={`review-audience-option${
-                      visibility === option.id ? ' review-audience-option-active' : ''
-                    }`}
-                    onClick={() => handleVisibilityChange(option.id)}
-                  >
-                    <div className="review-audience-title-row">
-                      <span>{option.label}</span>
-                      {option.id === 'public' && (
-                        <span className="review-recommended-pill">Recommended</span>
-                      )}
-                    </div>
-                    <div className="review-audience-blurb">
-                      {option.id === 'colleagues' && profileDraft?.company
-                        ? `${option.blurb} For you, that means colleagues working at ${profileDraft.company}.`
-                        : option.blurb}
-                    </div>
-                  </button>
+                  (() => {
+                    const disabled = option.requiresCompany && !canUseColleagues;
+                    const companyLabel = profileDraft?.company || 'your company';
+                    const blurb =
+                      option.id === 'colleagues'
+                        ? disabled
+                          ? 'Use a work email to join a company before sharing with colleagues.'
+                          : `${option.blurb} For you, that means colleagues working at ${companyLabel}.`
+                        : option.blurb;
+
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={`review-audience-option${
+                          visibility === option.id ? ' review-audience-option-active' : ''
+                        }${disabled ? ' review-audience-option-disabled' : ''}`}
+                        onClick={() => handleVisibilityChange(option.id)}
+                        disabled={disabled}
+                      >
+                        <div className="review-audience-title-row">
+                          <span>{option.label}</span>
+                          {option.badge && (
+                            <span className="review-recommended-pill">{option.badge}</span>
+                          )}
+                        </div>
+                        <div className="review-audience-blurb">{blurb}</div>
+                      </button>
+                    );
+                  })()
                 ))}
               </div>
             </section>

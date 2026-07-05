@@ -232,6 +232,11 @@ export default function PublicProfilePage() {
               <div className="public-profile-side-note">
                 {profile.totalAdoptions} total adoptions
               </div>
+              {profile.company && (
+                <a href="/diff/company/" className="public-profile-company-link">
+                  See how {profile.company} uses Dex
+                </a>
+              )}
             </aside>
           </div>
 

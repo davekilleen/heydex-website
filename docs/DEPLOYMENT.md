@@ -67,7 +67,6 @@ That custom domain is owned by Convex HTTP Actions, not by the VPS Caddy config.
    - `/var/www/heydex/connect/`
 6. Overlays these static directories from `diff/`:
    - `community`
-   - `company`
    - `love-letters`
    - `roadmap`
    - `welcome`

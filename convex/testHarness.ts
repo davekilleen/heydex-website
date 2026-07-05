@@ -1,5 +1,12 @@
 import { v } from "convex/values";
-import { internalMutation, MutationCtx } from "./_generated/server";
+import { internalMutation, internalQuery, MutationCtx } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import {
+  getDomainForEmail,
+  isWorkDomain,
+  normalizeDomain,
+} from "./users";
+import { getCompanyViewForUser } from "./companies";
 
 const REVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const CLI_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -20,6 +27,32 @@ const reviewDiffValidator = v.object({
   integrations: v.array(v.string()),
 });
 
+const companyDiffValidator = v.object({
+  diffId: v.string(),
+  name: v.string(),
+  description: v.string(),
+  methodology: v.string(),
+  tags: v.array(v.string()),
+  roles: v.array(v.string()),
+  integrations: v.array(v.string()),
+  adoptionCount: v.optional(v.number()),
+});
+
+const companyMemberValidator = v.object({
+  handle: v.string(),
+  email: v.optional(v.string()),
+  displayName: v.optional(v.string()),
+  title: v.optional(v.string()),
+  company: v.optional(v.string()),
+  function_: v.optional(v.string()),
+  summary: v.optional(v.string()),
+  linkedinUrl: v.optional(v.string()),
+  photoUrl: v.optional(v.string()),
+  integrations: v.optional(v.array(v.string())),
+  visibility: visibilityValidator,
+  diffs: v.optional(v.array(companyDiffValidator)),
+});
+
 type ReviewDiff = {
   diffId: string;
   name: string;
@@ -28,6 +61,25 @@ type ReviewDiff = {
   tags: string[];
   roles: string[];
   integrations: string[];
+};
+
+type HarnessUserArgs = {
+  handle: string;
+  email?: string;
+  domain?: string;
+  displayName?: string;
+  title?: string;
+  company?: string;
+  function_?: string;
+  summary?: string;
+  linkedinUrl?: string;
+  photoUrl?: string;
+  integrations?: string[];
+  visibility: "private" | "colleagues" | "public";
+};
+
+type HarnessDiff = ReviewDiff & {
+  adoptionCount?: number;
 };
 
 const DEFAULT_DIFFS: ReviewDiff[] = [
@@ -81,18 +133,72 @@ function buildDefaultProfile(handle: string) {
   };
 }
 
-async function upsertHarnessUser(
+async function decrementCompanyMemberCount(
+  ctx: MutationCtx,
+  companyId: Id<"companies"> | undefined
+) {
+  if (!companyId) return;
+
+  const company = await ctx.db.get(companyId);
+  if (!company) return;
+
+  if (company.memberCount <= 1) {
+    await ctx.db.delete(company._id);
+    return;
+  }
+
+  await ctx.db.patch(company._id, {
+    memberCount: company.memberCount - 1,
+  });
+}
+
+async function resolveHarnessCompany(
   ctx: MutationCtx,
   args: {
-    handle: string;
+    domain: string;
     displayName?: string;
-    title?: string;
-    company?: string;
-    summary?: string;
-    linkedinUrl?: string;
-    photoUrl?: string;
-    visibility: "private" | "colleagues" | "public";
+    existingCompanyId?: Id<"companies">;
   }
+) {
+  if (!isWorkDomain(args.domain)) {
+    await decrementCompanyMemberCount(ctx, args.existingCompanyId);
+    return undefined;
+  }
+
+  const existingCompany = await ctx.db
+    .query("companies")
+    .withIndex("by_domain", (q) => q.eq("domain", args.domain))
+    .unique();
+
+  if (existingCompany) {
+    if (existingCompany._id !== args.existingCompanyId) {
+      await decrementCompanyMemberCount(ctx, args.existingCompanyId);
+      await ctx.db.patch(existingCompany._id, {
+        displayName: args.displayName ?? existingCompany.displayName,
+        memberCount: existingCompany.memberCount + 1,
+      });
+    } else if (
+      args.displayName !== undefined &&
+      args.displayName !== existingCompany.displayName
+    ) {
+      await ctx.db.patch(existingCompany._id, {
+        displayName: args.displayName,
+      });
+    }
+    return existingCompany._id;
+  }
+
+  await decrementCompanyMemberCount(ctx, args.existingCompanyId);
+  return await ctx.db.insert("companies", {
+    domain: args.domain,
+    displayName: args.displayName,
+    memberCount: 1,
+  });
+}
+
+async function upsertHarnessUser(
+  ctx: MutationCtx,
+  args: HarnessUserArgs
 ) {
   const existingUser = await ctx.db
     .query("users")
@@ -101,17 +207,34 @@ async function upsertHarnessUser(
 
   const defaults = buildDefaultProfile(args.handle);
   const title = args.title ?? defaults.title;
+  const email = args.email ?? (
+    args.domain
+      ? `${args.handle}@${normalizeDomain(args.domain)}`
+      : defaults.email
+  );
+  const domain = args.domain
+    ? normalizeDomain(args.domain)
+    : getDomainForEmail(email);
+  const companyId = await resolveHarnessCompany(ctx, {
+    domain,
+    displayName: args.company ?? defaults.company,
+    existingCompanyId: existingUser?.companyId,
+  });
   const userPatch = {
-    email: defaults.email,
+    email,
     name: args.displayName ?? defaults.displayName,
     displayName: args.displayName ?? defaults.displayName,
     handle: args.handle,
+    domain,
     title,
     role: title,
     company: args.company ?? defaults.company,
+    companyId,
+    function_: args.function_,
     summary: args.summary ?? defaults.summary,
     linkedinUrl: args.linkedinUrl ?? defaults.linkedinUrl,
     photoUrl: args.photoUrl ?? defaults.photoUrl,
+    integrations: args.integrations,
     onboardingCompleted: true,
     visibility: args.visibility,
     isPublic: args.visibility === "public",
@@ -130,18 +253,69 @@ async function upsertHarnessUser(
   return {
     _id: userId,
     handle: args.handle,
+    email,
+    domain,
   };
+}
+
+async function upsertPublishedDiffs(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    handle: string;
+    diffs: HarnessDiff[];
+  }
+) {
+  for (const [index, diff] of args.diffs.entries()) {
+    const existing = await ctx.db
+      .query("diffs")
+      .withIndex("by_authorId_and_diffId", (q) =>
+        q.eq("authorId", args.userId).eq("diffId", diff.diffId)
+      )
+      .unique();
+
+    const now = Date.now() + index;
+    const patch = {
+      authorHandle: args.handle,
+      name: diff.name,
+      description: diff.description,
+      methodology: diff.methodology,
+      tags: diff.tags,
+      roles: diff.roles,
+      integrations: diff.integrations,
+      adoptionCount: diff.adoptionCount ?? existing?.adoptionCount ?? 0,
+      activeUserCount: existing?.activeUserCount ?? 0,
+      status: "published" as const,
+      publishedAt: existing?.publishedAt ?? now,
+      updatedAt: now,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, patch);
+      continue;
+    }
+
+    await ctx.db.insert("diffs", {
+      diffId: diff.diffId,
+      authorId: args.userId,
+      ...patch,
+    });
+  }
 }
 
 export const createCliSession = internalMutation({
   args: {
     handle: v.optional(v.string()),
+    email: v.optional(v.string()),
+    domain: v.optional(v.string()),
     displayName: v.optional(v.string()),
     title: v.optional(v.string()),
+    function_: v.optional(v.string()),
     company: v.optional(v.string()),
     summary: v.optional(v.string()),
     linkedinUrl: v.optional(v.string()),
     photoUrl: v.optional(v.string()),
+    integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
     expired: v.optional(v.boolean()),
   },
@@ -150,12 +324,16 @@ export const createCliSession = internalMutation({
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
       handle,
+      email: args.email,
+      domain: args.domain,
       displayName: args.displayName,
       title: args.title,
+      function_: args.function_,
       company: args.company,
       summary: args.summary,
       linkedinUrl: args.linkedinUrl,
       photoUrl: args.photoUrl,
+      integrations: args.integrations,
       visibility,
     });
 
@@ -178,12 +356,16 @@ export const createCliSession = internalMutation({
 export const createConnectionCode = internalMutation({
   args: {
     handle: v.optional(v.string()),
+    email: v.optional(v.string()),
+    domain: v.optional(v.string()),
     displayName: v.optional(v.string()),
     title: v.optional(v.string()),
+    function_: v.optional(v.string()),
     company: v.optional(v.string()),
     summary: v.optional(v.string()),
     linkedinUrl: v.optional(v.string()),
     photoUrl: v.optional(v.string()),
+    integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
     expired: v.optional(v.boolean()),
     redeemed: v.optional(v.boolean()),
@@ -193,12 +375,16 @@ export const createConnectionCode = internalMutation({
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
       handle,
+      email: args.email,
+      domain: args.domain,
       displayName: args.displayName,
       title: args.title,
+      function_: args.function_,
       company: args.company,
       summary: args.summary,
       linkedinUrl: args.linkedinUrl,
       photoUrl: args.photoUrl,
+      integrations: args.integrations,
       visibility,
     });
 
@@ -221,12 +407,16 @@ export const createConnectionCode = internalMutation({
 export const createReviewSession = internalMutation({
   args: {
     handle: v.optional(v.string()),
+    email: v.optional(v.string()),
+    domain: v.optional(v.string()),
     displayName: v.optional(v.string()),
     title: v.optional(v.string()),
+    function_: v.optional(v.string()),
     company: v.optional(v.string()),
     summary: v.optional(v.string()),
     linkedinUrl: v.optional(v.string()),
     photoUrl: v.optional(v.string()),
+    integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
     diffs: v.optional(v.array(reviewDiffValidator)),
     expired: v.optional(v.boolean()),
@@ -236,12 +426,16 @@ export const createReviewSession = internalMutation({
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
       handle,
+      email: args.email,
+      domain: args.domain,
       displayName: args.displayName,
       title: args.title,
+      function_: args.function_,
       company: args.company,
       summary: args.summary,
       linkedinUrl: args.linkedinUrl,
       photoUrl: args.photoUrl,
+      integrations: args.integrations,
       visibility,
     });
 
@@ -269,12 +463,16 @@ export const createReviewSession = internalMutation({
 export const createPublicProfileBundle = internalMutation({
   args: {
     handle: v.optional(v.string()),
+    email: v.optional(v.string()),
+    domain: v.optional(v.string()),
     displayName: v.optional(v.string()),
     title: v.optional(v.string()),
+    function_: v.optional(v.string()),
     company: v.optional(v.string()),
     summary: v.optional(v.string()),
     linkedinUrl: v.optional(v.string()),
     photoUrl: v.optional(v.string()),
+    integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
     loveLetter: v.optional(v.string()),
     diffs: v.optional(v.array(reviewDiffValidator)),
@@ -284,59 +482,25 @@ export const createPublicProfileBundle = internalMutation({
     const visibility = args.visibility ?? "public";
     const user = await upsertHarnessUser(ctx, {
       handle,
+      email: args.email,
+      domain: args.domain,
       displayName: args.displayName,
       title: args.title,
+      function_: args.function_,
       company: args.company,
       summary: args.summary,
       linkedinUrl: args.linkedinUrl,
       photoUrl: args.photoUrl,
+      integrations: args.integrations,
       visibility,
     });
 
     const diffs = args.diffs && args.diffs.length > 0 ? args.diffs : DEFAULT_DIFFS;
-
-    for (const [index, diff] of diffs.entries()) {
-      const existing = await ctx.db
-        .query("diffs")
-        .withIndex("by_authorHandle_and_diffId", (q) =>
-          q.eq("authorHandle", handle).eq("diffId", diff.diffId)
-        )
-        .unique();
-
-      const publishedAt = Date.now() + index;
-
-      if (existing) {
-        await ctx.db.patch(existing._id, {
-          name: diff.name,
-          description: diff.description,
-          methodology: diff.methodology,
-          tags: diff.tags,
-          roles: diff.roles,
-          integrations: diff.integrations,
-          status: "published",
-          publishedAt,
-          adoptionCount: existing.adoptionCount,
-          activeUserCount: existing.activeUserCount,
-        });
-        continue;
-      }
-
-      await ctx.db.insert("diffs", {
-        diffId: diff.diffId,
-        authorId: user._id,
-        authorHandle: handle,
-        name: diff.name,
-        description: diff.description,
-        methodology: diff.methodology,
-        tags: diff.tags,
-        roles: diff.roles,
-        integrations: diff.integrations,
-        adoptionCount: 0,
-        activeUserCount: 0,
-        status: "published",
-        publishedAt,
-      });
-    }
+    await upsertPublishedDiffs(ctx, {
+      userId: user._id,
+      handle,
+      diffs,
+    });
 
     if (typeof args.loveLetter === "string" && args.loveLetter.trim().length > 0) {
       const existingLetter = await ctx.db
@@ -463,5 +627,145 @@ export const createAdoptionForEmail = internalMutation({
       userId: user._id,
       diffId: diff._id,
     };
+  },
+});
+
+export const createAuthUser = internalMutation({
+  args: {
+    handle: v.optional(v.string()),
+    email: v.optional(v.string()),
+    domain: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    title: v.optional(v.string()),
+    function_: v.optional(v.string()),
+    company: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    linkedinUrl: v.optional(v.string()),
+    photoUrl: v.optional(v.string()),
+    integrations: v.optional(v.array(v.string())),
+    visibility: v.optional(visibilityValidator),
+  },
+  handler: async (ctx, args) => {
+    const handle = args.handle ?? `auth-${Date.now()}`;
+    const visibility = args.visibility ?? "private";
+    const user = await upsertHarnessUser(ctx, {
+      handle,
+      email: args.email,
+      domain: args.domain,
+      displayName: args.displayName,
+      title: args.title,
+      function_: args.function_,
+      company: args.company,
+      summary: args.summary,
+      linkedinUrl: args.linkedinUrl,
+      photoUrl: args.photoUrl,
+      integrations: args.integrations,
+      visibility,
+    });
+
+    return {
+      userId: user._id,
+      handle,
+      email: user.email,
+      domain: user.domain,
+    };
+  },
+});
+
+export const createCompanyDomain = internalMutation({
+  args: {
+    domain: v.string(),
+    company: v.optional(v.string()),
+    members: v.array(companyMemberValidator),
+  },
+  handler: async (ctx, args) => {
+    const domain = normalizeDomain(args.domain);
+    const members = [];
+
+    for (const member of args.members) {
+      const user = await upsertHarnessUser(ctx, {
+        handle: member.handle,
+        email: member.email ?? `${member.handle}@${domain}`,
+        domain,
+        displayName: member.displayName,
+        title: member.title,
+        function_: member.function_,
+        company: member.company ?? args.company,
+        summary: member.summary,
+        linkedinUrl: member.linkedinUrl,
+        photoUrl: member.photoUrl,
+        integrations: member.integrations,
+        visibility: member.visibility,
+      });
+
+      if (member.diffs && member.diffs.length > 0) {
+        await upsertPublishedDiffs(ctx, {
+          userId: user._id,
+          handle: member.handle,
+          diffs: member.diffs,
+        });
+      }
+
+      members.push({
+        handle: member.handle,
+        userId: user._id,
+      });
+    }
+
+    return {
+      domain,
+      members,
+    };
+  },
+});
+
+export const getCompanyForHandle = internalQuery({
+  args: {
+    handle: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_handle", (q) => q.eq("handle", args.handle))
+      .unique();
+
+    if (!user) return null;
+    return await getCompanyViewForUser(ctx, user);
+  },
+});
+
+export const getPublishedDiffsForHandle = internalQuery({
+  args: {
+    handle: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_handle", (q) => q.eq("handle", args.handle))
+      .unique();
+
+    if (!user) return [];
+
+    const diffs = await ctx.db
+      .query("diffs")
+      .withIndex("by_authorId", (q) => q.eq("authorId", user._id))
+      .collect();
+
+    return diffs
+      .filter((diff) => diff.status === "published")
+      .sort((left, right) => (left.publishedAt ?? 0) - (right.publishedAt ?? 0))
+      .map((diff) => ({
+        diffId: diff.diffId,
+        name: diff.name,
+        description: diff.description,
+        methodology: diff.methodology,
+        tags: diff.tags,
+        roles: diff.roles,
+        integrations: diff.integrations,
+        adoptionCount: diff.adoptionCount,
+        activeUserCount: diff.activeUserCount,
+        publishedAt: diff.publishedAt,
+        updatedAt: diff.updatedAt,
+      }));
   },
 });

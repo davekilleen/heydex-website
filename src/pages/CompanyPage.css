@@ -1,0 +1,354 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-base: #0D0E12;
+  --bg-surface: #15161C;
+  --bg-elevated: #1C1D25;
+  --border-subtle: #1D1F25;
+  --border-default: #24262E;
+  --border-strong: #32343F;
+  --text-primary: #E4E5E7;
+  --text-secondary: #9B9DA6;
+  --text-tertiary: #787B87;
+  --text-inverse: #111111;
+  --accent: #FF4081;
+  --accent-bg: rgba(255, 64, 129, 0.12);
+  --accent-border: rgba(255, 64, 129, 0.28);
+  --font-mono: 'Geist Mono', monospace;
+  --font-sans: 'Inter', 'Geist', system-ui, sans-serif;
+}
+
+.company-page {
+  min-height: 100vh;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.company-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(13, 14, 18, 0.92);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+}
+
+.company-nav-inner,
+.company-shell {
+  max-width: 1456px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.company-nav-inner {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.company-logo,
+.company-nav-link,
+.company-primary-link,
+.company-secondary-link,
+.company-roster-card a,
+.company-workflow-card a {
+  text-decoration: none;
+}
+
+.company-logo {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.company-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.company-nav-link {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.company-shell {
+  padding-top: 48px;
+  padding-bottom: 88px;
+}
+
+.company-loading,
+.company-empty,
+.company-hero,
+.company-section,
+.company-teams-teaser {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+}
+
+.company-loading {
+  padding: 80px 28px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.company-empty {
+  max-width: 720px;
+  padding: 32px;
+}
+
+.company-empty h1,
+.company-hero h1 {
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-size: clamp(2.6rem, 5vw, 4.2rem);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+}
+
+.company-empty p,
+.company-hero p,
+.company-section p,
+.company-teams-teaser p,
+.company-note-panel {
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.company-primary-link,
+.company-secondary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  border-radius: 0;
+  font-weight: 700;
+}
+
+.company-primary-link {
+  padding: 12px 18px;
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+.company-secondary-link {
+  padding: 11px 16px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+}
+
+.company-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 28px;
+  padding: 32px;
+}
+
+.company-hero-copy p {
+  max-width: 760px;
+}
+
+.company-label,
+.company-workflow-top span {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.company-stat-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.company-stat-panel > div {
+  padding: 18px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+}
+
+.company-stat-panel strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 2rem;
+}
+
+.company-section,
+.company-teams-teaser {
+  margin-top: 24px;
+  padding: 28px;
+}
+
+.company-section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+
+.company-section h2,
+.company-teams-teaser h2 {
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.company-roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.company-roster-card,
+.company-workflow-card,
+.company-mini-card,
+.company-note-panel {
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  border-radius: 3px;
+}
+
+.company-roster-card {
+  display: flex;
+  gap: 16px;
+  padding: 18px;
+}
+
+.company-roster-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--text-inverse);
+  font-family: var(--font-mono);
+}
+
+.company-roster-card h3,
+.company-workflow-card h3,
+.company-mini-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.company-roster-card p,
+.company-workflow-card p,
+.company-mini-card p,
+.company-stat-panel p,
+.company-teams-teaser p {
+  margin: 8px 0 0;
+}
+
+.company-roster-card a,
+.company-workflow-card a {
+  display: inline-flex;
+  margin-top: 10px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.company-note-panel {
+  padding: 18px;
+}
+
+.company-invite-state {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.company-workflow-list {
+  display: grid;
+  gap: 16px;
+}
+
+.company-workflow-card {
+  padding: 20px;
+}
+
+.company-workflow-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.company-workflow-author {
+  margin-top: 6px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.company-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+}
+
+.company-integration-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.company-mini-card {
+  padding: 16px;
+}
+
+.company-function-list {
+  display: grid;
+  gap: 10px;
+}
+
+.company-function-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.company-function-row span {
+  color: var(--text-secondary);
+}
+
+.company-teams-teaser {
+  max-width: 780px;
+}
+
+@media (max-width: 980px) {
+  .company-hero,
+  .company-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .company-nav-inner,
+  .company-shell {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .company-section-header,
+  .company-workflow-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

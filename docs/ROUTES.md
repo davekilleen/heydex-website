@@ -10,9 +10,9 @@
 | `/diff/` | React | main DexDiff browse surface | canonical |
 | `/diff/profile/` | React | signed-in user's own profile/settings page | canonical |
 | `/diff/review/` | React | review + publish session page | canonical |
+| `/diff/company/` | React | signed-in company view | canonical |
 | `/diff/@:handle/` | React | dynamic public author profile | canonical |
 | `/diff/community/` | static | editorial/community page | canonical |
-| `/diff/company/` | static | editorial/company page | canonical |
 | `/diff/love-letters/` | static | public love letters wall | canonical |
 | `/diff/roadmap/` | static | editorial roadmap | canonical |
 | `/diff/welcome/` | static | onboarding/editorial | canonical |

@@ -64,6 +64,29 @@ function normalizeHandleParam(handle: string): string {
   return decoded.trim().replace(/^@/, "");
 }
 
+function parseVisibility(value: unknown) {
+  return value === "private" || value === "colleagues" || value === "public"
+    ? value
+    : undefined;
+}
+
+function parseHarnessUserFields(body: any) {
+  return {
+    handle: typeof body?.handle === "string" ? body.handle : undefined,
+    email: typeof body?.email === "string" ? body.email : undefined,
+    domain: typeof body?.domain === "string" ? body.domain : undefined,
+    displayName: typeof body?.displayName === "string" ? body.displayName : undefined,
+    title: typeof body?.title === "string" ? body.title : undefined,
+    function_: typeof body?.function_ === "string" ? body.function_ : undefined,
+    company: typeof body?.company === "string" ? body.company : undefined,
+    summary: typeof body?.summary === "string" ? body.summary : undefined,
+    linkedinUrl: typeof body?.linkedinUrl === "string" ? body.linkedinUrl : undefined,
+    photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
+    integrations: Array.isArray(body?.integrations) ? body.integrations : undefined,
+    visibility: parseVisibility(body?.visibility),
+  };
+}
+
 // Convex Auth routes (sign-in, sign-out, OAuth callbacks)
 auth.addHttpRoutes(http);
 
@@ -301,20 +324,8 @@ http.route({
 
     const body = await req.json();
     const result = await ctx.runMutation(internal.testHarness.createCliSession, {
-      handle: typeof body?.handle === "string" ? body.handle : undefined,
-      displayName: typeof body?.displayName === "string" ? body.displayName : undefined,
-      title: typeof body?.title === "string" ? body.title : undefined,
-      company: typeof body?.company === "string" ? body.company : undefined,
-      summary: typeof body?.summary === "string" ? body.summary : undefined,
-      linkedinUrl: typeof body?.linkedinUrl === "string" ? body.linkedinUrl : undefined,
-      photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
+      ...parseHarnessUserFields(body),
       expired: body?.expired === true,
-      visibility:
-        body?.visibility === "private" ||
-        body?.visibility === "colleagues" ||
-        body?.visibility === "public"
-          ? body.visibility
-          : undefined,
     });
 
     return jsonResponse(result);
@@ -332,19 +343,7 @@ http.route({
 
     const body = await req.json();
     const result = await ctx.runMutation(internal.testHarness.createConnectionCode, {
-      handle: typeof body?.handle === "string" ? body.handle : undefined,
-      displayName: typeof body?.displayName === "string" ? body.displayName : undefined,
-      title: typeof body?.title === "string" ? body.title : undefined,
-      company: typeof body?.company === "string" ? body.company : undefined,
-      summary: typeof body?.summary === "string" ? body.summary : undefined,
-      linkedinUrl: typeof body?.linkedinUrl === "string" ? body.linkedinUrl : undefined,
-      photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
-      visibility:
-        body?.visibility === "private" ||
-        body?.visibility === "colleagues" ||
-        body?.visibility === "public"
-          ? body.visibility
-          : undefined,
+      ...parseHarnessUserFields(body),
       expired: body?.expired === true,
       redeemed: body?.redeemed === true,
     });
@@ -364,19 +363,7 @@ http.route({
 
     const body = await req.json();
     const result = await ctx.runMutation(internal.testHarness.createReviewSession, {
-      handle: typeof body?.handle === "string" ? body.handle : undefined,
-      displayName: typeof body?.displayName === "string" ? body.displayName : undefined,
-      title: typeof body?.title === "string" ? body.title : undefined,
-      company: typeof body?.company === "string" ? body.company : undefined,
-      summary: typeof body?.summary === "string" ? body.summary : undefined,
-      linkedinUrl: typeof body?.linkedinUrl === "string" ? body.linkedinUrl : undefined,
-      photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
-      visibility:
-        body?.visibility === "private" ||
-        body?.visibility === "colleagues" ||
-        body?.visibility === "public"
-          ? body.visibility
-          : undefined,
+      ...parseHarnessUserFields(body),
       expired: body?.expired === true,
       diffs: Array.isArray(body?.diffs) ? body.diffs : undefined,
     });
@@ -399,23 +386,114 @@ http.route({
 
     const body = await req.json();
     const result = await ctx.runMutation(internal.testHarness.createPublicProfileBundle, {
-      handle: typeof body?.handle === "string" ? body.handle : undefined,
-      displayName: typeof body?.displayName === "string" ? body.displayName : undefined,
-      title: typeof body?.title === "string" ? body.title : undefined,
-      company: typeof body?.company === "string" ? body.company : undefined,
-      summary: typeof body?.summary === "string" ? body.summary : undefined,
-      linkedinUrl: typeof body?.linkedinUrl === "string" ? body.linkedinUrl : undefined,
-      photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
+      ...parseHarnessUserFields(body),
       loveLetter: typeof body?.loveLetter === "string" ? body.loveLetter : undefined,
-      visibility:
-        body?.visibility === "private" ||
-        body?.visibility === "colleagues" ||
-        body?.visibility === "public"
-          ? body.visibility
-          : undefined,
       diffs: Array.isArray(body?.diffs) ? body.diffs : undefined,
     });
 
+    return jsonResponse(result);
+  }),
+});
+
+http.route({
+  path: "/api/test/bootstrap-auth",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) {
+      return authError;
+    }
+
+    const body = await req.json();
+    const user = await ctx.runMutation(internal.testHarness.createAuthUser, {
+      ...parseHarnessUserFields(body),
+    });
+    const session = await ctx.runMutation(internal.auth.store, {
+      args: {
+        type: "signIn",
+        userId: user.userId,
+        generateTokens: true,
+      },
+    });
+
+    if (!session.tokens) {
+      return jsonResponse({ error: "Unable to create auth tokens" }, 500);
+    }
+
+    return jsonResponse({
+      handle: user.handle,
+      email: user.email,
+      domain: user.domain,
+      token: session.tokens.token,
+      refreshToken: session.tokens.refreshToken,
+    });
+  }),
+});
+
+http.route({
+  path: "/api/test/bootstrap-company-domain",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) {
+      return authError;
+    }
+
+    const body = await req.json();
+    if (typeof body?.domain !== "string" || !Array.isArray(body?.members)) {
+      return jsonResponse({ error: "domain and members are required" }, 400);
+    }
+
+    const result = await ctx.runMutation(internal.testHarness.createCompanyDomain, {
+      domain: body.domain,
+      company: typeof body?.company === "string" ? body.company : undefined,
+      members: body.members,
+    });
+
+    return jsonResponse(result);
+  }),
+});
+
+http.route({
+  path: "/api/test/company",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) {
+      return authError;
+    }
+
+    const url = new URL(req.url);
+    const handle = url.searchParams.get("handle");
+    if (!handle) {
+      return jsonResponse({ error: "handle is required" }, 400);
+    }
+
+    const result = await ctx.runQuery(internal.testHarness.getCompanyForHandle, {
+      handle: normalizeHandleParam(handle),
+    });
+    return jsonResponse(result);
+  }),
+});
+
+http.route({
+  path: "/api/test/diffs",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) {
+      return authError;
+    }
+
+    const url = new URL(req.url);
+    const handle = url.searchParams.get("handle");
+    if (!handle) {
+      return jsonResponse({ error: "handle is required" }, 400);
+    }
+
+    const result = await ctx.runQuery(internal.testHarness.getPublishedDiffsForHandle, {
+      handle: normalizeHandleParam(handle),
+    });
     return jsonResponse(result);
   }),
 });

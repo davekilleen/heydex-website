@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { getViewerOrNull, requireViewerForMutation } from "./viewer";
@@ -85,12 +85,42 @@ function extractDomain(email: string): string {
 }
 
 // Normalize domain to canonical form (handles subsidiary domains)
-function normalizeDomain(domain: string): string {
-  return DOMAIN_ALIASES[domain] ?? domain;
+export function normalizeDomain(domain: string): string {
+  const normalized = domain.trim().toLowerCase();
+  return DOMAIN_ALIASES[normalized] ?? normalized;
 }
 
-function isWorkDomain(domain: string): boolean {
+export function isWorkDomain(domain: string): boolean {
   return domain.length > 0 && !GENERIC_DOMAINS.has(domain);
+}
+
+export function getDomainForEmail(email: string): string {
+  return normalizeDomain(extractDomain(email));
+}
+
+export function canUseColleaguesVisibility(user: {
+  companyId?: Id<"companies">;
+  domain?: string;
+}) {
+  return Boolean(user.companyId && user.domain && isWorkDomain(user.domain));
+}
+
+export function assertVisibilityAllowedForUser(
+  user: {
+    companyId?: Id<"companies">;
+    domain?: string;
+  },
+  visibility: "private" | "colleagues" | "public"
+) {
+  if (visibility !== "colleagues" || canUseColleaguesVisibility(user)) {
+    return;
+  }
+
+  throw new ConvexError({
+    code: "COLLEAGUES_REQUIRES_COMPANY",
+    message:
+      "Colleagues visibility requires signing in with a work email so Dex can attach you to a company.",
+  });
 }
 
 function getCanonicalTitle(input: {
@@ -126,14 +156,20 @@ export const register = mutation({
   handler: async (ctx, args) => {
     const { user, identity } = await requireViewerForMutation(ctx);
 
+    const handle = normalizeHandle(args.handle);
+
     // User exists. If they already have a handle, they're fully registered.
     if (user.handle) {
+      if (normalizeHandle(user.handle) !== handle) {
+        throw new ConvexError({
+          code: "HANDLE_IMMUTABLE",
+          message: "Handles cannot be changed after registration.",
+        });
+      }
       return user._id;
     }
 
     // User exists from auth but hasn't completed profile. Patch with profile fields.
-    const handle = normalizeHandle(args.handle);
-
     if (isReservedHandle(handle)) {
       throw new Error("That name is reserved.");
     }
@@ -148,8 +184,7 @@ export const register = mutation({
     }
 
     const email = user.email ?? identity.email ?? "";
-    const rawDomain = extractDomain(email);
-    const domain = normalizeDomain(rawDomain);
+    const domain = getDomainForEmail(email);
     const canonicalTitle = getCanonicalTitle(args);
     const canonicalPhotoUrl = args.photoUrl ?? user.image;
 
@@ -510,6 +545,7 @@ export const setVisibility = mutation({
   },
   handler: async (ctx, args) => {
     const { user } = await requireViewerForMutation(ctx);
+    assertVisibilityAllowedForUser(user, args.visibility);
 
     await ctx.db.patch(user._id, {
       visibility: args.visibility,

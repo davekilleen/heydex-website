@@ -18,13 +18,13 @@ React-owned routes:
 - `/diff/`
 - `/diff/profile/`
 - `/diff/review/`
+- `/diff/company/`
 - `/diff/@:handle/`
 
 Static/editorial routes still served from repo HTML:
 - `/`
 - `/privacy/`
 - `/diff/community/`
-- `/diff/company/`
 - `/diff/love-letters/`
 - `/diff/roadmap/`
 - `/diff/welcome/`

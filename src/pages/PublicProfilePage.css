@@ -52,6 +52,7 @@
 .public-profile-logo,
 .public-profile-link,
 .public-profile-linkedin,
+.public-profile-company-link,
 .public-profile-cta,
 .public-profile-cta-big,
 .public-profile-command-link {
@@ -208,6 +209,14 @@
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 0.78rem;
+}
+
+.public-profile-company-link {
+  align-self: flex-start;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 
 .public-profile-sidecard {
