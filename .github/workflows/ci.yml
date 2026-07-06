@@ -26,8 +26,9 @@ jobs:
       E2E_BASE_URL: http://127.0.0.1:3000
       E2E_API_BASE_URL: https://brave-ibex-877.eu-west-1.convex.site/api
       E2E_TEST_SECRET: ${{ secrets.E2E_TEST_SECRET }}
-      E2E_REQUIRE_AUTH: "1"
-      VITE_REQUIRE_AUTH: "1"
+      # NOTE: the main battery runs with the auth gate OFF, matching
+      # scripts/run-e2e-dev.sh — profile pages cold-load anonymously in the
+      # suite's world. The gate itself is covered by the dedicated step below.
     steps:
       - uses: actions/checkout@v4
 
@@ -55,6 +56,15 @@ jobs:
 
       - name: Run e2e suite
         run: npx playwright test
+
+      - name: Run auth-gate spec (gate ON, mirrors npm run e2e:gate)
+        env:
+          VITE_REQUIRE_AUTH: "1"
+          E2E_REQUIRE_AUTH: "1"
+          E2E_BASE_URL: http://127.0.0.1:3001
+          E2E_WEB_SERVER_COMMAND: npm run dev -- --host 127.0.0.1 --port 3001
+          E2E_REUSE_EXISTING_SERVER: "0"
+        run: npx playwright test tests/e2e/auth-gate.spec.ts
 
       - name: Upload Playwright report
         if: failure()

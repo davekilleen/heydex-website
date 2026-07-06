@@ -11,7 +11,11 @@ const runAuthenticatedPublicProfileCoverage = googleAuthEnabled();
 const googleAuthStatePath = getGoogleAuthStatePath();
 const GOOGLE_TEST_EMAIL = "davedextest@gmail.com";
 
-test.use({ storageState: googleAuthStatePath });
+// Only load the storage state when it exists — test.use() fires before the
+// in-test skip guard, so an unconditional path crashes CI (no .auth file there).
+test.use({
+  storageState: runAuthenticatedPublicProfileCoverage ? googleAuthStatePath : undefined,
+});
 
 test("authenticated public profiles expose adopt copy states", async ({
   page,
