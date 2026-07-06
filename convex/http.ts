@@ -8,6 +8,18 @@ const http = httpRouter();
 // Simple in-memory rate limiter (resets on deploy)
 const redemptionAttempts = new Map<string, number[]>();
 const TEST_SECRET_HEADER = "x-heydex-test-secret";
+const MAX_ADOPTION_BODY_BYTES = 32 * 1024;
+const INVALID_ADOPTION_REQUEST_BODY = {
+  error: "invalid_request",
+  code: "INVALID_REQUEST",
+};
+
+type AdoptionRequest = {
+  authorHandle: string;
+  diffIds: string[];
+  source: string;
+  contractVersion: string;
+};
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
@@ -34,6 +46,14 @@ function jsonResponse(body: unknown, status = 200, extraHeaders: Record<string, 
       ...extraHeaders,
     },
   });
+}
+
+function invalidAdoptionRequestResponse() {
+  return jsonResponse(INVALID_ADOPTION_REQUEST_BODY, 400);
+}
+
+function warnInvalidAdoptionRequest(reason: string) {
+  console.warn("[adoptions] invalid_request", { reason });
 }
 
 function getConfiguredTestSecret() {
@@ -84,6 +104,98 @@ function parseHarnessUserFields(body: any) {
     photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
     integrations: Array.isArray(body?.integrations) ? body.integrations : undefined,
     visibility: parseVisibility(body?.visibility),
+  };
+}
+
+async function readCappedRequestText(req: Request, maxBytes: number):
+  Promise<{ ok: true; text: string } | { ok: false; reason: string }> {
+  const contentLength = req.headers.get("content-length");
+  if (contentLength !== null) {
+    const parsedLength = Number(contentLength);
+    if (!Number.isFinite(parsedLength) || parsedLength < 0) {
+      return { ok: false, reason: "invalid_content_length" };
+    }
+    if (parsedLength > maxBytes) {
+      return { ok: false, reason: "content_length_exceeds_cap" };
+    }
+  }
+
+  const reader = req.body?.getReader();
+  if (!reader) {
+    const body = await req.arrayBuffer();
+    if (body.byteLength > maxBytes) {
+      return { ok: false, reason: "body_exceeds_cap" };
+    }
+    return { ok: true, text: new TextDecoder().decode(body) };
+  }
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+
+    totalBytes += value.byteLength;
+    if (totalBytes > maxBytes) {
+      await reader.cancel();
+      return { ok: false, reason: "body_exceeds_cap" };
+    }
+    chunks.push(value);
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return { ok: true, text: new TextDecoder().decode(body) };
+}
+
+function parseCappedJsonRequestBody(text: string):
+  | { ok: true; body: unknown }
+  | { ok: false; reason: string } {
+  try {
+    return { ok: true, body: JSON.parse(text) };
+  } catch {
+    return { ok: false, reason: "invalid_json" };
+  }
+}
+
+function shapeAdoptionRequest(body: unknown):
+  | { ok: true; value: AdoptionRequest }
+  | { ok: false; reason: string } {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { ok: false, reason: "body_not_object" };
+  }
+
+  const record = body as Record<string, unknown>;
+  if (!Array.isArray(record.diffIds)) {
+    return { ok: false, reason: "diff_ids_not_array" };
+  }
+  if (
+    !record.diffIds.every(
+      (diffId): diffId is string => typeof diffId === "string"
+    )
+  ) {
+    return { ok: false, reason: "diff_ids_not_strings" };
+  }
+
+  return {
+    ok: true,
+    value: {
+      authorHandle:
+        typeof record.authorHandle === "string"
+          ? normalizeHandleParam(record.authorHandle)
+          : "",
+      diffIds: record.diffIds,
+      source: typeof record.source === "string" ? record.source.trim() : "",
+      contractVersion:
+        typeof record.contractVersion === "string" ? record.contractVersion : "",
+    },
   };
 }
 
@@ -207,6 +319,62 @@ http.route({
     const diffs = await ctx.runQuery(api.diffs.list, { role, limit });
 
     return jsonResponse(diffs);
+  }),
+});
+
+/*
+ * POST /api/adoptions records anonymous desktop adoption events.
+ *
+ * Anonymous-by-design for beta: the shipped desktop adopter has no hosted
+ * site identity when it reports a successful local adoption. The compensating
+ * control is the adoptionEvents audit trail; visible counts are derivable from
+ * counted audit rows via internal repair tooling. The HTTP action only caps,
+ * parses, and shapes the request before calling one internalMutation so all
+ * reads-that-inform-writes and all writes are covered by Convex OCC.
+ */
+http.route({
+  path: "/api/adoptions",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const rawBody = await readCappedRequestText(req, MAX_ADOPTION_BODY_BYTES);
+    if (!rawBody.ok) {
+      warnInvalidAdoptionRequest(rawBody.reason);
+      return invalidAdoptionRequestResponse();
+    }
+
+    const parsedBody = parseCappedJsonRequestBody(rawBody.text);
+    if (!parsedBody.ok) {
+      warnInvalidAdoptionRequest(parsedBody.reason);
+      return invalidAdoptionRequestResponse();
+    }
+
+    const shaped = shapeAdoptionRequest(parsedBody.body);
+    if (!shaped.ok) {
+      warnInvalidAdoptionRequest(shaped.reason);
+      return invalidAdoptionRequestResponse();
+    }
+
+    let result;
+    try {
+      result = await ctx.runMutation(
+        internal.adoptionEvents.recordFromDesktop,
+        shaped.value
+      );
+    } catch (error) {
+      warnInvalidAdoptionRequest(
+        error instanceof Error
+          ? `mutation_exception:${error.message}`
+          : "mutation_exception"
+      );
+      return invalidAdoptionRequestResponse();
+    }
+
+    if (!result.ok) {
+      warnInvalidAdoptionRequest(result.reason);
+      return invalidAdoptionRequestResponse();
+    }
+
+    return jsonResponse({ ok: true, recorded: result.recorded });
   }),
 });
 
@@ -767,6 +935,12 @@ http.route({
 
 http.route({
   path: "/api/review/create",
+  method: "OPTIONS",
+  handler: corsPreflightHandler,
+});
+
+http.route({
+  path: "/api/adoptions",
   method: "OPTIONS",
   handler: corsPreflightHandler,
 });

@@ -46,6 +46,13 @@ https://api.heydex.ai/api/*
 
 That custom domain is owned by Convex HTTP Actions, not by the VPS Caddy config.
 
+`POST /api/adoptions` records anonymous desktop adoption events from the shipped
+Dex desktop client contract. Valid calls return `{ ok: true, recorded: n }`,
+increment `adoptionCount` once for each requested published diff unless the call
+is an idempotent replay or over the per-author daily ceiling, and write
+`adoptionEvents` audit rows so abuse review or count correction can be performed
+later. All invalid requests intentionally return the same opaque 400 JSON body.
+
 ## Frontend Deploy
 
 ```bash
