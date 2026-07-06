@@ -295,6 +295,25 @@
   font-size: 0.78rem;
 }
 
+.company-workflow-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.company-workflow-actions a {
+  margin-top: 0;
+}
+
+.company-open-dex-action {
+  border-color: var(--accent-border);
+  background: var(--accent);
+  color: var(--text-inverse);
+  padding: 10px 14px;
+}
+
 .company-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

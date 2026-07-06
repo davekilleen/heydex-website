@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { useParams } from 'react-router-dom';
 import { api } from '../../convex/_generated/api';
+import AdoptInterstitial from '../components/AdoptInterstitial';
 import './PublicProfilePage.css';
 
 function initials(name) {
@@ -69,28 +70,32 @@ function CommandSurface({
   isAdopted = false,
   onCopy,
   returnPath,
+  openAction,
 }) {
   return (
     <div className="public-profile-command-surface">
       <div className="public-profile-command-label">{label}</div>
       <div className="public-profile-command-row">
         <code className="public-profile-command-text">{command}</code>
-        {isAuthenticated ? (
-          isAdopted ? (
-            <span className="public-profile-command-status">Already adopted</span>
+        <div className="public-profile-command-actions">
+          {openAction}
+          {isAuthenticated ? (
+            isAdopted ? (
+              <span className="public-profile-command-status">Already adopted</span>
+            ) : (
+              <button type="button" className="public-profile-command-action" onClick={() => onCopy(command)}>
+                {copied === command ? 'Copied' : 'Copy'}
+              </button>
+            )
           ) : (
-            <button type="button" className="public-profile-command-action" onClick={() => onCopy(command)}>
-              {copied === command ? 'Copied' : 'Copy'}
-            </button>
-          )
-        ) : (
-          <a
-            href={`/connect/?return=${encodeURIComponent(returnPath)}`}
-            className="public-profile-command-action public-profile-command-link"
-          >
-            Register to copy
-          </a>
-        )}
+            <a
+              href={`/connect/?return=${encodeURIComponent(returnPath)}`}
+              className="public-profile-command-action public-profile-command-link"
+            >
+              Register to copy
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -254,6 +259,14 @@ export default function PublicProfilePage() {
               isAuthenticated={isAuthenticated}
               onCopy={copyCommand}
               returnPath={returnPath}
+              openAction={
+                isAuthenticated ? (
+                  <AdoptInterstitial
+                    handle={profile.handle}
+                    buttonClassName="public-profile-open-dex-action"
+                  />
+                ) : null
+              }
             />
           </div>
         </header>
@@ -300,6 +313,15 @@ export default function PublicProfilePage() {
                       isAdopted={adopted}
                       onCopy={copyCommand}
                       returnPath={returnPath}
+                      openAction={
+                        isAuthenticated && !adopted ? (
+                          <AdoptInterstitial
+                            handle={profile.handle}
+                            diffId={diff.diffId}
+                            buttonClassName="public-profile-open-dex-action"
+                          />
+                        ) : null
+                      }
                     />
                   </article>
                 );

@@ -290,6 +290,13 @@
   overflow-x: auto;
 }
 
+.public-profile-command-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .public-profile-command-action {
   flex-shrink: 0;
   border: 1px solid var(--border-strong);
@@ -297,6 +304,14 @@
   color: var(--text-primary);
   padding: 10px 14px;
   cursor: pointer;
+}
+
+.public-profile-open-dex-action {
+  flex-shrink: 0;
+  border-color: var(--accent-border);
+  background: var(--accent);
+  color: var(--text-inverse);
+  padding: 10px 14px;
 }
 
 .public-profile-command-link {
@@ -445,5 +460,10 @@
   .public-profile-command-text {
     white-space: pre-wrap;
     word-break: break-word;
+  }
+
+  .public-profile-command-actions {
+    width: 100%;
+    flex-wrap: wrap;
   }
 }

@@ -1,5 +1,6 @@
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import AdoptInterstitial from '../components/AdoptInterstitial';
 import './CompanyPage.css';
 
 function formatCount(count, singular, plural = `${singular}s`) {
@@ -153,9 +154,16 @@ export default function CompanyPage() {
                             <span>{formatCount(diff.adoptionCount || 0, 'adoption')}</span>
                           </div>
                           <p>{diff.description}</p>
-                          <a href={`/diff/${diff.authorHandle}/`}>
-                            View {diff.authorName || diff.authorHandle} workflow
-                          </a>
+                          <div className="company-workflow-actions">
+                            <AdoptInterstitial
+                              handle={diff.authorHandle}
+                              diffId={diff.diffId}
+                              buttonClassName="company-open-dex-action"
+                            />
+                            <a href={`/diff/${diff.authorHandle}/`}>
+                              View {diff.authorName || diff.authorHandle} workflow
+                            </a>
+                          </div>
                         </article>
                       ))}
                     </div>
