@@ -203,3 +203,23 @@ TEST_USER_PASSWORD=...
 ```
 
 Do not assume the current repo already contains a working automated auth harness.
+
+## CI (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on every PR and push to main:
+
+1. `npx convex deploy --yes` pushes the commit's functions to the **test
+   deployment** (`brave-ibex-877`, project `dex`) using the
+   `CONVEX_DEPLOY_KEY_TEST` repo secret — a deploy-only key scoped to that
+   dev deployment (created 2026-07-06, name `github-ci`). Deploying BEFORE
+   testing matters: without it the suite exercises stale functions.
+2. `npm run build` (bakes the test deployment URL — CI only; production
+   bundles are built by `deploy.sh` with tripwires).
+3. Playwright e2e against a local Vite server + the test deployment,
+   authenticated to the harness via the `E2E_TEST_SECRET` repo secret
+   (must match the env var of the same name on brave-ibex-877).
+
+Live-Google specs are excluded (`testIgnore` + storage-state absence).
+The DexDiff PRODUCTION deployment (`gallant-reindeer-229`) is never
+touched by CI — same code reaches it only via `npx convex deploy` from a
+correctly-linked checkout plus `deploy.sh` (see docs/DEPLOYMENT.md).
