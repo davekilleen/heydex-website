@@ -88,6 +88,17 @@ export default defineSchema({
     .index("by_diffId", ["diffId"])
     .index("by_userId_and_diffId", ["userId", "diffId"]),
 
+  adoptionEvents: defineTable({
+    authorHandle: v.string(),
+    diffIds: v.array(v.string()),
+    source: v.string(),
+    contractVersion: v.string(),
+    createdAt: v.number(),
+    counted: v.optional(v.boolean()),
+    reason: v.optional(v.string()),
+  })
+    .index("by_authorHandle_and_createdAt", ["authorHandle", "createdAt"]),
+
   inviteCodes: defineTable({
     code: v.string(),
     usedBy: v.optional(v.id("users")),
