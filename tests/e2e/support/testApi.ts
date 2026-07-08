@@ -211,6 +211,46 @@ export async function bootstrapAdoption(
   return await response.json();
 }
 
+export async function bootstrapAdoptGrant(
+  request: APIRequestContext,
+  args: {
+    targetHandle: string;
+    granterHandle?: string;
+    expired?: boolean;
+    redeemed?: boolean;
+  }
+) {
+  const response = await request.post(`${getApiBaseUrl()}/test/bootstrap-adopt-grant`, {
+    headers: getTestSecretHeader(),
+    data: args,
+  });
+  await expect(response).toBeOK();
+  return await response.json();
+}
+
+export async function generateAdoptGrantAsUser(
+  authState: BrowserAuthState,
+  targetHandle: string
+) {
+  const client = new ConvexHttpClient(getConvexUrl(), { auth: authState.token });
+  return await client.mutation("adopt:generateGrant", { targetHandle });
+}
+
+export async function redeemProfileBundleGrant(
+  request: APIRequestContext,
+  args: {
+    code: string;
+    handle: string;
+  }
+) {
+  return await request.post(`${getApiBaseUrl()}/profile-bundle/redeem`, {
+    headers: {
+      "content-type": "application/json",
+    },
+    data: args,
+  });
+}
+
 export async function createReviewSessionViaApi(
   request: APIRequestContext,
   args: {

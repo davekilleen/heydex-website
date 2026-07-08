@@ -115,6 +115,15 @@ export default defineSchema({
   })
     .index("by_code", ["code"]),
 
+  adoptGrants: defineTable({
+    code: v.string(),
+    targetHandle: v.string(),
+    granterUserId: v.id("users"),
+    expiresAt: v.number(),
+    redeemed: v.boolean(),
+  })
+    .index("by_code", ["code"]),
+
   cliSessions: defineTable({
     sessionToken: v.string(),
     userId: v.id("users"),

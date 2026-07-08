@@ -1,4 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useConvexAuth, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import './AdoptInterstitial.css';
 
 const LAUNCH_TIMEOUT_MS = 2500;
@@ -22,12 +24,18 @@ function buildTargets(handle, diffId) {
   };
 }
 
+function appendGrant(deepLink, code) {
+  return `${deepLink}?grant=${encodeURIComponent(code)}`;
+}
+
 export default function AdoptInterstitial({
   handle,
   diffId,
   triggerLabel = 'Open in Dex',
   buttonClassName = '',
 }) {
+  const { isAuthenticated } = useConvexAuth();
+  const generateGrant = useMutation(api.adopt.generateGrant);
   const titleId = useId();
   const dialogRef = useRef(null);
   const cleanupAttemptRef = useRef(null);
@@ -54,7 +62,24 @@ export default function AdoptInterstitial({
     setCopied(false);
   }
 
-  function startAttempt() {
+  async function resolveLaunchDeepLink() {
+    if (!isAuthenticated) {
+      return deepLink;
+    }
+
+    try {
+      const grant = await generateGrant({ targetHandle: normalizeHandle(handle) });
+      if (grant?.code) {
+        return appendGrant(deepLink, grant.code);
+      }
+    } catch (error) {
+      console.warn('[adopt] grant mint failed; falling back to no-grant link', error);
+    }
+
+    return deepLink;
+  }
+
+  async function startAttempt() {
     setIsOpen(true);
     setStatus('attempting');
     setCopied(false);
@@ -65,6 +90,7 @@ export default function AdoptInterstitial({
 
     cleanupAttempt();
 
+    const launchDeepLink = await resolveLaunchDeepLink();
     let settled = false;
     const iframe = document.createElement('iframe');
     iframe.setAttribute('aria-hidden', 'true');
@@ -97,7 +123,7 @@ export default function AdoptInterstitial({
       iframe.remove();
     };
 
-    iframe.src = deepLink;
+    iframe.src = launchDeepLink;
     document.body.appendChild(iframe);
   }
 

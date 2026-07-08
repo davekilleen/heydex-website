@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { Doc } from "./_generated/dataModel";
-import { QueryCtx, query } from "./_generated/server";
+import { QueryCtx, internalQuery, query } from "./_generated/server";
 import { getViewerOrNull } from "./viewer";
 
 const PROFILE_BUNDLE_CONTRACT_VERSION = "2026-04-10";
@@ -10,6 +10,34 @@ function getEffectiveVisibility(user: {
   isPublic?: boolean;
 }) {
   return user.visibility ?? (user.isPublic ? "public" : "private");
+}
+
+type ProfileViewer = {
+  userId: Doc<"users">["_id"];
+  user: {
+    companyId?: Doc<"users">["companyId"];
+    domain?: Doc<"users">["domain"];
+  };
+} | null | undefined;
+
+export function viewerCanAccessProfile(
+  viewer: ProfileViewer,
+  targetUser: Doc<"users">
+) {
+  const visibility = getEffectiveVisibility(targetUser);
+  const viewerIsOwner = viewer?.userId === targetUser._id;
+  const viewerIsColleague =
+    !!viewer &&
+    (
+      (viewer.user.companyId && targetUser.companyId && viewer.user.companyId === targetUser.companyId) ||
+      (!!viewer.user.domain && !!targetUser.domain && viewer.user.domain === targetUser.domain)
+    );
+
+  return (
+    visibility === "public" ||
+    viewerIsOwner ||
+    (visibility === "colleagues" && viewerIsColleague)
+  );
 }
 
 function getProfileDisplayName(user: {
@@ -56,25 +84,62 @@ async function getAccessibleProfileUser(ctx: QueryCtx, handle: string) {
   }
 
   const visibility = getEffectiveVisibility(user);
-  const viewerIsOwner = viewer?.userId === user._id;
-  const viewerIsColleague =
-    !!viewer &&
-    (
-      (viewer.user.companyId && user.companyId && viewer.user.companyId === user.companyId) ||
-      (!!viewer.user.domain && !!user.domain && viewer.user.domain === user.domain)
-    );
-
-  if (
-    visibility !== "public" &&
-    !viewerIsOwner &&
-    !(visibility === "colleagues" && viewerIsColleague)
-  ) {
+  if (!viewerCanAccessProfile(viewer, user)) {
     return null;
   }
 
   return {
     user,
     visibility,
+  };
+}
+
+async function buildProfileBundle(
+  ctx: QueryCtx,
+  user: Doc<"users">,
+  visibility: "private" | "colleagues" | "public"
+) {
+  const { publishedDiffs, publishedLoveLetter } = await getPublishedProfileContent(
+    ctx,
+    user._id,
+    user.handle!,
+  );
+  const canonicalDisplayName = getProfileDisplayName(user);
+  const canonicalTitle = getProfileTitle(user);
+
+  return {
+    contractVersion: PROFILE_BUNDLE_CONTRACT_VERSION,
+    profile: {
+      handle: user.handle,
+      displayName: canonicalDisplayName,
+      role: canonicalTitle,
+      title: canonicalTitle,
+      company: user.company,
+      function_: user.function_,
+      seniority: user.seniority,
+      summary: user.summary,
+      photoUrl: getProfilePhotoUrl(user),
+      linkedinUrl: user.linkedinUrl,
+      visibility,
+      totalAdoptions: publishedDiffs.reduce((sum, diff) => sum + diff.adoptionCount, 0),
+    },
+    workflows: publishedDiffs.map((diff) => ({
+      diffId: diff.diffId,
+      name: diff.name,
+      description: diff.description,
+      methodology: diff.methodology,
+      tags: diff.tags,
+      roles: diff.roles,
+      integrations: diff.integrations,
+      adoptionCount: diff.adoptionCount,
+      publishedAt: diff.publishedAt,
+    })),
+    loveLetter: publishedLoveLetter
+      ? {
+          text: publishedLoveLetter.text,
+          createdAt: publishedLoveLetter.createdAt,
+        }
+      : null,
   };
 }
 
@@ -149,47 +214,22 @@ export const getBundle = query({
     }
 
     const { user, visibility } = accessible;
-    const { publishedDiffs, publishedLoveLetter } = await getPublishedProfileContent(
-      ctx,
-      user._id,
-      user.handle!,
-    );
-    const canonicalDisplayName = getProfileDisplayName(user);
-    const canonicalTitle = getProfileTitle(user);
+    return await buildProfileBundle(ctx, user, visibility);
+  },
+});
 
-    return {
-      contractVersion: PROFILE_BUNDLE_CONTRACT_VERSION,
-      profile: {
-        handle: user.handle,
-        displayName: canonicalDisplayName,
-        role: canonicalTitle,
-        title: canonicalTitle,
-        company: user.company,
-        function_: user.function_,
-        seniority: user.seniority,
-        summary: user.summary,
-        photoUrl: getProfilePhotoUrl(user),
-        linkedinUrl: user.linkedinUrl,
-        visibility,
-        totalAdoptions: publishedDiffs.reduce((sum, diff) => sum + diff.adoptionCount, 0),
-      },
-      workflows: publishedDiffs.map((diff) => ({
-        diffId: diff.diffId,
-        name: diff.name,
-        description: diff.description,
-        methodology: diff.methodology,
-        tags: diff.tags,
-        roles: diff.roles,
-        integrations: diff.integrations,
-        adoptionCount: diff.adoptionCount,
-        publishedAt: diff.publishedAt,
-      })),
-      loveLetter: publishedLoveLetter
-        ? {
-            text: publishedLoveLetter.text,
-            createdAt: publishedLoveLetter.createdAt,
-          }
-        : null,
-    };
+export const getBundleUnchecked = internalQuery({
+  args: { handle: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_handle", (q) => q.eq("handle", args.handle))
+      .unique();
+
+    if (!user || !user.handle) {
+      return null;
+    }
+
+    return await buildProfileBundle(ctx, user, getEffectiveVisibility(user));
   },
 });
