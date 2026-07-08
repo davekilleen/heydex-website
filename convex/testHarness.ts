@@ -10,6 +10,7 @@ import { getCompanyViewForUser } from "./companies";
 
 const REVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const CLI_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const ADOPT_GRANT_TTL_MS = 10 * 60 * 1000;
 
 const visibilityValidator = v.union(
   v.literal("private"),
@@ -626,6 +627,46 @@ export const createAdoptionForEmail = internalMutation({
       adoptionId,
       userId: user._id,
       diffId: diff._id,
+    };
+  },
+});
+
+export const createAdoptGrant = internalMutation({
+  args: {
+    targetHandle: v.string(),
+    granterHandle: v.optional(v.string()),
+    expired: v.optional(v.boolean()),
+    redeemed: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const target = await ctx.db
+      .query("users")
+      .withIndex("by_handle", (q) => q.eq("handle", args.targetHandle))
+      .unique();
+    if (!target) {
+      throw new Error(`Target not found for handle: ${args.targetHandle}`);
+    }
+
+    const granterHandle = args.granterHandle ?? `adopt-granter-${Date.now()}`;
+    const granter = await upsertHarnessUser(ctx, {
+      handle: granterHandle,
+      visibility: "private",
+    });
+    const code = generateSessionCode(16);
+    const now = Date.now();
+
+    await ctx.db.insert("adoptGrants", {
+      code,
+      targetHandle: args.targetHandle,
+      granterUserId: granter._id,
+      expiresAt: args.expired ? now - 1000 : now + ADOPT_GRANT_TTL_MS,
+      redeemed: args.redeemed === true,
+    });
+
+    return {
+      code,
+      targetHandle: args.targetHandle,
+      granterHandle,
     };
   },
 });

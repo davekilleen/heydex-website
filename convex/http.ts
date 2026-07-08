@@ -21,6 +21,11 @@ type AdoptionRequest = {
   contractVersion: string;
 };
 
+type ProfileBundleRedeemRequest = {
+  code: string;
+  handle: string;
+};
+
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const attempts = redemptionAttempts.get(ip) || [];
@@ -54,6 +59,10 @@ function invalidAdoptionRequestResponse() {
 
 function warnInvalidAdoptionRequest(reason: string) {
   console.warn("[adoptions] invalid_request", { reason });
+}
+
+function warnInvalidProfileBundleRedeemRequest(reason: string) {
+  console.warn("[profile-bundle/redeem] invalid_request", { reason });
 }
 
 function getConfiguredTestSecret() {
@@ -199,6 +208,30 @@ function shapeAdoptionRequest(body: unknown):
   };
 }
 
+function shapeProfileBundleRedeemRequest(body: unknown):
+  | { ok: true; value: ProfileBundleRedeemRequest }
+  | { ok: false; reason: string } {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { ok: false, reason: "body_not_object" };
+  }
+
+  const record = body as Record<string, unknown>;
+  if (typeof record.code !== "string" || record.code.trim().length === 0) {
+    return { ok: false, reason: "code_missing" };
+  }
+  if (typeof record.handle !== "string" || record.handle.trim().length === 0) {
+    return { ok: false, reason: "handle_missing" };
+  }
+
+  return {
+    ok: true,
+    value: {
+      code: record.code,
+      handle: record.handle,
+    },
+  };
+}
+
 // Convex Auth routes (sign-in, sign-out, OAuth callbacks)
 auth.addHttpRoutes(http);
 
@@ -299,6 +332,59 @@ http.route({
     }
 
     return jsonResponse(bundle);
+  }),
+});
+
+// POST /api/profile-bundle/redeem - exchange an adopt grant for a private bundle
+http.route({
+  path: "/api/profile-bundle/redeem",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+
+    if (!checkRateLimit(ip)) {
+      return new Response(
+        JSON.stringify({ error: "Too many attempts. Try again in 1 minute." }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const rawBody = await readCappedRequestText(req, MAX_ADOPTION_BODY_BYTES);
+    if (!rawBody.ok) {
+      warnInvalidProfileBundleRedeemRequest(rawBody.reason);
+      return invalidAdoptionRequestResponse();
+    }
+
+    const parsedBody = parseCappedJsonRequestBody(rawBody.text);
+    if (!parsedBody.ok) {
+      warnInvalidProfileBundleRedeemRequest(parsedBody.reason);
+      return invalidAdoptionRequestResponse();
+    }
+
+    const shaped = shapeProfileBundleRedeemRequest(parsedBody.body);
+    if (!shaped.ok) {
+      warnInvalidProfileBundleRedeemRequest(shaped.reason);
+      return invalidAdoptionRequestResponse();
+    }
+
+    let result;
+    try {
+      result = await ctx.runMutation(internal.adopt.redeemGrant, shaped.value);
+    } catch (error) {
+      warnInvalidProfileBundleRedeemRequest(
+        error instanceof Error
+          ? `mutation_exception:${error.message}`
+          : "mutation_exception"
+      );
+      return invalidAdoptionRequestResponse();
+    }
+
+    if (!result.ok) {
+      warnInvalidProfileBundleRedeemRequest("grant_rejected");
+      return invalidAdoptionRequestResponse();
+    }
+
+    return jsonResponse(result.bundle);
   }),
 });
 
@@ -701,6 +787,34 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/api/test/bootstrap-adopt-grant",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) {
+      return authError;
+    }
+
+    const body = await req.json();
+    if (typeof body?.targetHandle !== "string") {
+      return jsonResponse({ error: "targetHandle is required" }, 400);
+    }
+
+    const result = await ctx.runMutation(internal.testHarness.createAdoptGrant, {
+      targetHandle: normalizeHandleParam(body.targetHandle),
+      granterHandle:
+        typeof body?.granterHandle === "string"
+          ? normalizeHandleParam(body.granterHandle)
+          : undefined,
+      expired: body?.expired === true,
+      redeemed: body?.redeemed === true,
+    });
+
+    return jsonResponse(result);
+  }),
+});
+
 // POST /api/publish - publish a diff, authenticated via connection code
 // Used by the CLI: /diff-push
 http.route({
@@ -946,6 +1060,12 @@ http.route({
 });
 
 http.route({
+  path: "/api/profile-bundle/redeem",
+  method: "OPTIONS",
+  handler: corsPreflightHandler,
+});
+
+http.route({
   path: "/api/test/bootstrap-cli",
   method: "OPTIONS",
   handler: httpAction(async () => {
@@ -992,6 +1112,21 @@ http.route({
 
 http.route({
   path: "/api/test/bootstrap-public-profile",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": `Content-Type, ${TEST_SECRET_HEADER}`,
+      },
+    });
+  }),
+});
+
+http.route({
+  path: "/api/test/bootstrap-adopt-grant",
   method: "OPTIONS",
   handler: httpAction(async () => {
     return new Response(null, {
