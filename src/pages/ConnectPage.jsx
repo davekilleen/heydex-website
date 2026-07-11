@@ -115,14 +115,6 @@ export default function ConnectPage() {
   // If isAuthenticated but currentUser is null, they need to complete registration
   const showRegistrationForm = isAuthenticated && !isLoading && !currentUser;
 
-  // ── Fix 2: Initialize Pendo on mount ──
-  useEffect(() => {
-    window.pendo?.initialize({
-      visitor: { id: 'anonymous-connect' },
-      account: { id: 'heydex-dexdiff' },
-    });
-  }, []);
-
   async function handleCliSignOut() {
     await signOut();
     window.location.href = '/connect/?cli=true';
@@ -151,10 +143,7 @@ export default function ConnectPage() {
     await register(args);
   }
 
-  function onRegistered(handle) {
-    if (handle) {
-      window.pendo?.identify?.({ visitor: { id: handle } });
-    }
+  function onRegistered() {
     window.pendo?.track('registration_complete');
     window.location.href = postRegistrationUrl;
   }
