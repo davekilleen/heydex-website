@@ -5,6 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Privacy Policy · Dex</title>
   <meta name="description" content="How Dex handles your data. Dex is local-first: your data and your connected accounts stay on your device.">
+  <!-- Pendo Analytics: unified web + desktop identity -->
+  <script>
+    (function () {
+      try {
+        var ACCOUNT = 'heydex-website';
+        var PENDO_KEY = '1e3102e2-f668-41fc-8fca-aaae7e2c2d3b';
+
+        (function (p, e, n, d, o) {
+          var v, w, x, y, z;
+          o = p[d] = p[d] || {};
+          o._q = o._q || [];
+          v = ['initialize', 'identify', 'updateOptions', 'pageLoad', 'track', 'trackAgent'];
+          for (w = 0, x = v.length; w < x; ++w) (function (m) {
+            o[m] = o[m] || function () {
+              o._q[m === v[0] ? 'unshift' : 'push']([m].concat([].slice.call(arguments, 0)));
+            };
+          })(v[w]);
+          y = e.createElement(n);
+          y.async = true;
+          y.src = 'https://cdn.pendo.io/agent/static/' + PENDO_KEY + '/pendo.js';
+          z = e.getElementsByTagName(n)[0];
+          z.parentNode.insertBefore(y, z);
+        })(window, document, 'script', 'pendo');
+
+        window.dexPendoReady = (async function () {
+          async function getEmail(path) {
+            try {
+              var response = await fetch(path, { credentials: 'same-origin' });
+              if (!response.ok) return null;
+              var data = await response.json();
+              if (!data || typeof data.email !== 'string') return null;
+              var email = data.email.trim().toLowerCase();
+              return email || null;
+            } catch (_) {
+              return null;
+            }
+          }
+
+          var email = await getEmail('/oauth2/userinfo');
+          if (!email) email = await getEmail('/oauth2-desktop/userinfo');
+
+          var visitor;
+          if (email) {
+            visitor = { id: email, email: email };
+          } else {
+            var visitorId = 'web-anonymous';
+            try {
+              visitorId = localStorage.getItem('dex_web_visitor');
+              if (!visitorId) {
+                var suffix = window.crypto && typeof window.crypto.randomUUID === 'function'
+                  ? window.crypto.randomUUID()
+                  : Math.random().toString(36).slice(2);
+                visitorId = 'web-' + suffix;
+                localStorage.setItem('dex_web_visitor', visitorId);
+              }
+            } catch (_) {
+              visitorId = 'web-anonymous';
+            }
+            visitor = { id: visitorId };
+          }
+
+          try {
+            window.pendo.initialize({
+              visitor: visitor,
+              account: { id: ACCOUNT }
+            });
+          } catch (_) {}
+        })();
+      } catch (_) {}
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">

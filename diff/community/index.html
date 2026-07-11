@@ -6,19 +6,76 @@
   <title>DexDiff Community</title>
   <meta name="description" content="Browse community-built Dex workflows. See how people use Dex across roles and seniorities.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9670;</text></svg>">
-  <!-- Pendo Analytics -->
+  <!-- Pendo Analytics: unified web + desktop identity -->
   <script>
-    (function(publicAppId){
-      (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
-      v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
-      for(w=0,x=v.length;w<x;++w)(function(m){
-        o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
-      y=e.createElement(n);y.async=!0;
-      y.src='https://cdn.pendo.io/agent/static/'+publicAppId+'/pendo.js';
-      z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);}
-      )(window,document,'script','pendo');
-      pendo.initialize({ visitor: { id: 'anonymous-diff' }, account: { id: 'heydex-dexdiff' } });
-    })('c23ee23e-f3e6-4a1f-81a8-d19a3a85fe2b');
+    (function () {
+      try {
+        var ACCOUNT = 'heydex-dexdiff';
+        var PENDO_KEY = '1e3102e2-f668-41fc-8fca-aaae7e2c2d3b';
+
+        (function (p, e, n, d, o) {
+          var v, w, x, y, z;
+          o = p[d] = p[d] || {};
+          o._q = o._q || [];
+          v = ['initialize', 'identify', 'updateOptions', 'pageLoad', 'track', 'trackAgent'];
+          for (w = 0, x = v.length; w < x; ++w) (function (m) {
+            o[m] = o[m] || function () {
+              o._q[m === v[0] ? 'unshift' : 'push']([m].concat([].slice.call(arguments, 0)));
+            };
+          })(v[w]);
+          y = e.createElement(n);
+          y.async = true;
+          y.src = 'https://cdn.pendo.io/agent/static/' + PENDO_KEY + '/pendo.js';
+          z = e.getElementsByTagName(n)[0];
+          z.parentNode.insertBefore(y, z);
+        })(window, document, 'script', 'pendo');
+
+        window.dexPendoReady = (async function () {
+          async function getEmail(path) {
+            try {
+              var response = await fetch(path, { credentials: 'same-origin' });
+              if (!response.ok) return null;
+              var data = await response.json();
+              if (!data || typeof data.email !== 'string') return null;
+              var email = data.email.trim().toLowerCase();
+              return email || null;
+            } catch (_) {
+              return null;
+            }
+          }
+
+          var email = await getEmail('/oauth2/userinfo');
+          if (!email) email = await getEmail('/oauth2-desktop/userinfo');
+
+          var visitor;
+          if (email) {
+            visitor = { id: email, email: email };
+          } else {
+            var visitorId = 'web-anonymous';
+            try {
+              visitorId = localStorage.getItem('dex_web_visitor');
+              if (!visitorId) {
+                var suffix = window.crypto && typeof window.crypto.randomUUID === 'function'
+                  ? window.crypto.randomUUID()
+                  : Math.random().toString(36).slice(2);
+                visitorId = 'web-' + suffix;
+                localStorage.setItem('dex_web_visitor', visitorId);
+              }
+            } catch (_) {
+              visitorId = 'web-anonymous';
+            }
+            visitor = { id: visitorId };
+          }
+
+          try {
+            window.pendo.initialize({
+              visitor: visitor,
+              account: { id: ACCOUNT }
+            });
+          } catch (_) {}
+        })();
+      } catch (_) {}
+    })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -960,51 +1017,6 @@
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('open'));
       }
     });
-
-    // ── Convex config ──────────────────────────────────
-    const CONVEX_URL = 'https://focused-mouse-723.eu-west-1.convex.cloud';
-    const TOKEN_KEY = 'dexdiff-auth';
-
-    // ── Token storage helpers ──────────────────────────
-    function getStoredAuth() {
-      const raw = localStorage.getItem(TOKEN_KEY);
-      if (!raw) return null;
-      try { return JSON.parse(raw); }
-      catch { return null; }
-    }
-
-    function getAccessToken() {
-      const auth = getStoredAuth();
-      if (!auth) return null;
-      return auth?.token || auth?.tokens?.token || null;
-    }
-
-    // ── Pendo identity upgrade ─────────────────────────
-    (async function init() {
-      const token = getAccessToken();
-      if (!token) return;
-
-      try {
-        const res = await fetch(CONVEX_URL + '/api/query', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-          },
-          body: JSON.stringify({ path: 'users:me', args: {}, format: 'json' })
-        });
-
-        const result = await res.json();
-        if (result.status === 'success' && result.value?.handle) {
-          pendo.identify({
-            visitor: { id: result.value.handle },
-            account: { id: 'heydex-dexdiff' }
-          });
-        }
-      } catch (err) {
-        console.error('Auth check failed:', err);
-      }
-    })();
 
     // ── Pendo tracking ─────────────────────────────────
     document.querySelectorAll('.diff-card').forEach(card => {

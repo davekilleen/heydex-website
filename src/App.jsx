@@ -1,4 +1,8 @@
+import { useEffect } from 'react';
+import { useConvexAuth, useQuery } from 'convex/react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { api } from '../convex/_generated/api';
+import { identifyPendoVisitorAfterInitialization } from './analytics/pendoIdentity';
 import ConnectPage from './pages/ConnectPage';
 import CompanyPage from './pages/CompanyPage';
 import DesktopPage from './pages/DesktopPage';
@@ -13,7 +17,18 @@ function withAuthGate(element) {
   return <RequireAuth>{element}</RequireAuth>;
 }
 
+function usePendoIdentity() {
+  const { isAuthenticated } = useConvexAuth();
+  const currentUser = useQuery(api.users.me, isAuthenticated ? {} : 'skip');
+
+  useEffect(() => {
+    return identifyPendoVisitorAfterInitialization(currentUser?.email);
+  }, [currentUser?.email]);
+}
+
 export default function App() {
+  usePendoIdentity();
+
   return (
     <Routes>
       <Route path="/connect" element={<ConnectPage />} />
