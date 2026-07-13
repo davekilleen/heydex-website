@@ -18,11 +18,24 @@ heydex.ai, www.heydex.ai {
 
 	# Dex Dispatch founder's log: private single-page site for Dave, published by
 	# agent sessions via rsync to /var/www/dispatch (outside the public web root so
-	# a routing mistake can never expose it). The gate lives host-only in
-	# /etc/caddy/dispatch-gate.caddy (never in this public repo): Google sign-in
-	# via oauth2-proxy on 127.0.0.1:4180 (forward_auth + /oauth2/* routes),
-	# allowlisted to a single account in /etc/oauth2-proxy/emails.txt.
+	# a routing mistake can never expose it). Same host-only credential pattern as
+	# the desktop gate: hash lives in /etc/caddy/dispatch-gate.caddy, never here.
 	import /etc/caddy/dispatch-gate.caddy
+
+	# Private explainers gallery: Google sign-in (reuses the /dispatch oauth2-proxy).
+	# Served from /var/www/explainers (outside the public web root, like /dispatch).
+	import /etc/caddy/explainers-gate.caddy
+	redir /explainers /explainers/ 308
+	@explainers {
+		path /explainers /explainers/*
+	}
+	handle @explainers {
+		root * /var/www/explainers
+		uri strip_prefix /explainers
+		header X-Robots-Tag "noindex, nofollow, noarchive"
+		try_files {path} {path}/index.html /index.html
+		file_server
+	}
 
 	# Exact/special-case React ownership must win before generic /diff/* handling.
 	@profile {
