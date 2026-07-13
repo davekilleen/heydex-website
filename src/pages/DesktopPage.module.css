@@ -20,7 +20,7 @@
 
 .page,
 .loadingPage {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -31,8 +31,8 @@
 }
 
 .page {
-  width: 100%;
   position: relative;
+  width: 100%;
   overflow-x: hidden;
 }
 
@@ -62,25 +62,123 @@
   position: fixed;
   right: 0;
   bottom: 0;
+  z-index: 0;
   width: 470px;
-  height: 388px;
+  height: auto;
   max-width: 64vw;
   color: var(--accent);
   pointer-events: none;
-  z-index: 0;
+}
+
+.pageLayout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1100px);
+  gap: 48px;
+  align-items: start;
+  width: min(1332px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+.pageContent {
+  min-width: 0;
+}
+
+.helpRail {
+  position: sticky;
+  top: 24px;
+  display: grid;
+  gap: 20px;
+  align-self: start;
+  margin-top: 48px;
+  padding: 12px 0;
+}
+
+.helpRailIntro {
+  display: grid;
+  gap: 10px;
+}
+
+.helpRailLabel {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.helpRailLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-left: 2px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.helpRailLink:hover {
+  border-color: var(--accent-dim);
+  background: rgba(255, 64, 129, 0.18);
+}
+
+.helpRailLink span:last-child {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 16px;
+}
+
+.railNav {
+  display: grid;
+  gap: 3px;
+}
+
+.railNav a {
+  padding: 6px 0 6px 10px;
+  border-left: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-decoration: none;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.railNav a:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.helpRail a:focus-visible,
+.primaryButton:focus-visible,
+.footer a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .section {
   position: relative;
-  z-index: 1;
-  width: min(1120px, calc(100% - 48px));
-  margin: 0 auto;
-  padding: 40px 0;
+  width: 100%;
+  margin: 0;
+  padding: 34px 0;
+  scroll-margin-top: 32px;
 }
 
 .hero {
-  padding-top: 56px;
-  padding-bottom: 44px;
+  padding-top: 48px;
+  padding-bottom: 30px;
 }
 
 .heroCopy {
@@ -88,7 +186,7 @@
 }
 
 .label {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -100,12 +198,13 @@
 .hero h1,
 .copyGrid h2,
 .stepsSection h2,
-.feedbackIntro h2 {
+.feedbackIntro h2,
+.walkthroughIntro h2 {
   margin: 0;
   color: var(--text-primary);
   font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.05;
 }
 
@@ -118,7 +217,9 @@
 .bodyStack p,
 .letterBody p,
 .feedbackIntro p,
-.stepsList p {
+.stepsList p,
+.loopStep p,
+.walkthroughMeta p {
   margin: 0;
   color: var(--text-secondary);
   font-size: 16px;
@@ -129,9 +230,9 @@
 .heroCopy p {
   max-width: 600px;
   margin-top: 16px;
-  color: var(--text-secondary);
   font-size: 18px;
-  line-height: 1.55;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 .heroActions {
@@ -142,54 +243,25 @@
   margin-top: 24px;
 }
 
-.heroLinks {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 18px;
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-
-.heroLinks a {
-  color: var(--text-secondary);
-  text-decoration: none;
-  border-bottom: 1px solid var(--border-strong);
-  padding-bottom: 1px;
-  transition: color 120ms ease, border-color 120ms ease;
-}
-
-.heroLinks a:hover {
-  color: var(--text-primary);
-  border-color: var(--accent-dim);
-}
-
 .primaryButton,
-.outlineButton,
-.secondaryLink,
 .footer a {
   color: inherit;
   text-decoration: none;
 }
 
-.primaryButton,
-.outlineButton {
+.primaryButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 3px;
-  font-weight: 500;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-}
-
-.primaryButton {
   min-height: 56px;
-  flex-direction: column;
   gap: 2px;
   padding: 12px 22px;
-  color: var(--text-inverse);
+  border-radius: 3px;
   background: var(--accent);
+  color: var(--text-inverse);
+  flex-direction: column;
+  font-weight: 600;
+  transition: background 120ms ease, color 120ms ease;
 }
 
 .primaryButton:hover {
@@ -203,42 +275,29 @@
   font-weight: 500;
 }
 
-.secondaryLink {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  color: var(--text-secondary);
-  font-size: 14px;
-  transition: color 120ms ease;
-}
-
-.secondaryLink:hover,
-.footer a:hover {
-  color: var(--text-primary);
-}
-
 .copyGrid,
 .stepsSection {
   display: grid;
   grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1fr);
-  gap: 44px;
+  gap: 40px;
 }
 
 .copyGrid h2,
 .stepsSection h2,
-.feedbackIntro h2 {
+.feedbackIntro h2,
+.walkthroughIntro h2 {
   font-size: clamp(26px, 3vw, 38px);
 }
 
 .bodyStack {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .letterCard {
   max-width: 860px;
   margin: 0 auto;
-  padding: 36px;
+  padding: 30px;
   border: 1px solid var(--border-default);
   border-radius: 3px;
   background: var(--bg-surface);
@@ -251,22 +310,22 @@
 
 .signature {
   color: var(--text-primary) !important;
+  font-weight: 500 !important;
 }
 
 .stepsList {
   display: grid;
-  gap: 14px;
-  margin: 0 0 28px;
+  gap: 12px;
+  margin: 0;
   padding: 0;
   list-style: none;
-  counter-reset: desktop-steps;
 }
 
 .stepsList li {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   gap: 22px;
-  padding-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-default);
 }
 
@@ -274,156 +333,187 @@
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 12px;
+  font-weight: 500;
   letter-spacing: 0.06em;
 }
 
-.outlineButton {
-  min-height: 46px;
-  padding: 12px 18px;
-  border: 1px solid var(--border-strong);
-  color: var(--text-primary);
-  background: transparent;
-}
-
-.outlineButton:hover {
-  border-color: var(--accent-dim);
-  background: var(--accent-bg);
-}
-
-.feedbackIntro {
-  max-width: 820px;
+.feedbackIntro,
+.walkthroughIntro {
+  max-width: 800px;
 }
 
 .feedbackIntro p {
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
-.visualStrip {
+.loopDiagram {
+  position: relative;
+  max-width: 880px;
+  margin: 24px 0 0;
+  padding: 18px 0;
+}
+
+.loopDiagram::before {
+  position: absolute;
+  inset: 56px 13% 54px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  content: '';
+  opacity: 0.85;
+}
+
+.loopCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: 132px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.loopList {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin: 24px 0 18px;
+  grid-template-areas:
+    'one two'
+    'four three';
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 54px 84px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.visualItem {
+.loopStep {
+  min-height: 124px;
+  padding: 18px 20px;
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+  background: var(--bg-surface);
+}
+
+.loopStepOne {
+  grid-area: one;
+}
+
+.loopStepTwo {
+  grid-area: two;
+}
+
+.loopStepThree {
+  grid-area: three;
+}
+
+.loopStepFour {
+  grid-area: four;
+}
+
+.loopStep h3,
+.walkthroughMeta h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  line-height: 1.15;
+}
+
+.loopStep h3 {
+  font-size: 19px;
+}
+
+.loopStep p {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.walkthroughSection {
+  padding-top: 26px;
+}
+
+.walkthrough {
+  display: grid;
+  gap: 0;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.walkthroughItem {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
+  padding: 26px 0;
+  border-top: 1px solid var(--border-default);
+}
+
+.walkthroughItem:last-child {
+  border-bottom: 1px solid var(--border-default);
+}
+
+.walkthroughMeta {
+  padding-top: 8px;
+}
+
+.walkthroughMeta > span {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.walkthroughMeta h3 {
+  font-size: clamp(22px, 2.2vw, 29px);
+}
+
+.walkthroughMeta p {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.walkthroughFigure {
   min-width: 0;
   margin: 0;
 }
 
-.imageFrame {
-  display: block;
-  width: 100%;
-  padding: 0;
-  aspect-ratio: 4 / 3;
+.walkthroughImageFrame {
+  aspect-ratio: 16 / 10;
   overflow: hidden;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-strong);
   border-radius: 3px;
   background: var(--bg-surface);
-  cursor: pointer;
-  transition: border-color 120ms ease, transform 120ms ease;
 }
 
-.imageFrame:hover {
-  border-color: var(--accent-dim);
-  transform: translateY(-2px);
-}
-
-.lightbox {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 40px;
-  background: rgba(5, 5, 7, 0.9);
-}
-
-.lightboxFigure {
-  margin: 0;
-  max-width: min(1000px, 88vw);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.lightboxFigure img {
-  width: 100%;
-  max-height: 80vh;
-  object-fit: contain;
-  border: 1px solid var(--border-default);
-  border-radius: 4px;
-  background: var(--bg-surface);
-}
-
-.lightboxFigure figcaption {
-  text-align: center;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.lightboxClose {
-  position: absolute;
-  top: 18px;
-  right: 22px;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.lightboxClose:hover {
-  color: var(--text-primary);
-}
-
-.lightboxNav {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--border-strong);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font-size: 20px;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: border-color 120ms ease, background 120ms ease;
-}
-
-.lightboxNav:hover {
-  border-color: var(--accent-dim);
-  background: var(--bg-elevated);
-}
-
-.imageFrame img {
+.walkthroughImageFrame img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.visualItem figcaption {
-  margin-top: 12px;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .footer {
-  position: relative;
-  z-index: 1;
-  width: min(1120px, calc(100% - 48px));
-  margin: 0 auto;
-  padding: 28px 0 44px;
+  width: 100%;
+  margin: 0;
+  padding: 26px 0 38px;
   border-top: 1px solid var(--border-default);
   color: var(--text-tertiary);
   display: flex;
@@ -432,6 +522,14 @@
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.02em;
+}
+
+.footer a {
+  transition: color 120ms ease;
+}
+
+.footer a:hover {
+  color: var(--text-primary);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -455,6 +553,10 @@
   .feedbackSection {
     animation-delay: 200ms;
   }
+
+  .walkthroughSection {
+    animation-delay: 240ms;
+  }
 }
 
 @keyframes enter {
@@ -469,47 +571,96 @@
   }
 }
 
-@media (max-width: 900px) {
-  .section {
-    width: min(100% - 32px, 640px);
-    padding: 36px 0;
+@media (max-width: 1180px) {
+  .pageLayout {
+    grid-template-columns: 164px minmax(0, 1fr);
+    gap: 32px;
+    width: min(1120px, calc(100% - 48px));
   }
 
-  .hero,
-  .copyGrid,
-  .stepsSection {
-    grid-template-columns: 1fr;
-    gap: 28px;
+  .loopList {
+    gap: 46px 68px;
+  }
+}
+
+@media (max-width: 980px) {
+  .pageLayout {
+    display: block;
+    width: min(100% - 32px, 720px);
+  }
+
+  .helpRail {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: minmax(190px, 0.75fr) minmax(0, 1fr);
+    gap: 18px 28px;
+    margin-top: 0;
+    padding: 12px 0;
+    background: var(--bg-base);
+  }
+
+  .railNav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 3px 12px;
+  }
+
+  .section {
+    padding: 30px 0;
+    scroll-margin-top: 164px;
   }
 
   .hero {
-    min-height: auto;
-    padding-top: 44px;
+    padding-top: 30px;
+    padding-bottom: 26px;
   }
 
-  .heroCopy p {
-    font-size: 17px;
+  .copyGrid,
+  .stepsSection {
+    grid-template-columns: 1fr;
+    gap: 24px;
   }
 
   .letterCard {
-    padding: 28px 22px;
+    padding: 26px 22px;
   }
 
-  .visualStrip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .walkthroughItem {
+    grid-template-columns: minmax(160px, 0.3fr) minmax(0, 1fr);
+    gap: 26px;
   }
 
   .constellation {
     max-width: 80vw;
     opacity: 0.7;
   }
-
-  .footer {
-    width: min(100% - 32px, 640px);
-  }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 620px) {
+  .pageLayout {
+    width: min(100% - 32px, 640px);
+  }
+
+  .helpRail {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 10px 0;
+  }
+
+  .helpRailLink {
+    min-height: 52px;
+  }
+
+  .section {
+    scroll-margin-top: 84px;
+  }
+
+  .railNav {
+    display: none;
+  }
+
   .heroActions,
   .primaryButton {
     width: 100%;
@@ -519,12 +670,60 @@
     align-items: stretch;
   }
 
+  .loopDiagram {
+    margin-top: 20px;
+    padding: 0;
+  }
+
+  .loopDiagram::before {
+    display: none;
+  }
+
+  .loopCenter {
+    position: static;
+    width: auto;
+    margin: 0 0 12px;
+    transform: none;
+  }
+
+  .loopList {
+    grid-template-areas: none;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .loopStepOne,
+  .loopStepTwo,
+  .loopStepThree,
+  .loopStepFour {
+    grid-area: auto;
+  }
+
+  .loopStep {
+    min-height: auto;
+    padding: 16px;
+  }
+
+  .walkthroughSection {
+    padding-top: 20px;
+  }
+
+  .walkthrough {
+    margin-top: 18px;
+  }
+
+  .walkthroughItem {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 22px 0;
+  }
+
+  .walkthroughMeta {
+    padding-top: 0;
+  }
+
   .stepsList li {
     grid-template-columns: 36px minmax(0, 1fr);
     gap: 16px;
-  }
-
-  .visualStrip {
-    grid-template-columns: 1fr;
   }
 }

@@ -1,6 +1,10 @@
 import { useQuery } from 'convex/react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { api } from '../../convex/_generated/api';
+import chainThreadShot from '../../shots/chain-thread.png';
+import draftDetailShot from '../../shots/draft-detail.png';
+import recordLiveShot from '../../shots/record-live.png';
+import weeklyReviewShot from '../../shots/weekly-review.png';
 import styles from './DesktopPage.module.css';
 
 const DOWNLOAD_HREF = '/desktop/downloads/Dex-arm64.dmg';
@@ -8,26 +12,60 @@ const HELP_HOME_HREF = '/desktop/help/';
 const RELEASE_NOTES_HREF = '/desktop/help/releases.html';
 const FEEDBACK_HREF = '/desktop/help/giving-feedback.html';
 
+// TODO(desktop-feedback): Swap these product-flow screenshots for real feedback-toolbar captures
+// when they are committed to this repo. The former /desktop/help/screenshots/feedback-*.png files
+// are absent in this checkout, so these bundled stills keep the walkthrough self-contained today.
 const feedbackSteps = [
   {
-    label: 'Annotate',
-    src: '/desktop/help/screenshots/feedback-annotate.png',
-    alt: 'Feedback annotation screenshot',
+    step: 'Capture',
+    title: 'Capture the moment',
+    description: 'Keep the useful part of a conversation while it is still fresh.',
+    src: recordLiveShot,
+    alt: 'Dex recording a live meeting transcript',
   },
   {
-    label: 'Review what you send',
-    src: '/desktop/help/screenshots/feedback-preview.png',
-    alt: 'Feedback preview screenshot',
+    step: 'Trace',
+    title: 'Follow the thread',
+    description: 'See the people, decisions, and follow-up that came from it.',
+    src: chainThreadShot,
+    alt: 'Dex tracing a meeting through its follow-up, people, and evidence',
   },
   {
-    label: 'Dave triages',
-    src: '/desktop/help/screenshots/feedback-loop.png',
-    alt: 'Feedback triage screenshot',
+    step: 'Review',
+    title: 'Review the next move',
+    description: 'Check the context behind a draft before you decide what happens next.',
+    src: draftDetailShot,
+    alt: 'Dex showing a follow-up draft with its supporting context',
   },
   {
-    label: 'See it ship',
-    src: '/desktop/help/screenshots/feedback-status.png',
-    alt: 'Feedback status screenshot',
+    step: 'Close',
+    title: 'Close with evidence',
+    description: 'Come back to the work with a record of what actually moved.',
+    src: weeklyReviewShot,
+    alt: 'Dex weekly review showing the work completed and what carries forward',
+  },
+];
+
+const feedbackLoopSteps = [
+  {
+    title: 'Flag it',
+    description: 'Use the feedback toolbar whenever something needs a closer look.',
+    position: 'loopStepOne',
+  },
+  {
+    title: 'Review it',
+    description: 'See the text and context before anything is shared.',
+    position: 'loopStepTwo',
+  },
+  {
+    title: 'See it move',
+    description: 'Reports are grouped and triaged into work that needs attention.',
+    position: 'loopStepThree',
+  },
+  {
+    title: 'See the result',
+    description: 'Dex tells you when an issue you raised has shipped.',
+    position: 'loopStepFour',
   },
 ];
 
@@ -94,7 +132,6 @@ function Constellation() {
 }
 
 export default function DesktopPage() {
-  const [lightbox, setLightbox] = useState(null);
   const currentUser = useQuery(api.users.me);
   const firstName = getFirstName(currentUser);
   const heroSubcopy = `${firstName ? `Welcome, ${firstName}. ` : ''}Your day in one brief, your promises tracked, your follow-ups drafted before you ask. The chief of staff that lived in a terminal now lives on your desktop.`;
@@ -110,180 +147,171 @@ export default function DesktopPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (lightbox === null) return undefined;
-    const onKey = (event) => {
-      if (event.key === 'Escape') setLightbox(null);
-      else if (event.key === 'ArrowRight') setLightbox((i) => (i + 1) % feedbackSteps.length);
-      else if (event.key === 'ArrowLeft') setLightbox((i) => (i - 1 + feedbackSteps.length) % feedbackSteps.length);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [lightbox]);
-
   return (
     <main className={styles.page}>
       <Constellation />
 
-      <section className={`${styles.section} ${styles.hero}`} aria-labelledby="desktop-title">
-        <div className={styles.heroCopy}>
-          <Label>PRIVATE BETA</Label>
-          <h1 id="desktop-title">Dex, out of the terminal.</h1>
-          <p>{heroSubcopy}</p>
-          <div className={styles.heroActions}>
-            <a className={styles.primaryButton} href={DOWNLOAD_HREF}>
-              <span>Download for Mac</span>
-              <span className={styles.buttonMeta}>Beta · Apple Silicon</span>
+      <div className={styles.pageLayout}>
+        <aside className={styles.helpRail}>
+          <div className={styles.helpRailIntro}>
+            <span className={styles.helpRailLabel}>Need a hand?</span>
+            <a className={styles.helpRailLink} href={HELP_HOME_HREF}>
+              <span>Open the help center</span>
+              <span aria-hidden="true">→</span>
             </a>
           </div>
-          <div className={styles.heroLinks}>
-            <a href={HELP_HOME_HREF}>New here? Read the guide</a>
+          <nav className={styles.railNav} aria-label="Desktop help and page navigation">
+            <a href="#desktop-start">Install Dex</a>
+            <a href="#desktop-feedback">Feedback loop</a>
+            <a href="#desktop-walkthrough">Walkthrough</a>
+            <a href={FEEDBACK_HREF}>Feedback guide</a>
+            <a href={RELEASE_NOTES_HREF}>Release notes</a>
+          </nav>
+        </aside>
+
+        <div className={styles.pageContent}>
+          <section className={`${styles.section} ${styles.hero}`} aria-labelledby="desktop-title">
+            <div className={styles.heroCopy}>
+              <Label>PRIVATE BETA</Label>
+              <h1 id="desktop-title">Dex, out of the terminal.</h1>
+              <p>{heroSubcopy}</p>
+              <div className={styles.heroActions}>
+                <a className={styles.primaryButton} href={DOWNLOAD_HREF}>
+                  <span>Download for Mac</span>
+                  <span className={styles.buttonMeta}>Beta · Apple Silicon</span>
+                </a>
+              </div>
+            </div>
+          </section>
+
+          <section className={`${styles.section} ${styles.copyGrid}`} aria-labelledby="desktop-point">
+            <div>
+              <Label>THE POINT</Label>
+              <h2 id="desktop-point">Built for the people the terminal left out.</h2>
+            </div>
+            <div className={styles.bodyStack}>
+              <p>
+                The people who most need a chief of staff are the ones who never had time to learn a
+                terminal: sellers, product leads, founders, operators whose day is meetings and
+                decisions, not code.
+              </p>
+              <p>
+                So Dex left the command line. One install, a five-minute setup, and it starts learning
+                how you work. No terminal, no configuration files, no jargon.
+              </p>
+            </div>
+          </section>
+
+          <section className={styles.section} aria-labelledby="desktop-builder">
+            <div className={styles.letterCard}>
+              <Label>FROM THE BUILDER</Label>
+              <div className={styles.letterBody} id="desktop-builder">
+                <p>
+                  I have been building Dex nights and weekends for a long time, and this is the moment I
+                  have been working toward: putting it in the hands of people who do not care how it
+                  works, only that it does.
+                </p>
+                <p>
+                  You are getting the very first desktop build. Some edges are still rough, and honestly,
+                  that is why you are here. Every piece of feedback you send lands directly with me. I
+                  read all of it, I triage all of it, and you see my replies and the status of everything
+                  you raise inside the app itself.
+                </p>
+                <p>Thank you for being early. It means more than you know.</p>
+                <p className={styles.signature}>Dave</p>
+              </div>
+            </div>
+          </section>
+
+          <section
+            id="desktop-start"
+            className={`${styles.section} ${styles.stepsSection}`}
+            aria-labelledby="desktop-start-title"
+          >
+            <div>
+              <Label>GET STARTED</Label>
+              <h2 id="desktop-start-title">Four steps and you&apos;re running.</h2>
+            </div>
+            <div>
+              <ol className={styles.stepsList}>
+                {gettingStartedSteps.map((step, index) => (
+                  <li key={step}>
+                    <span>{String(index + 1).padStart(2, '0')}</span>
+                    <p>{step}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </section>
+
+          <section
+            id="desktop-feedback"
+            className={`${styles.section} ${styles.feedbackSection}`}
+            aria-labelledby="desktop-feedback-title"
+          >
+            <div className={styles.feedbackIntro}>
+              <Label>THE FEEDBACK LOOP</Label>
+              <h2 id="desktop-feedback-title">Annotate anything. Watch it become a fix.</h2>
+              <p>
+                There is a feedback toolbar inside the app. Point at anything that confuses or delights
+                you and write what you think. Before anything is sent you see exactly what will be
+                shared, and you can remove whatever you want. After you send it, AI groups your notes
+                with other testers&apos; reports, I review every one, and real issues go on the roadmap.
+                When something you raised ships, the app tells you.
+              </p>
+            </div>
+
+            <div className={styles.loopDiagram}>
+              <p className={styles.loopCenter}>It comes back to you.</p>
+              <ol className={styles.loopList} aria-label="Feedback loop">
+                {feedbackLoopSteps.map((step) => (
+                  <li key={step.title} className={`${styles.loopStep} ${styles[step.position]}`}>
+                    <h3>{step.title}</h3>
+                    <p>{step.description}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </section>
+
+          <section
+            id="desktop-walkthrough"
+            className={`${styles.section} ${styles.walkthroughSection}`}
+            aria-labelledby="desktop-walkthrough-title"
+          >
+            <div className={styles.walkthroughIntro}>
+              <Label>IN THE APP</Label>
+              <h2 id="desktop-walkthrough-title">One clear path from a live moment to the next move.</h2>
+            </div>
+            <ol className={styles.walkthrough} aria-label="Desktop feedback walkthrough">
+              {feedbackSteps.map((step) => (
+                <li key={step.title} className={styles.walkthroughItem}>
+                  <div className={styles.walkthroughMeta}>
+                    <span>{step.step}</span>
+                    <h3>{step.title}</h3>
+                    <p>{step.description}</p>
+                  </div>
+                  <figure className={styles.walkthroughFigure}>
+                    <div className={styles.walkthroughImageFrame}>
+                      <img src={step.src} alt={step.alt} loading="lazy" />
+                    </div>
+                  </figure>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <footer className={styles.footer}>
+            <a href={RELEASE_NOTES_HREF}>Release notes</a>
             <span aria-hidden="true">·</span>
-            <a href={RELEASE_NOTES_HREF}>What changed? Release notes</a>
-          </div>
+            <a href={HELP_HOME_HREF}>Help home</a>
+            <span aria-hidden="true">·</span>
+            <span>Private beta. Please do not share the download link.</span>
+            <span aria-hidden="true">·</span>
+            <a href="/">heydex.ai</a>
+          </footer>
         </div>
-      </section>
-
-      <section className={`${styles.section} ${styles.copyGrid}`} aria-labelledby="desktop-point">
-        <div>
-          <Label>THE POINT</Label>
-          <h2 id="desktop-point">Built for the people the terminal left out.</h2>
-        </div>
-        <div className={styles.bodyStack}>
-          <p>
-            The people who most need a chief of staff are the ones who never had time to learn a
-            terminal: sellers, product leads, founders, operators whose day is meetings and
-            decisions, not code.
-          </p>
-          <p>
-            So Dex left the command line. One install, a five-minute setup, and it starts learning
-            how you work. No terminal, no configuration files, no jargon.
-          </p>
-        </div>
-      </section>
-
-      <section className={styles.section} aria-labelledby="desktop-builder">
-        <div className={styles.letterCard}>
-          <Label>FROM THE BUILDER</Label>
-          <div className={styles.letterBody} id="desktop-builder">
-            <p>
-              I have been building Dex nights and weekends for a long time, and this is the moment I
-              have been working toward: putting it in the hands of people who do not care how it
-              works, only that it does.
-            </p>
-            <p>
-              You are getting the very first desktop build. Some edges are still rough, and honestly,
-              that is why you are here. Every piece of feedback you send lands directly with me. I
-              read all of it, I triage all of it, and you see my replies and the status of everything
-              you raise inside the app itself.
-            </p>
-            <p>Thank you for being early. It means more than you know.</p>
-            <p className={styles.signature}>Dave</p>
-          </div>
-        </div>
-      </section>
-
-      <section className={`${styles.section} ${styles.stepsSection}`} aria-labelledby="desktop-start">
-        <div>
-          <Label>GET STARTED</Label>
-          <h2 id="desktop-start">Four steps and you&apos;re running.</h2>
-        </div>
-        <div>
-          <ol className={styles.stepsList}>
-            {gettingStartedSteps.map((step, index) => (
-              <li key={step}>
-                <span>{String(index + 1).padStart(2, '0')}</span>
-                <p>{step}</p>
-              </li>
-            ))}
-          </ol>
-          <a className={styles.outlineButton} href={HELP_HOME_HREF}>
-            Open the guide
-          </a>
-        </div>
-      </section>
-
-      <section className={`${styles.section} ${styles.feedbackSection}`} aria-labelledby="desktop-feedback">
-        <div className={styles.feedbackIntro}>
-          <Label>THE FEEDBACK LOOP</Label>
-          <h2 id="desktop-feedback">Annotate anything. Watch it become a fix.</h2>
-          <p>
-            There is a feedback toolbar inside the app. Point at anything that confuses or delights
-            you and write what you think. Before anything is sent you see exactly what will be
-            shared, and you can remove whatever you want. After you send it, AI groups your notes
-            with other testers&apos; reports, I review every one, and real issues go on the roadmap.
-            When something you raised ships, the app tells you.
-          </p>
-        </div>
-        <div className={styles.visualStrip}>
-          {feedbackSteps.map((step, index) => (
-            <figure key={step.label} className={styles.visualItem}>
-              <button
-                type="button"
-                className={styles.imageFrame}
-                onClick={() => setLightbox(index)}
-                aria-label={`Expand screenshot: ${step.label}`}
-              >
-                <img src={step.src} alt={step.alt} loading="lazy" />
-              </button>
-              <figcaption>{step.label}</figcaption>
-            </figure>
-          ))}
-        </div>
-        <a className={styles.secondaryLink} href={FEEDBACK_HREF}>
-          How to give feedback
-        </a>
-      </section>
-
-      <footer className={styles.footer}>
-        <a href={RELEASE_NOTES_HREF}>Release notes</a>
-        <span aria-hidden="true">·</span>
-        <a href={HELP_HOME_HREF}>Help home</a>
-        <span aria-hidden="true">·</span>
-        <span>Private beta. Please do not share the download link.</span>
-        <span aria-hidden="true">·</span>
-        <a href="/">heydex.ai</a>
-      </footer>
-
-      {lightbox !== null && (
-        <div
-          className={styles.lightbox}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Feedback screenshots"
-          onClick={() => setLightbox(null)}
-        >
-          <button className={styles.lightboxClose} onClick={() => setLightbox(null)} aria-label="Close">
-            ✕
-          </button>
-          <button
-            className={styles.lightboxNav}
-            onClick={(event) => {
-              event.stopPropagation();
-              setLightbox((i) => (i - 1 + feedbackSteps.length) % feedbackSteps.length);
-            }}
-            aria-label="Previous screenshot"
-          >
-            ‹
-          </button>
-          <figure className={styles.lightboxFigure} onClick={(event) => event.stopPropagation()}>
-            <img src={feedbackSteps[lightbox].src} alt={feedbackSteps[lightbox].alt} />
-            <figcaption>
-              {feedbackSteps[lightbox].label} · {lightbox + 1} / {feedbackSteps.length}
-            </figcaption>
-          </figure>
-          <button
-            className={styles.lightboxNav}
-            onClick={(event) => {
-              event.stopPropagation();
-              setLightbox((i) => (i + 1) % feedbackSteps.length);
-            }}
-            aria-label="Next screenshot"
-          >
-            ›
-          </button>
-        </div>
-      )}
+      </div>
     </main>
   );
 }
