@@ -1,5 +1,16 @@
 # Deployment
 
+## One authoritative branch: `main`
+
+As of 2026-07-13, `main` is the single line the entire live site deploys from.
+Between 2026-06-19 and 2026-07-13 the live site was split across two diverged
+lines (`migrate-homepage-into-repo` carried the homepage + /desktop redesign
+before they landed in `main`), which made a full `deploy.sh` from either line
+silently regress the other's surfaces. That branch's content is fully contained
+in `main` (verified commit-by-commit before retiring it); the stray branch has
+been deleted. If you find yourself deploying from anything other than `main`,
+stop and ask why.
+
 ## Convex Deployments
 
 DexDiff has its own dedicated Convex project as of 2026-07-05. It no longer
@@ -24,7 +35,9 @@ This repo deploys two different things:
 1. Convex backend
 2. Caddy-hosted web surfaces for `/diff/` and `/connect/`
 
-The root marketing landing is not part of `deploy.sh`.
+The root marketing landing deploys via `deploy-root.sh`, which `deploy.sh`
+calls on every frontend deploy (they were separate historically; the homepage
+drifting out of sync is why they were coupled).
 
 ## Backend Deploy
 

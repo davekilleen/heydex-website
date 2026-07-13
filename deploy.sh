@@ -139,7 +139,13 @@ rsync -avz --delete --chmod=u=rwX,go=rX -e "ssh -i $SSH_KEY" "$DESKTOP_HELP_SITE
 
 echo "→ Promoting to live..."
 ssh -i "$SSH_KEY" "$VPS" "sudo rm -rf ${LIVE_DIFF}* ${LIVE_CONNECT}* && sudo cp -r $STAGING/diff/* $LIVE_DIFF && sudo cp -r $STAGING/connect/* $LIVE_CONNECT && sudo chown -R dex:dex $LIVE_DIFF $LIVE_CONNECT"
-ssh -i "$SSH_KEY" "$VPS" "sudo mkdir -p $LIVE_DESKTOP && sudo rsync -a --delete --exclude downloads/ $STAGING/desktop/ $LIVE_DESKTOP && sudo chmod 755 $LIVE_DESKTOP && sudo chown -R dex:dex $LIVE_DESKTOP"
+# The desktop promote uses --delete, so every durable directory that lives under
+# /desktop but is NOT part of this build must be excluded or it gets wiped:
+#   downloads/  beta DMG installers (shipped separately, DESKTOP_DMG=...)
+#   updates/    electron-updater feed (latest-mac.yml + zips) — deleting this
+#               breaks auto-update for every installed copy of Dex
+#   preview/    ad-hoc preview builds published outside this script
+ssh -i "$SSH_KEY" "$VPS" "sudo mkdir -p $LIVE_DESKTOP && sudo rsync -a --delete --exclude downloads/ --exclude updates/ --exclude preview/ $STAGING/desktop/ $LIVE_DESKTOP && sudo chmod 755 $LIVE_DESKTOP && sudo chown -R dex:dex $LIVE_DESKTOP"
 
 # Beta DMG: ship the installer through the same staging pipeline when provided.
 # Usage: DESKTOP_DMG=~/Downloads/Dex-arm64.dmg ./deploy.sh
