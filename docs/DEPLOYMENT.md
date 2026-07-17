@@ -29,8 +29,10 @@ The publisher is intentionally isolated:
   smallest neutral fixture, and receive review before an adapter is added.
 - `scripts/explainers/publisher.mjs` exports injected `prepare`, `publish`, and
   `rollback` operations. Its filesystem and command/executor seams keep unit
-  tests in temporary local roots and keep SSH credentials out of arguments,
-  source control, logs, and test fixtures.
+  tests in temporary local roots and keep SSH key material out of arguments,
+  source control, logs, and test fixtures. The CLI accepts only a key-file path
+  and passes it to a reviewed executor module; it never accepts or reads key
+  material as an option value.
 
 ### Publisher lifecycle and authorization
 
@@ -52,18 +54,62 @@ The adapter must return a structural fingerprint, existing and candidate entry
 inventories, candidate bytes, and exact paired ranges in the before/after byte
 buffers. The generic verifier refuses malformed metadata, unsafe or duplicate
 slugs, undeclared byte changes, modified or removed existing entries, or any
-candidate other than one additive entry.
+candidate other than one additive entry. It independently inventories the
+candidate bytes rather than trusting the adapter's claimed candidate inventory.
+While holding the publisher lock, `publish` regenerates the complete candidate
+from the re-read live bytes, metadata, and adapter, and rejects any reviewed
+bytes, ranges, inventory, fingerprint, or version that no longer matches.
 
 Publication records every phase in a journal under
 `/var/www/.heydex-explainer-publisher/`, acquires an exclusive publisher lock,
 re-reads the live index and adapter fingerprint to refuse drift, stages and
-checksums the artifact and candidate index, snapshots the exact old index, then
-uses same-filesystem renames to promote the artifact before the index. A failure
-between those promotions removes only the just-promoted slug and proves absence
-with both `lstat` and `test ! -e`; it does not touch unrelated artifacts.
+checksums the artifact and candidate index (including the reviewed artifact
+root `index.html` hash), snapshots the exact old index, then uses same-filesystem
+renames to promote the artifact before the index. A failure between those
+promotions removes only the just-promoted slug and proves absence with both
+`lstat` and `test ! -e`; it does not touch unrelated artifacts.
 The injected post-promotion verifier and authenticated rollback verifier are
 mandatory, so a failed authenticated publication check triggers exact rollback
 instead of leaving an unverified publication live.
+
+Before any journal is created, the publisher verifies canonical, non-symlink,
+disjoint gallery/state/artifact roots; expected owner, group, and strict root
+modes; available space; and a shared filesystem device for atomic promotion.
+State directories/files are `0700`/`0600`; web artifact directories/files are
+`0755`/`0644`; and the candidate index preserves the audited prior index
+ownership and mode. Every transaction file uses a unique same-directory,
+exclusive no-follow temporary file, durable file sync, rename, and directory
+sync. Artifact promotion uses Linux `renameat2(..., RENAME_NOREPLACE)` so an
+existing destination cannot be overwritten.
+
+Journal phases are written and synced before every promotion. Error recovery and
+later rollback inspect the actual live index/artifact checksums under lock,
+rather than trusting process-local flags: they restore the exact prior index only
+when the recorded candidate remains live, remove only the recorded slug when it
+is safe, and refuse unexplained drift. A late external index change before index
+promotion leaves that external index intact while removing only this transaction's
+new artifact.
+
+The path-based CLI is intentionally incomplete until Task 4 supplies a reviewed
+adapter and executor module:
+
+```bash
+node scripts/explainers/publisher.mjs prepare \
+  --index /protected/index.html --metadata /protected/entry.json \
+  --adapter /reviewed/gallery-adapter.mjs --output /protected/prepared.json
+
+node scripts/explainers/publisher.mjs publish \
+  --prepared /protected/prepared.json --adapter /reviewed/gallery-adapter.mjs \
+  --artifact-dir /protected/artifact --gallery-root /var/www/explainers \
+  --state-root /var/www/.heydex-explainer-publisher --transaction <id> \
+  --security /protected/publisher-security.json --key-file /protected/key \
+  --executor-module /reviewed/publisher-executor.mjs
+```
+
+`rollback` uses the same `--gallery-root`, `--state-root`, `--transaction`,
+`--security`, `--key-file`, and `--executor-module` path options. The executor
+module is the review point for remote filesystem behavior and authentication;
+Task 1 neither supplies live host details nor accesses production.
 
 Rollback is fail-closed. It refuses if the current index or promoted artifact
 does not match the recorded transaction, atomically restores the byte-identical

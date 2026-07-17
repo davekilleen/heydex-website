@@ -184,9 +184,37 @@ test('adapter cannot change or remove prior entries', () => {
           },
         }),
       }),
-      /changed or removed/,
+      /candidateEntries does not match|changed or removed/,
     );
   }
+});
+
+test('adapter cannot lie about the inventory it claims for candidate bytes', () => {
+  const adapter = fakeAdapter({
+    createCandidate({ indexBytes, metadata: entry }) {
+      const candidateBytes = Buffer.concat([indexBytes, Buffer.from(`\nFAKE_ENTRY:${entry.slug}\n`)]);
+      return {
+        candidateBytes,
+        declaredEditRanges: [{
+          beforeStart: indexBytes.length,
+          beforeEnd: indexBytes.length,
+          afterStart: indexBytes.length,
+          afterEnd: candidateBytes.length,
+        }],
+        previousEntries: inventory(indexBytes),
+        candidateEntries: [
+          ...inventory(indexBytes),
+          { slug: entry.slug, note: 'claimed addition' },
+          { slug: 'unobserved-entry', note: 'claimed but absent' },
+        ],
+      };
+    },
+  });
+
+  assert.throws(
+    () => prepareGalleryIndex({ indexBytes: fixtureBytes, metadata: metadata(), adapter }),
+    /candidateEntries does not match/,
+  );
 });
 
 test('adapter rejects duplicate additions and an unsafe inventory slug', () => {

@@ -55,10 +55,6 @@ function stableJson(value, field) {
   );
 }
 
-function canonicalEntry(entry, field) {
-  return JSON.stringify(stableJson(entry, field));
-}
-
 export function toBuffer(value, field = 'value') {
   if (Buffer.isBuffer(value)) return Buffer.from(value);
   if (value instanceof Uint8Array) return Buffer.from(value);
@@ -133,10 +129,11 @@ function normalizeInventory(entries, field) {
     if (!isPlainObject(entry)) fail(`${field}[${index}] must be an object`);
     assertSafeSlug(entry.slug, `${field}[${index}].slug`);
 
-    const canonical = canonicalEntry(entry, `${field}[${index}]`);
+    const normalizedEntry = stableJson(entry, `${field}[${index}]`);
+    const canonical = JSON.stringify(normalizedEntry);
     if (bySlug.has(entry.slug)) fail(`${field} contains a duplicate slug`);
     bySlug.set(entry.slug, canonical);
-    return cloneJson(stableJson(entry, `${field}[${index}]`));
+    return normalizedEntry;
   });
 
   return { entries: normalized, bySlug };
@@ -303,7 +300,16 @@ export function prepareGalleryIndex({ indexBytes, metadata, adapter }) {
 
   const candidate = validateCandidateResult(result, beforeBytes);
   sameInventory(observedPrevious, candidate.previousInventory, 'adapter previousEntries');
-  assertAdditiveInventory(observedPrevious, candidate.candidateInventory, validMetadata);
+  const observedCandidate = normalizeInventory(
+    validAdapter.inventory(Buffer.from(candidate.candidateBytes)),
+    'adapter candidate inventory',
+  );
+  sameInventory(
+    observedCandidate,
+    candidate.candidateInventory,
+    'adapter candidateEntries',
+  );
+  assertAdditiveInventory(observedPrevious, observedCandidate, validMetadata);
 
   return {
     schemaVersion: 1,
@@ -314,7 +320,7 @@ export function prepareGalleryIndex({ indexBytes, metadata, adapter }) {
     candidateIndexSha256: sha256(candidate.candidateBytes),
     declaredEditRanges: candidate.declaredEditRanges,
     previousEntries: candidate.previousInventory.entries,
-    candidateEntries: candidate.candidateInventory.entries,
+    candidateEntries: observedCandidate.entries,
     candidateBytes: candidate.candidateBytes,
   };
 }
