@@ -11,6 +11,68 @@ in `main` (verified commit-by-commit before retiring it); the stray branch has
 been deleted. If you find yourself deploying from anything other than `main`,
 stop and ask why.
 
+## Private explainer gallery publisher
+
+`/explainers/` is a private, Google-authenticated gallery rooted outside this
+repository at `/var/www/explainers`. It is not a React route, a static overlay,
+or part of the normal website deploy. Never use `deploy.sh`, `deploy-root.sh`,
+Convex deployment, or a Caddy reload to publish an explainer.
+
+The publisher is intentionally isolated:
+
+- `scripts/explainers/gallery-index.mjs` validates only opaque index bytes,
+  metadata, adapter contracts, declared paired byte ranges, and additive entry
+  inventories. It has no card template, marker, insertion anchor, href parser,
+  link convention, or ordering rule.
+- A concrete `gallery-adapter.mjs` is deliberately absent from this initial
+  work. Task 4 must first characterize the live gallery read-only, create a
+  smallest neutral fixture, and receive review before an adapter is added.
+- `scripts/explainers/publisher.mjs` exports injected `prepare`, `publish`, and
+  `rollback` operations. Its filesystem and command/executor seams keep unit
+  tests in temporary local roots and keep SSH credentials out of arguments,
+  source control, logs, and test fixtures.
+
+### Publisher lifecycle and authorization
+
+The private artifact, its metadata, fetched gallery bytes, credentials, and
+transaction records stay outside Git. Metadata is schema version 1 and contains
+only `slug`, title/summary text, creation time, and the artifact `index.html`
+SHA-256; it carries no arbitrary gallery URL. Slugs are lowercase,
+hyphen-separated path components and publication refuses a pre-existing slug.
+
+Task 5 is the only production mutation. It may proceed only within the
+separately approved target, account, immutable slug, and content scope, after a
+reviewed adapter matches the read-only input. A changed target, account, slug,
+or material content scope requires renewed authorization. This generic Task 1
+code neither accesses nor infers the private gallery.
+
+### Staging, promotion, and rollback gates
+
+The adapter must return a structural fingerprint, existing and candidate entry
+inventories, candidate bytes, and exact paired ranges in the before/after byte
+buffers. The generic verifier refuses malformed metadata, unsafe or duplicate
+slugs, undeclared byte changes, modified or removed existing entries, or any
+candidate other than one additive entry.
+
+Publication records every phase in a journal under
+`/var/www/.heydex-explainer-publisher/`, acquires an exclusive publisher lock,
+re-reads the live index and adapter fingerprint to refuse drift, stages and
+checksums the artifact and candidate index, snapshots the exact old index, then
+uses same-filesystem renames to promote the artifact before the index. A failure
+between those promotions removes only the just-promoted slug and proves absence
+with both `lstat` and `test ! -e`; it does not touch unrelated artifacts.
+The injected post-promotion verifier and authenticated rollback verifier are
+mandatory, so a failed authenticated publication check triggers exact rollback
+instead of leaving an unverified publication live.
+
+Rollback is fail-closed. It refuses if the current index or promoted artifact
+does not match the recorded transaction, atomically restores the byte-identical
+previous index, deletes only the transaction slug (never a glob or prefix), and
+again proves absence with `lstat` plus `test ! -e`. Final authenticated URL
+verification accepts a legitimate `200` gallery fallback only when its body does
+not contain artifact-specific title/marker text and its hash differs from the
+recorded artifact. A `404` is not required.
+
 ## Convex Deployments
 
 DexDiff has its own dedicated Convex project as of 2026-07-05. It no longer
