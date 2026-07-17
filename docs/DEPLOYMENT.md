@@ -31,8 +31,9 @@ The publisher is intentionally isolated:
   `rollback` operations. Its filesystem and command/executor seams keep unit
   tests in temporary local roots and keep SSH key material out of arguments,
   source control, logs, and test fixtures. The CLI accepts only a key-file path
-  and passes it to a reviewed executor module; it never accepts or reads key
-  material as an option value.
+  and passes it to a reviewed executor module only after native local checks
+  prove it is an absolute normalized, non-symlink regular file with `0600`
+  permissions. It never accepts or reads key material as an option value.
 
 ### Publisher lifecycle and authorization
 
@@ -61,7 +62,8 @@ from the re-read live bytes, metadata, and adapter, and rejects any reviewed
 bytes, ranges, inventory, fingerprint, or version that no longer matches.
 
 Publication records every phase in a journal under
-`/var/www/.heydex-explainer-publisher/`, acquires an exclusive publisher lock,
+`/var/www/.heydex-explainer-publisher/`, acquires an exclusive durable publisher
+lease,
 re-reads the live index and adapter fingerprint to refuse drift, stages and
 checksums the artifact and candidate index (including the reviewed artifact
 root `index.html` hash), snapshots the exact old index, then uses same-filesystem
@@ -82,13 +84,25 @@ exclusive no-follow temporary file, durable file sync, rename, and directory
 sync. Artifact promotion uses Linux `renameat2(..., RENAME_NOREPLACE)` so an
 existing destination cannot be overwritten.
 
-Journal phases are written and synced before every promotion. Error recovery and
-later rollback inspect the actual live index/artifact checksums under lock,
-rather than trusting process-local flags: they restore the exact prior index only
-when the recorded candidate remains live, remove only the recorded slug when it
-is safe, and refuse unexplained drift. A late external index change before index
-promotion leaves that external index intact while removing only this transaction's
-new artifact.
+The durable lease records the Linux boot ID, PID, and kernel process start time.
+It is released normally only by its matching owner; a fresh process can reclaim
+it after a crash only after proving the recorded owner is gone or has a different
+start identity, preventing PID-reuse takeover. Journal phases are written and
+synced before every promotion. The final index update persists `index-promoting`,
+re-validates live bytes and metadata, then uses atomic `renameat2(...,
+RENAME_EXCHANGE)` to verify the displaced index still has the recorded prior
+hash. If another writer appears in the last race window, the exchange is reversed
+and the external bytes remain live.
+
+Error recovery and later rollback inspect actual live index/artifact checksums
+under the durable lease rather than trusting process-local flags: they restore
+the exact prior index only when the recorded candidate remains live and refuse
+unexplained drift. Artifact removal first atomically moves only the transaction
+slug into its transaction-private quarantine, rechecks its complete checksum,
+and deletes it only on an exact match. A changed quarantined artifact is retained
+for reconciliation, never recursively deleted. A late external index change
+before index promotion leaves that external index intact while removing only this
+transaction's new artifact.
 
 The path-based CLI is intentionally incomplete until Task 4 supplies a reviewed
 adapter and executor module:

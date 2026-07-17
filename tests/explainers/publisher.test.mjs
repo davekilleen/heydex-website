@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   access,
@@ -94,6 +95,20 @@ async function exists(target) {
   }
 }
 
+function runProcess(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { ...options, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (value) => { stdout += value; });
+    child.stderr.on('data', (value) => { stderr += value; });
+    child.once('error', reject);
+    child.once('close', (code, signal) => resolve({ code, signal, stdout, stderr }));
+  });
+}
+
 async function setup() {
   const root = await mkdtemp(path.join(TEMPORARY_ROOT, 'heydex-explainer-publisher-'));
   const galleryRoot = path.join(root, 'gallery');
@@ -149,6 +164,89 @@ async function publishFixture(fixture, overrides = {}) {
     authenticatedVerifier: async () => ({ status: 200, body: 'authenticated gallery fallback' }),
     ...overrides,
   });
+}
+
+async function writeCrashWorkers(fixture) {
+  const configPath = path.join(fixture.root, 'crash-worker-config.json');
+  const workerPath = path.join(fixture.root, 'crash-worker.mjs');
+  await writeFile(configPath, JSON.stringify({
+    root: fixture.root,
+    galleryRoot: fixture.galleryRoot,
+    stateRoot: fixture.stateRoot,
+    artifactDirectory: fixture.artifactDirectory,
+    metadata: fixture.metadata,
+    security: fixture.security,
+  }));
+  await writeFile(workerPath, `
+    import { createHash } from 'node:crypto';
+    import { readFile } from 'node:fs/promises';
+    import path from 'node:path';
+    import { createLocalExecutor, createNodeFilesystem, prepare, publish, rollback } from ${JSON.stringify(new URL('../../scripts/explainers/publisher.mjs', import.meta.url).href)};
+
+    const [operation, configPath, crashPhase] = process.argv.slice(2);
+    const config = JSON.parse(await readFile(configPath, 'utf8'));
+    const root = path.resolve(config.root);
+    for (const value of [config.galleryRoot, config.stateRoot, config.artifactDirectory]) {
+      if (!path.resolve(value).startsWith(root + path.sep)) throw new Error('crash worker refused a root outside its temporary fixture');
+    }
+    const fingerprint = (bytes) => createHash('sha256').update(bytes).digest('hex');
+    const inventory = (bytes) => {
+      const prior = [{ slug: 'existing-entry', note: 'opaque prior entry' }];
+      const matches = bytes.toString('utf8').match(/\\nFAKE_ENTRY:([a-z0-9-]+)\\n/g) ?? [];
+      return [...prior, ...matches.map((line) => ({ slug: line.slice('\\nFAKE_ENTRY:'.length, -1), note: 'fake addition' }))];
+    };
+    const adapter = {
+      version: 'crash-worker-adapter',
+      fingerprint,
+      inventory,
+      createCandidate({ indexBytes, metadata }) {
+        const candidateBytes = Buffer.concat([indexBytes, Buffer.from('\\nFAKE_ENTRY:' + metadata.slug + '\\n')]);
+        return {
+          candidateBytes,
+          declaredEditRanges: [{ beforeStart: indexBytes.length, beforeEnd: indexBytes.length, afterStart: indexBytes.length, afterEnd: candidateBytes.length }],
+          previousEntries: inventory(indexBytes),
+          candidateEntries: inventory(candidateBytes),
+        };
+      },
+    };
+    const fs = createNodeFilesystem();
+    const executor = createLocalExecutor(fs);
+    if (operation === 'publish') {
+      const prepared = prepare({ indexBytes: await readFile(path.join(config.galleryRoot, 'index.html')), metadata: config.metadata, adapter });
+      await publish({
+        prepared,
+        adapter,
+        artifactDirectory: config.artifactDirectory,
+        galleryRoot: config.galleryRoot,
+        stateRoot: config.stateRoot,
+        transactionId: 'transaction-1',
+        security: config.security,
+        fs,
+        executor,
+        postPublishVerifier: async () => ({ status: 200 }),
+        authenticatedVerifier: async () => ({ status: 200, body: 'authenticated gallery fallback' }),
+        phaseHook(phase) {
+          if (phase === crashPhase) process.kill(process.pid, 'SIGKILL');
+        },
+      });
+    } else if (operation === 'rollback' || operation === 'reconcile') {
+      await rollback({
+        galleryRoot: config.galleryRoot,
+        stateRoot: config.stateRoot,
+        transactionId: 'transaction-1',
+        security: config.security,
+        fs,
+        executor,
+        authenticatedVerifier: async () => ({ status: 200, body: 'authenticated gallery fallback' }),
+        phaseHook(phase) {
+          if (operation === 'rollback' && phase === crashPhase) process.kill(process.pid, 'SIGKILL');
+        },
+      });
+    } else {
+      throw new Error('unsupported crash worker operation');
+    }
+  `);
+  return { configPath, workerPath };
 }
 
 function mode(stat) {
@@ -266,15 +364,38 @@ test('publish refuses a pre-existing artifact before any promotion', async (t) =
   assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true);
 });
 
-test('publish refuses an existing publisher lock before mutation', async (t) => {
+test('publish fails closed when an existing publisher lease is malformed', async (t) => {
   const fixture = await setup();
   t.after(() => rm(fixture.root, { recursive: true, force: true }));
   await mkdir(path.join(fixture.stateRoot, 'locks'), { mode: 0o700 });
   await chmod(path.join(fixture.stateRoot, 'locks'), 0o700);
   await writeFile(path.join(fixture.stateRoot, 'locks', 'publisher.lock'), 'other publisher', { mode: 0o600 });
 
-  await assert.rejects(() => publishFixture(fixture), /publisher lock is already held/);
+  await assert.rejects(() => publishFixture(fixture), /publisher lease has invalid JSON/);
   assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true);
+});
+
+test('publisher lease rejects a live concurrent process', async (t) => {
+  const fixture = await setup();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  let enterStaging;
+  let releaseStaging;
+  const stagingEntered = new Promise((resolve) => { enterStaging = resolve; });
+  const releaseGate = new Promise((resolve) => { releaseStaging = resolve; });
+  t.after(() => releaseStaging());
+
+  const firstPublish = publishFixture(fixture, {
+    async phaseHook(phase) {
+      if (phase === 'staging') {
+        enterStaging();
+        await releaseGate;
+      }
+    },
+  });
+  await stagingEntered;
+  await assert.rejects(() => publishFixture(fixture), /publisher lease is already held by a live process/);
+  releaseStaging();
+  await firstPublish;
 });
 
 test('publish requires lstat and test ! -e absence evidence before staging', async (t) => {
@@ -337,8 +458,8 @@ test('rename errors after index promotion restore byte-identical prior index and
   let interrupted = false;
   const fs = {
     ...baseFs,
-    async renameReplace(source, destination) {
-      await baseFs.renameReplace(source, destination);
+    async renameExchange(source, destination) {
+      await baseFs.renameExchange(source, destination);
       if (destination === path.join(fixture.galleryRoot, 'index.html') && !interrupted) {
         interrupted = true;
         throw new Error('index rename reported interruption after effect');
@@ -383,6 +504,79 @@ test('durable phase journal recovers interruptions at every mutation boundary', 
   }
 });
 
+test('SIGKILL after every durable mutation boundary releases the lease for a fresh reconciler process', async (t) => {
+  const phases = [
+    'staging',
+    'staged',
+    'snapshotting',
+    'snapshotted',
+    'artifact-promoting',
+    'artifact-promoted',
+    'index-promoting',
+    'index-promoted',
+    'verifying',
+  ];
+
+  for (const phase of phases) {
+    const fixture = await setup();
+    t.after(() => rm(fixture.root, { recursive: true, force: true }));
+    const { configPath, workerPath } = await writeCrashWorkers(fixture);
+    const crash = await runProcess(process.execPath, [workerPath, 'publish', configPath, phase], {
+      cwd: fixture.root,
+    });
+    assert.equal(crash.signal, 'SIGKILL', phase);
+    assert.equal(await exists(path.join(fixture.stateRoot, 'locks', 'publisher.lock')), true, phase);
+
+    const reconcile = await runProcess(process.execPath, [workerPath, 'reconcile', configPath], {
+      cwd: fixture.root,
+    });
+    assert.equal(reconcile.code, 0, `${phase}: ${reconcile.stderr}`);
+    assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true, phase);
+    assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false, phase);
+    assert.equal(await exists(path.join(fixture.stateRoot, 'locks', 'publisher.lock')), false, phase);
+    const journal = JSON.parse(await readFile(
+      path.join(fixture.stateRoot, 'transactions', 'transaction-1', 'transaction.json'),
+      'utf8',
+    ));
+    assert.equal(journal.phase, 'rolled-back', phase);
+  }
+});
+
+test('SIGKILL during artifact quarantine releases the lease for a fresh reconciler process', async (t) => {
+  const phases = ['artifact-quarantining', 'artifact-quarantined', 'artifact-removing'];
+
+  for (const phase of phases) {
+    const fixture = await setup();
+    t.after(() => rm(fixture.root, { recursive: true, force: true }));
+    await publishFixture(fixture);
+    const { configPath, workerPath } = await writeCrashWorkers(fixture);
+
+    const crash = await runProcess(process.execPath, [workerPath, 'rollback', configPath, phase], {
+      cwd: fixture.root,
+    });
+    assert.equal(crash.signal, 'SIGKILL', phase);
+    assert.equal(await exists(path.join(fixture.stateRoot, 'locks', 'publisher.lock')), true, phase);
+
+    const reconcile = await runProcess(process.execPath, [workerPath, 'reconcile', configPath], {
+      cwd: fixture.root,
+    });
+    assert.equal(reconcile.code, 0, `${phase}: ${reconcile.stderr}`);
+    assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true, phase);
+    assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false, phase);
+    assert.equal(
+      await exists(path.join(fixture.stateRoot, 'transactions', 'transaction-1', 'quarantine', 'artifact')),
+      false,
+      phase,
+    );
+    assert.equal(await exists(path.join(fixture.stateRoot, 'locks', 'publisher.lock')), false, phase);
+    const journal = JSON.parse(await readFile(
+      path.join(fixture.stateRoot, 'transactions', 'transaction-1', 'transaction.json'),
+      'utf8',
+    ));
+    assert.equal(journal.phase, 'rolled-back', phase);
+  }
+});
+
 test('a late index drift after artifact promotion removes only the transaction artifact', async (t) => {
   const fixture = await setup();
   t.after(() => rm(fixture.root, { recursive: true, force: true }));
@@ -397,6 +591,49 @@ test('a late index drift after artifact promotion removes only the transaction a
   };
 
   await assert.rejects(() => publishFixture(fixture, { fs }), /live index has drifted/);
+  assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false);
+});
+
+test('an external index written after durable index-promoting survives publication recovery', async (t) => {
+  const fixture = await setup();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const externalIndex = Buffer.from('external index written after durable promotion phase');
+
+  await assert.rejects(
+    () => publishFixture(fixture, {
+      async phaseHook(phase) {
+        if (phase === 'index-promoting') {
+          await writeFile(path.join(fixture.galleryRoot, 'index.html'), externalIndex);
+          await chmod(path.join(fixture.galleryRoot, 'index.html'), 0o644);
+        }
+      },
+    }),
+    /live index has drifted/,
+  );
+  assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(externalIndex), true);
+  assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false);
+});
+
+test('atomic index exchange restores bytes that appear after the final validation', async (t) => {
+  const fixture = await setup();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const externalIndex = Buffer.from('external index written immediately before exchange');
+  const baseFs = fixture.fs;
+  let injected = false;
+  const fs = {
+    ...baseFs,
+    async renameExchange(source, destination) {
+      if (!injected && destination === path.join(fixture.galleryRoot, 'index.html')) {
+        injected = true;
+        await writeFile(destination, externalIndex);
+        await chmod(destination, 0o644);
+      }
+      return baseFs.renameExchange(source, destination);
+    },
+  };
+
+  await assert.rejects(() => publishFixture(fixture, { fs }), /final index promotion encountered external drift/);
+  assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(externalIndex), true);
   assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false);
 });
 
@@ -457,6 +694,52 @@ test('rollback preserves audited index metadata, deletion scope, and dual absenc
   assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false);
   assert.equal(await readFile(path.join(fixture.galleryRoot, 'new-entry-backup', 'keep.txt'), 'utf8'), 'sibling remains');
   assert.deepEqual(calls.map(([name]) => name), ['lstat', 'testAbsent']);
+});
+
+test('rollback quarantines and retains a late-drifting artifact instead of recursively deleting it', async (t) => {
+  const fixture = await setup();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  await publishFixture(fixture);
+  const baseFs = fixture.fs;
+  let recursiveDeleteCalled = false;
+  const fs = {
+    ...baseFs,
+    async rm(target, options) {
+      if (target.endsWith(`${path.sep}quarantine${path.sep}artifact`) && options?.recursive) {
+        recursiveDeleteCalled = true;
+      }
+      return baseFs.rm(target, options);
+    },
+  };
+  const quarantineArtifact = path.join(
+    fixture.stateRoot,
+    'transactions',
+    'transaction-1',
+    'quarantine',
+    'artifact',
+  );
+
+  await assert.rejects(
+    () => rollback({
+      galleryRoot: fixture.galleryRoot,
+      stateRoot: fixture.stateRoot,
+      transactionId: 'transaction-1',
+      security: fixture.security,
+      fs,
+      executor: createLocalExecutor(fs),
+      authenticatedVerifier: async () => ({ status: 200, body: 'authenticated gallery fallback' }),
+      async phaseHook(phase) {
+        if (phase === 'artifact-removing') {
+          await writeFile(path.join(quarantineArtifact, 'late-drift.txt'), 'late external artifact drift');
+        }
+      },
+    }),
+    /quarantined transaction artifact has drifted and was retained/,
+  );
+  assert.equal(recursiveDeleteCalled, false);
+  assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true);
+  assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false);
+  assert.equal(await readFile(path.join(quarantineArtifact, 'late-drift.txt'), 'utf8'), 'late external artifact drift');
 });
 
 test('rollback refuses live index drift', async (t) => {
@@ -567,7 +850,7 @@ test('atomic no-replace promotion preserves non-existence errors', async (t) => 
 
   await assert.rejects(
     () => fs.renameNoReplace(source, path.join(root, 'missing-parent', 'destination')),
-    (error) => error?.code === 'ENOENT' && error?.message === 'atomic no-replace rename failed: ENOENT',
+    (error) => error?.code === 'ENOENT' && error?.message === 'atomic rename failed: ENOENT',
   );
   assert.equal(await exists(source), true);
 });
@@ -623,6 +906,49 @@ test('SSH executor accepts a key-file path only and never logs or accepts key ma
   );
 });
 
+test('CLI rejects literal, symlinked, and non-0600 key files before executor module loading', async (t) => {
+  const fixture = await setup();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const keyFile = path.join(fixture.root, 'reviewed-key');
+  const linkedKeyFile = path.join(fixture.root, 'linked-key');
+  const securityPath = path.join(fixture.root, 'security.json');
+  const executorPath = path.join(fixture.root, 'must-not-load-executor.mjs');
+  const importMarker = path.join(fixture.root, 'executor-imported');
+  await writeFile(keyFile, 'test-only key path', { mode: 0o600 });
+  await chmod(keyFile, 0o600);
+  await symlink(keyFile, linkedKeyFile);
+  await writeFile(securityPath, JSON.stringify(fixture.security));
+  await writeFile(executorPath, `
+    import { writeFileSync } from 'node:fs';
+    writeFileSync(${JSON.stringify(importMarker)}, 'loaded');
+    export function createPublisherSeams() { throw new Error('executor should not load'); }
+  `);
+  const rollbackOptions = (candidateKeyFile) => [
+    'rollback',
+    '--key-file', candidateKeyFile,
+    '--gallery-root', fixture.galleryRoot,
+    '--state-root', fixture.stateRoot,
+    '--transaction', 'transaction-1',
+    '--security', securityPath,
+    '--executor-module', executorPath,
+  ];
+
+  await assert.rejects(
+    () => runCli(rollbackOptions('-----BEGIN OPENSSH PRIVATE KEY-----\nnot-a-path')),
+    /--key-file must be an absolute normalized key-file path, never key material/,
+  );
+  await assert.rejects(
+    () => runCli(rollbackOptions(linkedKeyFile)),
+    /local non-symlink regular file/,
+  );
+  await chmod(keyFile, 0o644);
+  await assert.rejects(
+    () => runCli(rollbackOptions(keyFile)),
+    /strict 0600 permissions/,
+  );
+  assert.equal(await exists(importMarker), false);
+});
+
 test('path-based CLI prepares, publishes, and rolls back through a reviewed key-file seam', async (t) => {
   const fixture = await setup();
   t.after(() => rm(fixture.root, { recursive: true, force: true }));
@@ -632,6 +958,7 @@ test('path-based CLI prepares, publishes, and rolls back through a reviewed key-
   const executorPath = path.join(fixture.root, 'executor.mjs');
   const securityPath = path.join(fixture.root, 'security.json');
   const outputPath = path.join(fixture.root, 'prepared.json');
+  const keyFile = path.join(fixture.root, 'reviewed-key');
   await writeFile(metadataPath, JSON.stringify({
     schemaVersion: 1,
     slug: 'new-entry',
@@ -641,6 +968,8 @@ test('path-based CLI prepares, publishes, and rolls back through a reviewed key-
     artifactSha256: sha256(ARTIFACT_INDEX),
   }));
   await writeFile(securityPath, JSON.stringify(fixture.security));
+  await writeFile(keyFile, 'test-only key-file path proof', { mode: 0o600 });
+  await chmod(keyFile, 0o600);
   await writeFile(adapterPath, `
     export default {
       version: 'cli-fixture',
@@ -662,7 +991,7 @@ test('path-based CLI prepares, publishes, and rolls back through a reviewed key-
   await writeFile(executorPath, `
     import { createLocalExecutor, createNodeFilesystem } from ${JSON.stringify(new URL('../../scripts/explainers/publisher.mjs', import.meta.url).href)};
     export function createPublisherSeams({ keyFile }) {
-      if (keyFile !== '/var/tmp/reviewed-key-file') throw new Error('key contents were not accepted');
+      if (keyFile !== ${JSON.stringify(keyFile)}) throw new Error('key contents were not accepted');
       const fs = createNodeFilesystem();
       return {
         fs,
@@ -682,7 +1011,7 @@ test('path-based CLI prepares, publishes, and rolls back through a reviewed key-
   await assert.rejects(() => runCli(['publish', '--executor-module', executorPath]), /requires --key-file/);
   await assert.rejects(() => runCli([
     'rollback',
-    '--key-file', '/var/tmp/reviewed-key-file',
+    '--key-file', keyFile,
     '--gallery-root', fixture.galleryRoot,
     '--state-root', fixture.stateRoot,
     '--transaction', 'transaction-1',
@@ -698,7 +1027,7 @@ test('path-based CLI prepares, publishes, and rolls back through a reviewed key-
     '--state-root', fixture.stateRoot,
     '--transaction', 'transaction-1',
     '--security', securityPath,
-    '--key-file', '/var/tmp/reviewed-key-file',
+    '--key-file', keyFile,
     '--executor-module', executorPath,
   ]);
   assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), true);
@@ -708,7 +1037,7 @@ test('path-based CLI prepares, publishes, and rolls back through a reviewed key-
     '--state-root', fixture.stateRoot,
     '--transaction', 'transaction-1',
     '--security', securityPath,
-    '--key-file', '/var/tmp/reviewed-key-file',
+    '--key-file', keyFile,
     '--executor-module', executorPath,
   ]);
   assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false);

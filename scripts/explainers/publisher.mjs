@@ -33,6 +33,7 @@ const INDEX_NAME = 'index.html';
 const SAFE_TRANSACTION_ID = /^[a-z0-9][a-z0-9-]{0,95}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const TEMP_ATTEMPTS = 16;
+const LEASE_SCHEMA_VERSION = 1;
 
 export class PublisherError extends Error {
   constructor(message, options) {
@@ -146,7 +147,7 @@ function assertFilesystem(fs) {
   if (!fs || typeof fs !== 'object') fail('filesystem seam must be an object');
   for (const method of [
     'chmod', 'chown', 'fsyncDirectory', 'lstat', 'mkdir', 'openExclusive', 'readFile', 'readdir',
-    'realpath', 'renameNoReplace', 'renameReplace', 'rm', 'statfs', 'writeAtomic',
+    'realpath', 'renameExchange', 'renameNoReplace', 'renameReplace', 'rm', 'statfs', 'writeAtomic',
   ]) {
     if (typeof fs[method] !== 'function') fail(`filesystem seam is missing ${method}`);
   }
@@ -274,6 +275,23 @@ async function checksumArtifactIndex(fs, artifactRoot, label) {
   const indexPath = childPath(artifactRoot, INDEX_NAME);
   await assertRegularFile(fs, indexPath, `${label} index`);
   return sha256(await fs.readFile(indexPath));
+}
+
+async function artifactStateAt(fs, artifactPath, journal, security, label) {
+  const stat = await lstatOrNull(fs, artifactPath);
+  if (stat === null) return 'absent';
+  if (isSymlink(stat) || !isDirectory(stat)) return 'drift';
+  try {
+    await assertTreeMetadata(fs, artifactPath, security.web, label);
+    const tree = await checksumTree(fs, artifactPath);
+    const indexSha256 = await checksumArtifactIndex(fs, artifactPath, label);
+    return tree.sha256 === journal.artifactTreeSha256 && indexSha256 === journal.artifactIndexSha256
+      ? 'candidate'
+      : 'drift';
+  } catch (error) {
+    if (error instanceof PublisherError) return 'drift';
+    throw error;
+  }
 }
 
 async function copyTree(fs, source, destination, metadata) {
@@ -529,7 +547,61 @@ async function assertStageIndex(fs, target, prepared, indexMetadata) {
   }
 }
 
-async function inspectLiveState(fs, galleryRoot, journal, security) {
+async function assertIndexPromotionPreconditions({
+  fs,
+  galleryRoot,
+  stagedIndex,
+  adapter,
+  journal,
+  security,
+}) {
+  const liveIndex = await readIndex(fs, galleryRoot);
+  if (sha256(liveIndex.bytes) !== journal.previousIndexSha256) {
+    fail('publish refused because the live index has drifted');
+  }
+  if (!sameJson(normalizeMetadata(liveIndex.stat), journal.previousIndexMetadata)) {
+    fail('publish refused because live index ownership or mode has drifted');
+  }
+  assertAdapterIdentity(adapter, journal.adapterFingerprint, journal.adapterVersion, liveIndex.bytes);
+  const artifactPath = childPath(galleryRoot, journal.slug);
+  if (await artifactStateAt(fs, artifactPath, journal, security, 'promoted artifact') !== 'candidate') {
+    fail('publish refused because the promoted artifact has drifted');
+  }
+  await assertStageIndex(fs, stagedIndex, { candidateIndexSha256: journal.candidateIndexSha256 }, journal.previousIndexMetadata);
+}
+
+async function exchangeCandidateIndex({ fs, galleryRoot, stagedIndex, journal }) {
+  const liveIndex = childPath(galleryRoot, INDEX_NAME);
+  await fs.renameExchange(stagedIndex, liveIndex);
+  await fs.fsyncDirectory(galleryRoot);
+  await fs.fsyncDirectory(path.dirname(stagedIndex));
+
+  const displaced = await assertRegularFile(fs, stagedIndex, 'displaced gallery index');
+  const displacedBytes = toBuffer(await fs.readFile(stagedIndex), 'displaced gallery index');
+  if (
+    sha256(displacedBytes) !== journal.previousIndexSha256
+    || !sameJson(normalizeMetadata(displaced), journal.previousIndexMetadata)
+  ) {
+    await fs.renameExchange(stagedIndex, liveIndex);
+    await fs.fsyncDirectory(galleryRoot);
+    await fs.fsyncDirectory(path.dirname(stagedIndex));
+    await fs.rm(stagedIndex, { force: false });
+    await fs.fsyncDirectory(path.dirname(stagedIndex));
+    fail('publish refused because final index promotion encountered external drift');
+  }
+  await fs.rm(stagedIndex, { force: false });
+  await fs.fsyncDirectory(path.dirname(stagedIndex));
+}
+
+function quarantineRootPath(transactionRoot) {
+  return childPath(transactionRoot, 'quarantine');
+}
+
+function quarantineArtifactPath(transactionRoot) {
+  return childPath(quarantineRootPath(transactionRoot), 'artifact');
+}
+
+async function inspectLiveState(fs, galleryRoot, transactionRoot, journal, security) {
   let index;
   try {
     index = await readIndex(fs, galleryRoot);
@@ -542,18 +614,38 @@ async function inspectLiveState(fs, galleryRoot, journal, security) {
     ? 'previous'
     : indexHash === journal.candidateIndexSha256 ? 'candidate' : 'drift';
   const artifactPath = childPath(galleryRoot, journal.slug);
-  const artifactStat = await lstatOrNull(fs, artifactPath);
-  if (artifactStat === null) return { indexState, artifactState: 'absent', artifactPath };
-  if (isSymlink(artifactStat) || !isDirectory(artifactStat)) return { indexState, artifactState: 'drift', artifactPath };
-  await assertTreeMetadata(fs, artifactPath, security.web, 'promoted artifact');
-  const artifact = await checksumTree(fs, artifactPath);
+  const quarantinedArtifactPath = quarantineArtifactPath(transactionRoot);
+  const promotedArtifactState = await artifactStateAt(
+    fs,
+    artifactPath,
+    journal,
+    security,
+    'promoted artifact',
+  );
+  const quarantinedArtifactState = await artifactStateAt(
+    fs,
+    quarantinedArtifactPath,
+    journal,
+    security,
+    'quarantined transaction artifact',
+  );
+
+  let artifactState = 'absent';
+  if (promotedArtifactState !== 'absent' && quarantinedArtifactState !== 'absent') {
+    artifactState = 'drift';
+  } else if (promotedArtifactState === 'candidate') {
+    artifactState = 'candidate';
+  } else if (quarantinedArtifactState === 'candidate') {
+    artifactState = 'quarantined';
+  } else if (promotedArtifactState === 'drift' || quarantinedArtifactState === 'drift') {
+    artifactState = 'drift';
+  }
+
   return {
     indexState,
-    artifactState: artifact.sha256 === journal.artifactTreeSha256
-      && await checksumArtifactIndex(fs, artifactPath, 'promoted artifact') === journal.artifactIndexSha256
-      ? 'candidate'
-      : 'drift',
+    artifactState,
     artifactPath,
+    quarantinedArtifactPath,
   };
 }
 
@@ -579,12 +671,56 @@ async function restorePreviousIndex({ fs, galleryRoot, transactionRoot, journal,
   }
 }
 
-async function removeOnlyTransactionArtifact({ fs, executor, galleryRoot, slug }) {
-  const artifactPath = childPath(galleryRoot, slug);
-  const stat = await assertDirectory(fs, artifactPath, 'transaction artifact');
-  if (isSymlink(stat)) fail('transaction artifact must not be a symbolic link');
-  await fs.rm(artifactPath, { recursive: true, force: false });
-  await fs.fsyncDirectory(galleryRoot);
+async function removeOnlyTransactionArtifact({
+  fs,
+  executor,
+  galleryRoot,
+  transactionRoot,
+  journalPath,
+  journal,
+  security,
+  now,
+  phaseHook,
+}) {
+  const artifactPath = childPath(galleryRoot, journal.slug);
+  const quarantineRoot = quarantineRootPath(transactionRoot);
+  const quarantinedArtifactPath = quarantineArtifactPath(transactionRoot);
+  const liveArtifactState = await artifactStateAt(fs, artifactPath, journal, security, 'transaction artifact');
+  const quarantinedArtifactState = await artifactStateAt(
+    fs,
+    quarantinedArtifactPath,
+    journal,
+    security,
+    'quarantined transaction artifact',
+  );
+
+  if (liveArtifactState === 'drift' || quarantinedArtifactState === 'drift') {
+    fail('transaction artifact has drifted and cannot be deleted');
+  }
+  if (liveArtifactState === 'candidate' && quarantinedArtifactState !== 'absent') {
+    fail('transaction artifact has an unexpected quarantine collision');
+  }
+
+  if (liveArtifactState === 'candidate') {
+    await ensureStateDirectory(fs, quarantineRoot, security.state, 'transaction quarantine root');
+    await setPhase(fs, journalPath, journal, 'artifact-quarantining', security.state, now, phaseHook);
+    await fs.renameNoReplace(artifactPath, quarantinedArtifactPath);
+    await fs.fsyncDirectory(galleryRoot);
+    await fs.fsyncDirectory(quarantineRoot);
+    await setPhase(fs, journalPath, journal, 'artifact-quarantined', security.state, now, phaseHook);
+  } else if (liveArtifactState === 'absent' && quarantinedArtifactState === 'absent') {
+    await assertRemoteAbsent(executor, artifactPath);
+    return;
+  } else if (liveArtifactState !== 'absent') {
+    fail('transaction artifact is not eligible for quarantine');
+  }
+
+  await setPhase(fs, journalPath, journal, 'artifact-removing', security.state, now, phaseHook);
+  if (await artifactStateAt(fs, quarantinedArtifactPath, journal, security, 'quarantined transaction artifact') !== 'candidate') {
+    fail('quarantined transaction artifact has drifted and was retained for reconciliation');
+  }
+  await fs.rm(quarantinedArtifactPath, { recursive: true, force: false });
+  await fs.fsyncDirectory(quarantineRoot);
   await assertRemoteAbsent(executor, artifactPath);
 }
 
@@ -629,6 +765,7 @@ async function reconcileTransaction({
   now,
   authenticatedVerifier,
   rollback,
+  phaseHook,
 }) {
   await preflight({
     fs,
@@ -646,13 +783,23 @@ async function reconcileTransaction({
       fail('rollback refused because the candidate index snapshot has drifted');
     }
   }
-  const state = await inspectLiveState(fs, galleryRoot, journal, security);
+  const state = await inspectLiveState(fs, galleryRoot, transactionRoot, journal, security);
   if (candidateStat === null && (state.indexState !== 'previous' || state.artifactState !== 'absent')) {
     fail('recovery refused because the required candidate snapshot is missing');
   }
-  if (!rollback && state.indexState === 'drift' && state.artifactState === 'candidate') {
+  if (!rollback && state.indexState === 'drift' && ['candidate', 'quarantined'].includes(state.artifactState)) {
     await setPhase(fs, journalPath, journal, 'recovery-artifact-removing-after-index-drift', security.state, now);
-    await removeOnlyTransactionArtifact({ fs, executor, galleryRoot, slug: journal.slug });
+    await removeOnlyTransactionArtifact({
+      fs,
+      executor,
+      galleryRoot,
+      transactionRoot,
+      journalPath,
+      journal,
+      security,
+      now,
+      phaseHook,
+    });
     await setPhase(fs, journalPath, journal, 'failed-cleaned-external-drift', security.state, now);
     return { journal: { ...journal }, externalIndexDrift: true };
   }
@@ -664,12 +811,22 @@ async function reconcileTransaction({
     await setPhase(fs, journalPath, journal, 'recovery-index-restoring', security.state, now);
     await restorePreviousIndex({ fs, galleryRoot, transactionRoot, journal, security });
   }
-  if (state.artifactState === 'candidate') {
+  if (['candidate', 'quarantined'].includes(state.artifactState)) {
     await setPhase(fs, journalPath, journal, 'recovery-artifact-removing', security.state, now);
-    await removeOnlyTransactionArtifact({ fs, executor, galleryRoot, slug: journal.slug });
+    await removeOnlyTransactionArtifact({
+      fs,
+      executor,
+      galleryRoot,
+      transactionRoot,
+      journalPath,
+      journal,
+      security,
+      now,
+      phaseHook,
+    });
   }
 
-  const reconciled = await inspectLiveState(fs, galleryRoot, journal, security);
+  const reconciled = await inspectLiveState(fs, galleryRoot, transactionRoot, journal, security);
   if (reconciled.indexState !== 'previous' || reconciled.artifactState !== 'absent') {
     fail('recovery could not prove the pre-publication state');
   }
@@ -687,21 +844,150 @@ async function reconcileTransaction({
   return { journal: { ...journal }, verification };
 }
 
+async function leaseProcessStartTime(pid) {
+  if (!Number.isSafeInteger(pid) || pid < 1) return null;
+  let stat;
+  try {
+    stat = await nodeReadFile(`/proc/${pid}/stat`, 'utf8');
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    throw error;
+  }
+  const closingParenthesis = stat.lastIndexOf(')');
+  if (closingParenthesis < 0) fail('publisher lease could not read a Linux process start time');
+  const fields = stat.slice(closingParenthesis + 2).trim().split(/\s+/);
+  const startTime = fields[19];
+  if (!/^\d+$/.test(startTime ?? '')) fail('publisher lease received an invalid Linux process start time');
+  return startTime;
+}
+
+async function leaseBootId() {
+  const bootId = (await nodeReadFile('/proc/sys/kernel/random/boot_id', 'utf8')).trim();
+  if (!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(bootId)) {
+    fail('publisher lease could not read the Linux boot identity');
+  }
+  return bootId.toLowerCase();
+}
+
+async function currentLeaseRecord(label) {
+  const startTime = await leaseProcessStartTime(process.pid);
+  if (startTime === null) fail('publisher lease could not identify the current process');
+  return {
+    schemaVersion: LEASE_SCHEMA_VERSION,
+    pid: process.pid,
+    bootId: await leaseBootId(),
+    startTime,
+    operation: label,
+  };
+}
+
+function validateLeaseRecord(record) {
+  if (
+    !isPlainObject(record)
+    || record.schemaVersion !== LEASE_SCHEMA_VERSION
+    || !Number.isSafeInteger(record.pid)
+    || record.pid < 1
+    || typeof record.bootId !== 'string'
+    || !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/.test(record.bootId)
+    || typeof record.startTime !== 'string'
+    || !/^\d+$/.test(record.startTime)
+    || typeof record.operation !== 'string'
+    || record.operation.length === 0
+  ) {
+    fail('publisher lease has an invalid ownership record');
+  }
+  return record;
+}
+
+async function readLeaseRecord(fs, target, stateSecurity) {
+  const stat = await assertRegularFile(fs, target, 'publisher lease');
+  assertExpectedMetadata(stat, stateSecurity, 'publisher lease', stateSecurity.fileMode);
+  let record;
+  try {
+    record = JSON.parse((await fs.readFile(target)).toString('utf8'));
+  } catch (error) {
+    if (error instanceof SyntaxError) fail('publisher lease has invalid JSON');
+    throw error;
+  }
+  return validateLeaseRecord(record);
+}
+
+async function leaseIsActive(record) {
+  if (record.bootId !== await leaseBootId()) return false;
+  return await leaseProcessStartTime(record.pid) === record.startTime;
+}
+
+async function createLease(fs, target, record, stateSecurity) {
+  await fs.openExclusive(target, `${JSON.stringify(record)}\n`, stateSecurity.fileMode);
+  await fs.chown(target, stateSecurity.uid, stateSecurity.gid);
+  await fs.chmod(target, stateSecurity.fileMode);
+  const stat = await assertRegularFile(fs, target, 'publisher lease');
+  assertExpectedMetadata(stat, stateSecurity, 'publisher lease', stateSecurity.fileMode);
+}
+
+async function reclaimStaleLease(fs, locksRoot, lockPath, record, stateSecurity) {
+  const reclaimedPath = childPath(locksRoot, `.publisher.stale-${randomUUID()}`);
+  try {
+    await fs.renameNoReplace(lockPath, reclaimedPath);
+  } catch (error) {
+    if (isNotFound(error)) return false;
+    throw error;
+  }
+  await fs.fsyncDirectory(locksRoot);
+  const movedRecord = await readLeaseRecord(fs, reclaimedPath, stateSecurity);
+  if (!sameJson(movedRecord, record)) {
+    try {
+      await fs.renameNoReplace(reclaimedPath, lockPath);
+      await fs.fsyncDirectory(locksRoot);
+    } catch (restoreError) {
+      throw new PublisherError('publisher lease changed during stale takeover and could not be restored', { cause: restoreError });
+    }
+    fail('publisher lease changed during safe stale takeover');
+  }
+  await fs.rm(reclaimedPath, { force: false });
+  await fs.fsyncDirectory(locksRoot);
+  return true;
+}
+
+async function releaseLease(fs, lockPath, record, stateSecurity) {
+  const current = await readLeaseRecord(fs, lockPath, stateSecurity);
+  if (!sameJson(current, record)) fail('publisher lease ownership changed before release');
+  await fs.rm(lockPath, { force: false });
+  await fs.fsyncDirectory(path.dirname(lockPath));
+}
+
 async function withLock(fs, stateRoot, stateSecurity, label, callback) {
   const locksRoot = childPath(stateRoot, 'locks');
   await ensureStateDirectory(fs, locksRoot, stateSecurity, 'lock state root');
   const lockPath = childPath(locksRoot, 'publisher.lock');
-  try {
-    await fs.openExclusive(lockPath, `${label}\n`, stateSecurity.fileMode);
-  } catch (error) {
-    if (error?.code === 'EEXIST') fail('publisher lock is already held');
-    throw error;
+  const record = await currentLeaseRecord(label);
+  let acquired = false;
+
+  for (let attempt = 0; attempt < 8 && !acquired; attempt += 1) {
+    try {
+      await createLease(fs, lockPath, record, stateSecurity);
+      acquired = true;
+      break;
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+    }
+
+    let incumbent;
+    try {
+      incumbent = await readLeaseRecord(fs, lockPath, stateSecurity);
+    } catch (error) {
+      if (isNotFound(error)) continue;
+      throw error;
+    }
+    if (await leaseIsActive(incumbent)) fail('publisher lease is already held by a live process');
+    if (!await reclaimStaleLease(fs, locksRoot, lockPath, incumbent, stateSecurity)) continue;
   }
+  if (!acquired) fail('publisher lease could not be acquired after safe stale takeover');
+
   try {
     return await callback();
   } finally {
-    await fs.rm(lockPath, { force: true });
-    await fs.fsyncDirectory(locksRoot);
+    await releaseLease(fs, lockPath, record, stateSecurity);
   }
 }
 
@@ -851,19 +1137,29 @@ export async function publish({
       }
       await setPhase(validFs, journalPath, journal, 'artifact-promoted', validSecurity.state, now, phaseHook);
 
-      const beforeIndex = await readIndex(validFs, current.galleryRoot);
-      if (sha256(beforeIndex.bytes) !== journal.previousIndexSha256) fail('publish refused because the live index has drifted');
-      assertAdapterIdentity(validAdapter, journal.adapterFingerprint, journal.adapterVersion, beforeIndex.bytes);
-      if ((await checksumTree(validFs, artifactPath)).sha256 !== journal.artifactTreeSha256) {
-        fail('publish refused because the promoted artifact has drifted');
-      }
-      if (await checksumArtifactIndex(validFs, artifactPath, 'promoted artifact') !== journal.artifactIndexSha256) {
-        fail('publish refused because the promoted artifact index has drifted');
-      }
-      await assertStageIndex(validFs, stagedIndex, regenerated, current.indexMetadata);
+      await assertIndexPromotionPreconditions({
+        fs: validFs,
+        galleryRoot: current.galleryRoot,
+        stagedIndex,
+        adapter: validAdapter,
+        journal,
+        security: validSecurity,
+      });
       await setPhase(validFs, journalPath, journal, 'index-promoting', validSecurity.state, now, phaseHook);
-      await validFs.renameReplace(stagedIndex, childPath(current.galleryRoot, INDEX_NAME));
-      await validFs.fsyncDirectory(current.galleryRoot);
+      await assertIndexPromotionPreconditions({
+        fs: validFs,
+        galleryRoot: current.galleryRoot,
+        stagedIndex,
+        adapter: validAdapter,
+        journal,
+        security: validSecurity,
+      });
+      await exchangeCandidateIndex({
+        fs: validFs,
+        galleryRoot: current.galleryRoot,
+        stagedIndex,
+        journal,
+      });
       const promotedIndex = await readIndex(validFs, current.galleryRoot);
       if (sha256(promotedIndex.bytes) !== journal.candidateIndexSha256) fail('candidate index promotion checksum mismatch');
       if (!sameJson(normalizeMetadata(promotedIndex.stat), journal.previousIndexMetadata)) {
@@ -896,6 +1192,7 @@ export async function publish({
           now,
           authenticatedVerifier,
           rollback: false,
+          phaseHook: undefined,
         });
       } catch (recoveryFailure) {
         recoveryError = recoveryFailure;
@@ -917,12 +1214,14 @@ export async function rollback({
   fs = createNodeFilesystem(),
   executor = createLocalExecutor(fs),
   now = () => new Date(),
+  phaseHook,
 }) {
   const validFs = assertFilesystem(fs);
   const validExecutor = assertExecutor(executor);
   const validSecurity = normalizeSecurity(security);
   const validTransactionId = assertTransactionId(transactionId);
   if (typeof authenticatedVerifier !== 'function') fail('rollback requires an authenticated former-artifact verifier');
+  if (phaseHook !== undefined && typeof phaseHook !== 'function') fail('phaseHook must be a function when supplied');
   const initial = await preflight({
     fs: validFs,
     galleryRoot,
@@ -948,11 +1247,12 @@ export async function rollback({
       now,
       authenticatedVerifier,
       rollback: true,
+      phaseHook,
     });
   });
 }
 
-const RENAMEAT2_NO_REPLACE = String.raw`
+const RENAMEAT2 = String.raw`
 import ctypes
 import os
 import platform
@@ -963,7 +1263,7 @@ number = numbers.get(platform.machine().lower())
 if number is None:
     raise SystemExit('unsupported architecture for renameat2')
 libc = ctypes.CDLL(None, use_errno=True)
-result = libc.syscall(number, -100, os.fsencode(sys.argv[1]), -100, os.fsencode(sys.argv[2]), 1)
+result = libc.syscall(number, -100, os.fsencode(sys.argv[1]), -100, os.fsencode(sys.argv[2]), int(sys.argv[3]))
 if result != 0:
     error = ctypes.get_errno()
     sys.stderr.write(f'renameat2-errno:{error}\n')
@@ -972,6 +1272,33 @@ if result != 0:
 
 function errnoCode(errno) {
   return Object.entries(osConstants.errno).find(([, value]) => value === errno)?.[0] ?? 'ERENAMEAT2';
+}
+
+async function renameAt2(source, destination, flags) {
+  try {
+    await executeFile('python3', ['-c', RENAMEAT2, source, destination, String(flags)], { maxBuffer: 1024 });
+  } catch (error) {
+    const match = /^renameat2-errno:(\d+)\s*$/.exec(error?.stderr ?? '');
+    if (match) {
+      const errno = Number(match[1]);
+      const code = errnoCode(errno);
+      if (code === 'EEXIST') {
+        const exists = new Error('atomic no-replace destination already exists');
+        exists.code = 'EEXIST';
+        throw exists;
+      }
+      const failure = new Error(`atomic rename failed: ${code}`);
+      failure.code = code;
+      failure.errno = -errno;
+      throw failure;
+    }
+    if (error?.code === 'EEXIST') {
+      const exists = new Error('atomic no-replace destination already exists');
+      exists.code = 'EEXIST';
+      throw exists;
+    }
+    throw error;
+  }
 }
 
 export function createNodeFilesystem({ randomId = randomUUID } = {}) {
@@ -1037,31 +1364,11 @@ export function createNodeFilesystem({ randomId = randomUUID } = {}) {
     readdir: nodeReaddir,
     realpath: nodeRealpath,
     renameReplace: nodeRename,
-    async renameNoReplace(source, destination) {
-      try {
-        await executeFile('python3', ['-c', RENAMEAT2_NO_REPLACE, source, destination], { maxBuffer: 1024 });
-      } catch (error) {
-        const match = /^renameat2-errno:(\d+)\s*$/.exec(error?.stderr ?? '');
-        if (match) {
-          const errno = Number(match[1]);
-          const code = errnoCode(errno);
-          if (code === 'EEXIST') {
-            const exists = new Error('atomic no-replace destination already exists');
-            exists.code = 'EEXIST';
-            throw exists;
-          }
-          const failure = new Error(`atomic no-replace rename failed: ${code}`);
-          failure.code = code;
-          failure.errno = -errno;
-          throw failure;
-        }
-        if (error?.code === 'EEXIST') {
-          const exists = new Error('atomic no-replace destination already exists');
-          exists.code = 'EEXIST';
-          throw exists;
-        }
-        throw error;
-      }
+    renameExchange(source, destination) {
+      return renameAt2(source, destination, 2);
+    },
+    renameNoReplace(source, destination) {
+      return renameAt2(source, destination, 1);
     },
     rm: nodeRm,
     statfs: nodeStatfs,
@@ -1115,8 +1422,38 @@ function assertSshRemotePath(remotePath) {
   return remotePath;
 }
 
+async function assertCliKeyFile(keyFile) {
+  if (
+    typeof keyFile !== 'string'
+    || !path.isAbsolute(keyFile)
+    || keyFile !== path.normalize(keyFile)
+    || keyFile.includes('\0')
+    || /[\r\n]/.test(keyFile)
+    || /-----BEGIN(?: [A-Z0-9 ]+)? KEY-----/i.test(keyFile)
+  ) {
+    fail('--key-file must be an absolute normalized key-file path, never key material');
+  }
+  let stat;
+  try {
+    stat = await nodeLstat(keyFile);
+  } catch (error) {
+    if (isNotFound(error)) fail('--key-file must name an existing local regular file');
+    throw error;
+  }
+  if (isSymlink(stat) || !isFile(stat)) fail('--key-file must name a local non-symlink regular file');
+  if (modeOf(stat) !== 0o600) fail('--key-file must have strict 0600 permissions');
+  return keyFile;
+}
+
 export function createSshExecutor({ keyFile, host, user, run }) {
-  if (typeof keyFile !== 'string' || !path.isAbsolute(keyFile) || keyFile.includes('\0')) {
+  if (
+    typeof keyFile !== 'string'
+    || !path.isAbsolute(keyFile)
+    || keyFile !== path.normalize(keyFile)
+    || keyFile.includes('\0')
+    || /[\r\n]/.test(keyFile)
+    || /-----BEGIN(?: [A-Z0-9 ]+)? KEY-----/i.test(keyFile)
+  ) {
     fail('SSH keyFile must be an absolute key-file path');
   }
   const safeHost = assertSshValue(host, 'host', /^[A-Za-z0-9.-]+$/);
@@ -1206,9 +1543,10 @@ export async function runCli(argv, { fs = createNodeFilesystem(), stdout = proce
     for (const flag of ['--gallery-root', '--state-root', '--transaction', '--security', '--executor-module']) {
       if (!options[flag]) fail(`${command} requires ${flag}`);
     }
+    const keyFile = await assertCliKeyFile(options['--key-file']);
     const security = JSON.parse((await fs.readFile(options['--security'])).toString('utf8'));
     const seams = await loadPublisherSeams(options['--executor-module'], {
-      keyFile: options['--key-file'],
+      keyFile,
       host: options['--ssh-host'],
       user: options['--ssh-user'],
     });
