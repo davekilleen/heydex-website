@@ -11,6 +11,115 @@ in `main` (verified commit-by-commit before retiring it); the stray branch has
 been deleted. If you find yourself deploying from anything other than `main`,
 stop and ask why.
 
+## Private explainer direct-file publication
+
+The private architecture explainer is not part of the React/Convex deployment.
+The focused direct-file publisher addresses only the authorized fixed URL
+`https://heydex.ai/explainers/dex-brain-vault-capability-architecture.html`,
+the matching fixed target
+`/var/www/explainers/dex-brain-vault-capability-architecture.html`, and its
+transaction-private staging/quarantine paths. It does not import the generic
+gallery publisher, enumerate the explainer root, read or write `index.html`,
+create a card, use a root-wide lease, run `deploy.sh`, reload Caddy, or touch
+another child.
+
+Prepare the reviewed private artifact locally:
+
+```bash
+node scripts/explainers/direct-file.mjs prepare-file \
+  --artifact /protected/artifact/index.html \
+  --metadata /protected/artifact/gallery-entry.json \
+  --output /protected/prepared-direct-file.json
+```
+
+The receipt checks the immutable slug and derived filename, exact SHA-256 and
+size, restrictive no-network CSP, self-contained HTML, and absence of scripts,
+remote assets, forms, executable handlers, or arbitrary target paths.
+
+Publication and rollback hardcode the audited remote roots
+`/var/www/explainers` and `/var/www/.heydex-explainer-publisher`; callers
+cannot supply another root or child path. The command uses its internal,
+reviewed fixed SSH executor/helper; there is no caller-selected executor module.
+The helper accepts only the fixed target and transaction-private state paths for
+upload, `lstat`/absence probes, metadata, fsync, `RENAME_NOREPLACE`, and exact
+quarantine/removal. It never enumerates a directory or accepts a glob,
+recursive operation, shell path, or unrelated child.
+
+Publication is deliberately two-phase. `publish-file` performs only the
+fixed-target upload and no-replace promotion, then records a random 32-byte
+transaction nonce and `promotedAt` in a synced
+`promoted-awaiting-verification` journal. It never marks the transaction
+`published` and accepts no caller-authored verification JSON. `--promote-only
+true` is explicit but optional because promotion-only is the only publish
+behavior.
+
+`finalize-file` invokes the internal fixed curl verifier after promotion. It
+uses only the fixed HTTPS URL, never follows redirects, records exactly that
+single request, and requires unauthenticated access to return `302`, `303`,
+`307`, or `308` to the exact HeyDex OAuth gate
+`https://heydex.ai/oauth2/start?rd=https://heydex.ai/explainers/dex-brain-vault-capability-architecture.html`
+with an empty response body. Any non-empty redirect body, including textual
+artifact SHA-256 or a private marker, fails finalization. Only that exact raw
+URL or its canonical percent-encoded `rd` equivalent is accepted; a different
+host, path, redirect destination, or extra query parameter fails finalization.
+It uses a supplied current-user-owned `0600` regular Netscape cookie-jar file
+for the authenticated request, which must return the exact artifact hash/size
+with `X-Robots-Tag: noindex, nofollow, noarchive`. The verifier itself binds the
+fresh result to the transaction ID, nonce, `promotedAt`, URL, and hash/size;
+finalization rechecks the sealed remote target identity after the network checks
+before it can set the journal to `published`. Do not store cookie jars or
+verification output in Git. After its synced `promoted-awaiting-verification`
+journal is validated, any verifier or finalization failure automatically invokes
+exact journal-authorized rollback. A successful recovery removes only the
+unchanged transaction-owned artifact and rethrows the original verification or
+finalization error. If rollback cannot safely complete, including after identity
+drift, finalization reports a distinct recovery error with the original failure
+as its cause and retains the ambiguous file for reconciliation. Evidence
+availability never blocks identity-authorized rollback:
+
+```bash
+node scripts/explainers/direct-file.mjs publish-file \
+  --prepared /protected/prepared-direct-file.json \
+  --promote-only true \
+  --transaction <id> \
+  --security /protected/publisher-security.json \
+  --key-file /protected/key \
+  --ssh-host publisher.example.internal \
+  --ssh-user publisher
+
+node scripts/explainers/direct-file.mjs finalize-file \
+  --cookie-jar /protected/heydex-cookies.txt \
+  --transaction <id> \
+  --security /protected/publisher-security.json \
+  --key-file /protected/key \
+  --ssh-host publisher.example.internal \
+  --ssh-user publisher
+
+node scripts/explainers/direct-file.mjs rollback-file \
+  --transaction <id> \
+  --security /protected/publisher-security.json \
+  --key-file /protected/key \
+  --ssh-host publisher.example.internal \
+  --ssh-user publisher \
+  --verify-only true
+```
+
+Rollback is authorized by the synced journal and exact fixed target identity
+(hash, size, regular-file type, owner, group, and mode). It quarantines and
+removes only that unchanged target, proves both absence probes, and records
+former-URL verification as `pending` without performing an external former-URL
+check or enumerating unrelated children. Every mutation and recovery rechecks canonical real paths,
+rejects nested symlink components, and requires every transaction/staging/
+journal/quarantine/target directory to remain on the gallery filesystem. A
+`RENAME_NOREPLACE` collision that leaves both live and staged candidates fails
+closed and preserves both for reconciliation; it never treats either as owned
+solely by matching content. `rollback-file --verify-only true` validates the
+journal, paths, identities, quarantine absence, and planned exact operations
+without writing anything. The staged key is normalized into a private temporary
+file, validated with `ssh-keygen`, and removed after execution. A failed or
+unavailable external check does not prevent journal-authorized rollback;
+unavailable former-URL evidence remains `pending`.
+
 ## Convex Deployments
 
 DexDiff has its own dedicated Convex project as of 2026-07-05. It no longer
