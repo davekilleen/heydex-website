@@ -512,7 +512,6 @@ test('pre-promotion recovery removes staged content without a quarantine and pre
     () => publish(value, transactionId, { phaseHook: async (phase) => { if (phase === 'uploaded') throw new Error('simulated post-upload failure'); } }),
     (error) => {
       assert.equal(error.message, 'simulated post-upload failure');
-      assert.doesNotMatch(error.message, /publication recovery failed/);
       return true;
     },
   );
@@ -534,7 +533,6 @@ test('pre-staging recovery completes without a staging file or quarantine', asyn
     () => publish(value, transactionId, { phaseHook: async (phase) => { if (phase === 'uploading') throw new Error('simulated pre-staging failure'); } }),
     (error) => {
       assert.equal(error.message, 'simulated pre-staging failure');
-      assert.doesNotMatch(error.message, /publication recovery failed/);
       return true;
     },
   );
