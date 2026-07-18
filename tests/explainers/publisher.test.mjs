@@ -330,6 +330,8 @@ test('publish regenerates reviewed bytes under lock and promotes serve-safe meta
   const promotedArtifactIndex = await lstat(path.join(fixture.galleryRoot, 'new-entry', 'index.html'));
 
   assert.equal(journal.phase, 'published');
+  assert.equal(journal.publicationIndexExchange, undefined);
+  assert.equal(await exists(path.join(fixture.stateRoot, 'staging', 'transaction-1', 'candidate-index.html')), false);
   assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(fixture.prepared.candidateBytes), true);
   assert.equal(mode(promotedIndex), 0o644);
   assert.equal(mode(promotedArtifact), 0o755);
@@ -546,6 +548,7 @@ test('durable phase journal recovers interruptions at every mutation boundary', 
     'artifact-promoting',
     'artifact-promoted',
     'index-promoting',
+    'index-exchanging',
     'index-promoted',
     'verifying',
   ]) {
@@ -577,6 +580,7 @@ test('SIGKILL after every durable mutation boundary releases the lease for a fre
     'artifact-promoting',
     'artifact-promoted',
     'index-promoting',
+    'index-exchanging',
     'index-promoted',
     'verifying',
   ];
@@ -680,7 +684,7 @@ test('an external index written after durable index-promoting survives publicati
   assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false);
 });
 
-test('atomic index exchange restores bytes that appear after the final validation', async (t) => {
+test('publication exchange restores final-race external bytes and retains the transaction for manual reconciliation', async (t) => {
   const fixture = await setup();
   t.after(() => rm(fixture.root, { recursive: true, force: true }));
   const externalIndex = Buffer.from('external index written immediately before exchange');
@@ -698,9 +702,191 @@ test('atomic index exchange restores bytes that appear after the final validatio
     },
   };
 
-  await assert.rejects(() => publishFixture(fixture, { fs }), /final index promotion encountered external drift/);
+  await assert.rejects(() => publishFixture(fixture, { fs }), /durable recovery could not be verified/);
   assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(externalIndex), true);
+  assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), true);
+  const journal = JSON.parse(await readFile(
+    path.join(fixture.stateRoot, 'transactions', 'transaction-1', 'transaction.json'),
+    'utf8',
+  ));
+  assert.equal(journal.phase, 'index-manual-reconciliation');
+  assert.deepEqual(journal.publicationIndexExchange.displaced, {
+    path: 'index.html',
+    location: 'live',
+    sha256: sha256(externalIndex),
+  });
+});
+
+test('publication exchange faults after the first exchange and directory syncs retry from the durable exchanging state', async (t) => {
+  for (const fault of ['after-first-exchange', 'after-gallery-fsync', 'after-staging-fsync']) {
+    const fixture = await setup();
+    t.after(() => rm(fixture.root, { recursive: true, force: true }));
+    const baseFs = fixture.fs;
+    const transactionRoot = path.join(fixture.stateRoot, 'transactions', 'transaction-1');
+    const stagingRoot = path.join(fixture.stateRoot, 'staging', 'transaction-1');
+    const journalPath = path.join(transactionRoot, 'transaction.json');
+    let exchanged = false;
+    let injected = false;
+    const fs = {
+      ...baseFs,
+      async renameExchange(source, destination) {
+        const result = await baseFs.renameExchange(source, destination);
+        if (destination === path.join(fixture.galleryRoot, 'index.html') && !exchanged) {
+          exchanged = true;
+          if (fault === 'after-first-exchange') {
+            injected = true;
+            throw new Error(fault);
+          }
+        }
+        return result;
+      },
+      async fsyncDirectory(target) {
+        await baseFs.fsyncDirectory(target);
+        if (
+          exchanged
+          && !injected
+          && ((fault === 'after-gallery-fsync' && target === fixture.galleryRoot)
+            || (fault === 'after-staging-fsync' && target === stagingRoot))
+        ) {
+          injected = true;
+          throw new Error(fault);
+        }
+      },
+      async writeAtomic(options) {
+        if (
+          options.filename === 'transaction.json'
+          && Buffer.from(options.contents).includes(Buffer.from('"phase": "index-reversing"'))
+        ) {
+          throw new Error('hold publication exchange in durable exchanging state');
+        }
+        return baseFs.writeAtomic(options);
+      },
+    };
+
+    await assert.rejects(() => publishFixture(fixture, { fs }), /durable recovery could not be verified/);
+    assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(fixture.prepared.candidateBytes), true, fault);
+    assert.equal((await readFile(path.join(stagingRoot, 'candidate-index.html'))).equals(ORIGINAL_INDEX), true, fault);
+    assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), true, fault);
+    const journal = JSON.parse(await readFile(journalPath, 'utf8'));
+    assert.equal(journal.phase, 'index-exchanging', fault);
+    assert.deepEqual(journal.publicationIndexExchange, {
+      status: 'exchanging',
+      stagePath: 'candidate-index.html',
+    }, fault);
+
+    await rollbackFixture(fixture);
+    assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true, fault);
+    assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false, fault);
+    assert.equal(JSON.parse(await readFile(journalPath, 'utf8')).phase, 'rolled-back', fault);
+  }
+});
+
+test('publication exchange retries a durable reversing state without generic restoration', async (t) => {
+  const fixture = await setup();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const baseFs = fixture.fs;
+  const stagingIndex = path.join(fixture.stateRoot, 'staging', 'transaction-1', 'candidate-index.html');
+  const journalPath = path.join(fixture.stateRoot, 'transactions', 'transaction-1', 'transaction.json');
+  let exchangeCount = 0;
+  const fs = {
+    ...baseFs,
+    async renameExchange(source, destination) {
+      exchangeCount += 1;
+      if (exchangeCount === 2) throw new Error('during-known-publication-reversal');
+      const result = await baseFs.renameExchange(source, destination);
+      if (exchangeCount === 1) throw new Error('after-first-publication-exchange');
+      return result;
+    },
+  };
+
+  await assert.rejects(() => publishFixture(fixture, { fs }), /durable recovery could not be verified/);
+  assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(fixture.prepared.candidateBytes), true);
+  assert.equal((await readFile(stagingIndex)).equals(ORIGINAL_INDEX), true);
+  const interrupted = JSON.parse(await readFile(journalPath, 'utf8'));
+  assert.equal(interrupted.phase, 'index-reversing');
+  assert.equal(interrupted.publicationIndexExchange.status, 'reversing');
+
+  await rollbackFixture(fixture);
+  assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true);
   assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false);
+  assert.equal(JSON.parse(await readFile(journalPath, 'utf8')).phase, 'rolled-back');
+});
+
+test('publication external-index reversal faults retain both paths and retry only to return external bytes live', async (t) => {
+  for (const fault of [
+    'during-reversal',
+    'after-reversal',
+    'after-reversal-gallery-fsync',
+    'after-reversal-staging-fsync',
+  ]) {
+    const fixture = await setup();
+    t.after(() => rm(fixture.root, { recursive: true, force: true }));
+    const externalIndex = Buffer.from(`external publication exchange ${fault}`);
+    const baseFs = fixture.fs;
+    const stagingRoot = path.join(fixture.stateRoot, 'staging', 'transaction-1');
+    const stagingIndex = path.join(stagingRoot, 'candidate-index.html');
+    const journalPath = path.join(fixture.stateRoot, 'transactions', 'transaction-1', 'transaction.json');
+    let exchangeCount = 0;
+    const fs = {
+      ...baseFs,
+      async renameExchange(source, destination) {
+        exchangeCount += 1;
+        if (exchangeCount === 1) {
+          await writeFile(destination, externalIndex);
+          await chmod(destination, 0o644);
+          return baseFs.renameExchange(source, destination);
+        }
+        if (fault === 'during-reversal') throw new Error(fault);
+        const result = await baseFs.renameExchange(source, destination);
+        if (fault === 'after-reversal') throw new Error(fault);
+        return result;
+      },
+      async fsyncDirectory(target) {
+        await baseFs.fsyncDirectory(target);
+        if (
+          exchangeCount === 2
+          && ((fault === 'after-reversal-gallery-fsync' && target === fixture.galleryRoot)
+            || (fault === 'after-reversal-staging-fsync' && target === stagingRoot))
+        ) {
+          throw new Error(fault);
+        }
+      },
+    };
+
+    await assert.rejects(() => publishFixture(fixture, { fs }), /durable recovery could not be verified/);
+    assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), true, fault);
+    assert.equal(await exists(stagingIndex), true, fault);
+    const interrupted = JSON.parse(await readFile(journalPath, 'utf8'));
+    assert.equal(interrupted.phase, 'index-manual-reconciliation', fault);
+    assert.equal(interrupted.publicationIndexExchange.status, 'manual-reconciliation', fault);
+    if (fault === 'during-reversal') {
+      assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(fixture.prepared.candidateBytes), true, fault);
+      assert.deepEqual(interrupted.publicationIndexExchange.displaced, {
+        path: 'candidate-index.html',
+        location: 'staged',
+        sha256: sha256(externalIndex),
+      }, fault);
+    } else {
+      assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(externalIndex), true, fault);
+      assert.deepEqual(interrupted.publicationIndexExchange.displaced, {
+        path: 'index.html',
+        location: 'live',
+        sha256: sha256(externalIndex),
+      }, fault);
+    }
+
+    await assert.rejects(() => rollbackFixture(fixture), /manual reconciliation/);
+    assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(externalIndex), true, fault);
+    assert.equal((await readFile(stagingIndex)).equals(fixture.prepared.candidateBytes), true, fault);
+    assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), true, fault);
+    const retried = JSON.parse(await readFile(journalPath, 'utf8'));
+    assert.equal(retried.phase, 'index-manual-reconciliation', fault);
+    assert.deepEqual(retried.publicationIndexExchange.displaced, {
+      path: 'index.html',
+      location: 'live',
+      sha256: sha256(externalIndex),
+    }, fault);
+  }
 });
 
 test('atomic no-replace promotion preserves an artifact that appears after preflight', async (t) => {

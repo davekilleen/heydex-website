@@ -134,6 +134,27 @@ function assertAuditedIndexMetadata(metadata, label) {
   return metadata;
 }
 
+function assertIndexExchangeRecord(exchange, { label, stagePath }) {
+  if (
+    !isPlainObject(exchange)
+    || !['exchanging', 'reversing', 'manual-reconciliation'].includes(exchange.status)
+    || exchange.stagePath !== stagePath
+  ) {
+    fail(`transaction journal has an unsafe ${label} index exchange record`);
+  }
+  if (exchange.displaced !== undefined) {
+    const displaced = exchange.displaced;
+    if (
+      !isPlainObject(displaced)
+      || ![INDEX_NAME, stagePath].includes(displaced.path)
+      || !['live', 'staged'].includes(displaced.location)
+      || (displaced.sha256 !== null && (typeof displaced.sha256 !== 'string' || !SHA256.test(displaced.sha256)))
+    ) {
+      fail(`transaction journal has an unsafe ${label} displaced-index record`);
+    }
+  }
+}
+
 function normalizeSecurity(security) {
   if (!isPlainObject(security)) fail('security policy is required');
   const normalized = {};
@@ -522,25 +543,16 @@ async function readJournal(fs, journalPath, stateSecurity) {
   }
   assertAuditedIndexMetadata(journal.candidateIndexMetadata, 'transaction journal candidate');
   if (journal.rollbackIndexExchange !== undefined) {
-    const exchange = journal.rollbackIndexExchange;
-    if (
-      !isPlainObject(exchange)
-      || !['exchanging', 'reversing', 'manual-reconciliation'].includes(exchange.status)
-      || exchange.stagePath !== 'rollback-index.html'
-    ) {
-      fail('transaction journal has an unsafe rollback index exchange record');
-    }
-    if (exchange.displaced !== undefined) {
-      const displaced = exchange.displaced;
-      if (
-        !isPlainObject(displaced)
-        || !['index.html', 'rollback-index.html'].includes(displaced.path)
-        || !['live', 'staged'].includes(displaced.location)
-        || (displaced.sha256 !== null && (typeof displaced.sha256 !== 'string' || !SHA256.test(displaced.sha256)))
-      ) {
-        fail('transaction journal has an unsafe rollback displaced-index record');
-      }
-    }
+    assertIndexExchangeRecord(journal.rollbackIndexExchange, {
+      label: 'rollback',
+      stagePath: 'rollback-index.html',
+    });
+  }
+  if (journal.publicationIndexExchange !== undefined) {
+    assertIndexExchangeRecord(journal.publicationIndexExchange, {
+      label: 'publication',
+      stagePath: 'candidate-index.html',
+    });
   }
   if (!Array.isArray(journal.forbiddenStrings) || journal.forbiddenStrings.some(
     (value) => typeof value !== 'string' || value.length === 0,
@@ -608,27 +620,64 @@ async function assertIndexPromotionPreconditions({
   await assertStageIndex(fs, stagedIndex, { candidateIndexSha256: journal.candidateIndexSha256 }, journal.previousIndexMetadata);
 }
 
-async function exchangeCandidateIndex({ fs, galleryRoot, stagedIndex, journal }) {
-  const liveIndex = childPath(galleryRoot, INDEX_NAME);
-  await fs.renameExchange(stagedIndex, liveIndex);
-  await fs.fsyncDirectory(galleryRoot);
-  await fs.fsyncDirectory(path.dirname(stagedIndex));
+async function exchangeCandidateIndex({
+  fs,
+  galleryRoot,
+  stateRoot,
+  stagedIndex,
+  journalPath,
+  journal,
+  security,
+  now,
+  phaseHook,
+  revalidate,
+}) {
+  const stagingRoot = path.dirname(stagedIndex);
+  journal.publicationIndexExchange = {
+    status: 'exchanging',
+    stagePath: 'candidate-index.html',
+  };
+  await setPhase(fs, journalPath, journal, 'index-exchanging', security.state, now, phaseHook);
+  await revalidate();
 
-  const displaced = await assertRegularFile(fs, stagedIndex, 'displaced gallery index');
-  const displacedBytes = toBuffer(await fs.readFile(stagedIndex), 'displaced gallery index');
-  if (
-    sha256(displacedBytes) !== journal.previousIndexSha256
-    || !sameJson(normalizeMetadata(displaced), journal.previousIndexMetadata)
-  ) {
-    await fs.renameExchange(stagedIndex, liveIndex);
-    await fs.fsyncDirectory(galleryRoot);
-    await fs.fsyncDirectory(path.dirname(stagedIndex));
-    await fs.rm(stagedIndex, { force: false });
-    await fs.fsyncDirectory(path.dirname(stagedIndex));
-    fail('publish refused because final index promotion encountered external drift');
+  const before = await inspectPublicationIndexExchange(fs, galleryRoot, stateRoot, journal);
+  if (before.live.state !== 'previous' || before.staged.state !== 'candidate') {
+    return resolvePublicationIndexExchange({
+      fs,
+      galleryRoot,
+      stateRoot,
+      journalPath,
+      journal,
+      security,
+      now,
+      phaseHook,
+      allowExternalRetry: true,
+    });
   }
+
+  await fs.renameExchange(stagedIndex, childPath(galleryRoot, INDEX_NAME));
+  await fs.fsyncDirectory(galleryRoot);
+  await fs.fsyncDirectory(stagingRoot);
+
+  const exchanged = await inspectPublicationIndexExchange(fs, galleryRoot, stateRoot, journal);
+  if (exchanged.live.state !== 'candidate' || exchanged.staged.state !== 'previous') {
+    return resolvePublicationIndexExchange({
+      fs,
+      galleryRoot,
+      stateRoot,
+      journalPath,
+      journal,
+      security,
+      now,
+      phaseHook,
+      allowExternalRetry: true,
+    });
+  }
+
   await fs.rm(stagedIndex, { force: false });
-  await fs.fsyncDirectory(path.dirname(stagedIndex));
+  await fs.fsyncDirectory(stagingRoot);
+  delete journal.publicationIndexExchange;
+  await writeJournal(fs, journalPath, journal, security.state, now);
 }
 
 function quarantineRootPath(transactionRoot) {
@@ -691,6 +740,10 @@ function rollbackIndexStagePath(transactionRoot) {
   return childPath(transactionRoot, 'rollback-index.html');
 }
 
+function publicationIndexStagePath(stateRoot, transactionId) {
+  return childPath(stateRoot, 'staging', transactionId, 'candidate-index.html');
+}
+
 async function previousIndexSnapshot(fs, transactionRoot, journal, security) {
   const previousPath = childPath(transactionRoot, 'previous-index.html');
   const snapshotStat = await assertRegularFile(fs, previousPath, 'previous index snapshot');
@@ -700,11 +753,11 @@ async function previousIndexSnapshot(fs, transactionRoot, journal, security) {
   return previous;
 }
 
-async function inspectRollbackIndexPath(fs, target, journal) {
+async function inspectIndexExchangePath(fs, target, journal) {
   const stat = await lstatOrNull(fs, target);
   if (stat === null) return { state: 'absent', target, sha256: null, metadata: null };
   if (isSymlink(stat) || !isFile(stat)) return { state: 'unsafe', target, sha256: null, metadata: null };
-  const bytes = toBuffer(await fs.readFile(target), 'rollback index exchange path');
+  const bytes = toBuffer(await fs.readFile(target), 'index exchange path');
   const metadata = normalizeMetadata(stat);
   const checksum = sha256(bytes);
   if (checksum === journal.previousIndexSha256 && sameJson(metadata, journal.previousIndexMetadata)) {
@@ -720,24 +773,45 @@ async function inspectRollbackIndexExchange(fs, galleryRoot, transactionRoot, jo
   const livePath = childPath(galleryRoot, INDEX_NAME);
   const stagePath = rollbackIndexStagePath(transactionRoot);
   return {
-    live: await inspectRollbackIndexPath(fs, livePath, journal),
-    staged: await inspectRollbackIndexPath(fs, stagePath, journal),
+    live: await inspectIndexExchangePath(fs, livePath, journal),
+    staged: await inspectIndexExchangePath(fs, stagePath, journal),
   };
 }
 
-function rollbackDisplacedRecord(observed) {
+async function inspectPublicationIndexExchange(fs, galleryRoot, stateRoot, journal) {
+  const livePath = childPath(galleryRoot, INDEX_NAME);
+  const stagePath = publicationIndexStagePath(stateRoot, journal.transactionId);
+  return {
+    live: await inspectIndexExchangePath(fs, livePath, journal),
+    staged: await inspectIndexExchangePath(fs, stagePath, journal),
+  };
+}
+
+function indexExchangeDisplacedRecord(observed, stagePath) {
   if (observed.live.state === 'external' || observed.live.state === 'unsafe') {
     return {
-      path: 'index.html',
+      path: INDEX_NAME,
       location: 'live',
       sha256: observed.live.sha256,
     };
   }
   return {
-    path: 'rollback-index.html',
+    path: stagePath,
     location: 'staged',
     sha256: observed.staged.sha256,
   };
+}
+
+function rollbackDisplacedRecord(observed) {
+  return indexExchangeDisplacedRecord(observed, 'rollback-index.html');
+}
+
+function publicationDisplacedRecord(observed) {
+  return indexExchangeDisplacedRecord(observed, 'candidate-index.html');
+}
+
+function isExternalIndexState(state) {
+  return state === 'external' || state === 'unsafe';
 }
 
 async function markRollbackIndexManualReconciliation({
@@ -779,7 +853,7 @@ async function stagePreviousIndexForRollback({ fs, transactionRoot, journal, sec
     gid: journal.previousIndexMetadata.gid,
     replace: false,
   });
-  const staged = await inspectRollbackIndexPath(fs, stagePath, journal);
+  const staged = await inspectIndexExchangePath(fs, stagePath, journal);
   if (staged.state !== 'previous') {
     fail('rollback refused because the staged previous index does not match its recorded bytes and metadata');
   }
@@ -921,6 +995,232 @@ async function resolveRollbackIndexExchange({
   fail('rollback index exchange requires manual reconciliation; unclassified external content was retained');
 }
 
+async function clearPublicationIndexExchange({
+  fs,
+  journalPath,
+  journal,
+  security,
+  now,
+}) {
+  delete journal.publicationIndexExchange;
+  await writeJournal(fs, journalPath, journal, security.state, now);
+}
+
+async function markPublicationIndexManualReconciliation({
+  fs,
+  journalPath,
+  journal,
+  security,
+  now,
+  phaseHook,
+  observed,
+}) {
+  journal.publicationIndexExchange = {
+    status: 'manual-reconciliation',
+    stagePath: 'candidate-index.html',
+    displaced: publicationDisplacedRecord(observed),
+  };
+  await setPhase(
+    fs,
+    journalPath,
+    journal,
+    'index-manual-reconciliation',
+    security.state,
+    now,
+    phaseHook,
+  );
+}
+
+async function reversePublicationIndexExchange({
+  fs,
+  galleryRoot,
+  stateRoot,
+  journalPath,
+  journal,
+  security,
+  now,
+  phaseHook,
+  allowExternalRetry,
+}) {
+  const livePath = childPath(galleryRoot, INDEX_NAME);
+  const stagePath = publicationIndexStagePath(stateRoot, journal.transactionId);
+  const before = await inspectPublicationIndexExchange(fs, galleryRoot, stateRoot, journal);
+  const knownExchange = before.live.state === 'candidate' && before.staged.state === 'previous';
+  const externalStaged = isExternalIndexState(before.staged.state)
+    && ['candidate', 'previous'].includes(before.live.state);
+  if (!knownExchange && !externalStaged) {
+    await markPublicationIndexManualReconciliation({
+      fs, journalPath, journal, security, now, phaseHook, observed: before,
+    });
+    fail('publication index exchange requires manual reconciliation before displaced content can be classified');
+  }
+  if (externalStaged && !allowExternalRetry) {
+    await markPublicationIndexManualReconciliation({
+      fs, journalPath, journal, security, now, phaseHook, observed: before,
+    });
+    fail('publication index exchange requires manual reconciliation; unclassified external content was retained');
+  }
+
+  journal.publicationIndexExchange = {
+    status: 'reversing',
+    stagePath: 'candidate-index.html',
+    ...(externalStaged ? { displaced: publicationDisplacedRecord(before) } : {}),
+  };
+  await setPhase(fs, journalPath, journal, 'index-reversing', security.state, now, phaseHook);
+
+  const revalidated = await inspectPublicationIndexExchange(fs, galleryRoot, stateRoot, journal);
+  const revalidatedKnownExchange = revalidated.live.state === 'candidate' && revalidated.staged.state === 'previous';
+  const revalidatedExternalStaged = isExternalIndexState(revalidated.staged.state)
+    && ['candidate', 'previous'].includes(revalidated.live.state);
+  if (
+    (knownExchange && !revalidatedKnownExchange)
+    || (externalStaged && !revalidatedExternalStaged)
+  ) {
+    return resolvePublicationIndexExchange({
+      fs,
+      galleryRoot,
+      stateRoot,
+      journalPath,
+      journal,
+      security,
+      now,
+      phaseHook,
+      allowExternalRetry,
+    });
+  }
+
+  try {
+    await fs.renameExchange(stagePath, livePath);
+    await fs.fsyncDirectory(galleryRoot);
+    await fs.fsyncDirectory(path.dirname(stagePath));
+  } catch (error) {
+    const observed = await inspectPublicationIndexExchange(fs, galleryRoot, stateRoot, journal);
+    if (isExternalIndexState(observed.live.state) || isExternalIndexState(observed.staged.state)) {
+      await markPublicationIndexManualReconciliation({
+        fs, journalPath, journal, security, now, phaseHook, observed,
+      });
+      throw new PublisherError('publication index exchange reversal requires manual reconciliation', { cause: error });
+    }
+    throw new PublisherError('publication index exchange reversal was interrupted and requires retry', { cause: error });
+  }
+
+  return resolvePublicationIndexExchange({
+    fs,
+    galleryRoot,
+    stateRoot,
+    journalPath,
+    journal,
+    security,
+    now,
+    phaseHook,
+    allowExternalRetry,
+  });
+}
+
+async function resolvePublicationIndexExchange({
+  fs,
+  galleryRoot,
+  stateRoot,
+  journalPath,
+  journal,
+  security,
+  now,
+  phaseHook,
+  allowExternalRetry,
+}) {
+  const record = journal.publicationIndexExchange;
+  if (record === undefined) return { resolved: false };
+  const observed = await inspectPublicationIndexExchange(fs, galleryRoot, stateRoot, journal);
+  const externalStaged = isExternalIndexState(observed.staged.state);
+
+  if (record.status === 'manual-reconciliation') {
+    if (
+      allowExternalRetry
+      && externalStaged
+      && ['candidate', 'previous'].includes(observed.live.state)
+    ) {
+      return reversePublicationIndexExchange({
+        fs,
+        galleryRoot,
+        stateRoot,
+        journalPath,
+        journal,
+        security,
+        now,
+        phaseHook,
+        allowExternalRetry,
+      });
+    }
+    await markPublicationIndexManualReconciliation({
+      fs, journalPath, journal, security, now, phaseHook, observed,
+    });
+    fail('publication index exchange requires manual reconciliation; unclassified external content was retained');
+  }
+
+  if (observed.live.state === 'previous' && observed.staged.state === 'candidate') {
+    await clearPublicationIndexExchange({ fs, journalPath, journal, security, now });
+    return { restored: record.status === 'reversing' };
+  }
+
+  if (observed.live.state === 'candidate' && observed.staged.state === 'previous') {
+    return reversePublicationIndexExchange({
+      fs,
+      galleryRoot,
+      stateRoot,
+      journalPath,
+      journal,
+      security,
+      now,
+      phaseHook,
+      allowExternalRetry,
+    });
+  }
+
+  if (externalStaged && ['candidate', 'previous'].includes(observed.live.state)) {
+    if (allowExternalRetry) {
+      return reversePublicationIndexExchange({
+        fs,
+        galleryRoot,
+        stateRoot,
+        journalPath,
+        journal,
+        security,
+        now,
+        phaseHook,
+        allowExternalRetry,
+      });
+    }
+    await markPublicationIndexManualReconciliation({
+      fs, journalPath, journal, security, now, phaseHook, observed,
+    });
+    fail('publication index exchange requires manual reconciliation; unclassified external content was retained');
+  }
+
+  if (isExternalIndexState(observed.live.state)) {
+    if (record.status === 'exchanging' && observed.staged.state === 'candidate') {
+      await clearPublicationIndexExchange({ fs, journalPath, journal, security, now });
+      return { externalBeforeExchange: true };
+    }
+    await markPublicationIndexManualReconciliation({
+      fs, journalPath, journal, security, now, phaseHook, observed,
+    });
+    fail('publication index exchange requires manual reconciliation; external content was retained live');
+  }
+
+  if (
+    ['candidate', 'previous'].includes(observed.live.state)
+    && observed.staged.state === 'absent'
+  ) {
+    await clearPublicationIndexExchange({ fs, journalPath, journal, security, now });
+    return { stageMissing: true };
+  }
+
+  await markPublicationIndexManualReconciliation({
+    fs, journalPath, journal, security, now, phaseHook, observed,
+  });
+  fail('publication index exchange requires manual reconciliation; unclassified content was retained');
+}
+
 async function restorePreviousIndex({
   fs,
   galleryRoot,
@@ -1049,6 +1349,19 @@ async function reconcileTransaction({
     security,
     requiredBytes: security.minFreeBytes,
   });
+  if (journal.publicationIndexExchange !== undefined) {
+    await resolvePublicationIndexExchange({
+      fs,
+      galleryRoot,
+      stateRoot,
+      journalPath,
+      journal,
+      security,
+      now,
+      phaseHook,
+      allowExternalRetry: rollback,
+    });
+  }
   const candidatePath = childPath(transactionRoot, 'candidate-index.html');
   const candidateStat = await lstatOrNull(fs, candidatePath);
   if (candidateStat !== null) {
@@ -1505,8 +1818,21 @@ export async function publish({
       await exchangeCandidateIndex({
         fs: validFs,
         galleryRoot: current.galleryRoot,
+        stateRoot: current.stateRoot,
         stagedIndex,
+        journalPath,
         journal,
+        security: validSecurity,
+        now,
+        phaseHook,
+        revalidate: () => assertIndexPromotionPreconditions({
+          fs: validFs,
+          galleryRoot: current.galleryRoot,
+          stagedIndex,
+          adapter: validAdapter,
+          journal,
+          security: validSecurity,
+        }),
       });
       const promotedIndex = await readIndex(validFs, current.galleryRoot);
       if (sha256(promotedIndex.bytes) !== journal.candidateIndexSha256) fail('candidate index promotion checksum mismatch');

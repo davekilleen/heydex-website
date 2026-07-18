@@ -99,11 +99,18 @@ lock. It is released normally only by its matching owner; a fresh process can
 reclaim a complete final lease after a crash only after proving the recorded
 owner is gone or has a different start identity, preventing PID-reuse takeover.
 Journal phases are written and synced before every promotion. The final index
-update persists `index-promoting`, re-validates live bytes and metadata, then
-uses atomic `renameat2(...,
-RENAME_EXCHANGE)` to verify the displaced index still has the recorded prior
-hash. If another writer appears in the last race window, the exchange is reversed
-and the external bytes remain live.
+update persists `index-promoting`, then persists `index-exchanging` with a
+publication exchange record naming only the transaction-relative
+`candidate-index.html` staging path before re-validating live bytes and metadata
+and using atomic `renameat2(..., RENAME_EXCHANGE)`. Recovery always classifies
+both the live index and that original staging path before generic restoration. A
+known prior index displaced by an interrupted exchange is safely reversed. If
+the staging path instead holds external bytes, failure handling or an explicit
+retry either reverses those bytes to the live index or records
+`index-manual-reconciliation` with only a relative safe path
+(`index.html` or `candidate-index.html`) and the available SHA-256. It never
+marks a transaction `failed-recovered` or restores the recorded prior index
+while displaced external content remains unclassified.
 
 Error recovery and later rollback inspect actual live index/artifact checksums
 under the durable lease rather than trusting process-local flags: they restore
@@ -130,6 +137,14 @@ demotes unclassified external content; automatic recovery stops fail-closed, and
 an explicit rollback retry can only attempt the safe reversal needed to return
 that external content to the live index before again requiring manual
 reconciliation.
+
+Both publication and rollback exchange records retain both index paths through
+classification and every required directory sync. Their `exchanging`,
+`reversing`, and `manual-reconciliation` durable states make interruptions after
+an exchange or directory sync retryable without treating unclassified bytes as
+the publisher's prior/candidate content. A reversal failure leaves the external
+bytes live whenever that swap completed; otherwise it leaves both paths for
+truthful manual reconciliation.
 
 The path-based CLI is intentionally incomplete until Task 4 supplies a reviewed
 adapter and executor module:
