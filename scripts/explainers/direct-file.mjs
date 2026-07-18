@@ -36,9 +36,15 @@ const SHA256 = /^[a-f0-9]{64}$/;
 const NONCE = /^[a-f0-9]{64}$/;
 const METADATA_KEYS = new Set(['schemaVersion', 'slug', 'title', 'summary', 'createdAt', 'artifactSha256']);
 const FINALIZATION_EVIDENCE_KEYS = new Set(['schemaVersion', 'kind', 'transactionId', 'verificationNonce', 'promotedAt', 'url', 'artifactSha256', 'artifactSize', 'capturedAt', 'authenticated', 'unauthenticated']);
-const BLOCKED_TAGS = new Set(['a', 'area', 'applet', 'base', 'embed', 'form', 'frame', 'frameset', 'iframe', 'link', 'object', 'portal', 'script']);
+const BLOCKED_TAGS = new Set(['area', 'applet', 'base', 'embed', 'form', 'frame', 'frameset', 'iframe', 'link', 'object', 'portal', 'script']);
 const NETWORK_ATTRIBUTES = new Set(['action', 'data', 'formaction', 'href', 'ping', 'poster', 'src', 'srcset', 'xlink:href']);
 const SAFE_BOOLEAN_ATTRIBUTES = new Map([['details', new Set(['open'])]]);
+const SAFE_DOCUMENT_ID = /^[A-Za-z][A-Za-z0-9_-]*$/;
+const SAFE_ANCHOR_CLASS = /^[A-Za-z_-][A-Za-z0-9_-]*(?: [A-Za-z_-][A-Za-z0-9_-]*)*$/;
+const URL_LIKE_TEXT = /(?:[A-Za-z][A-Za-z0-9+.-]*:\/\/|\/\/|\b(?:mailto|tel|data|javascript):|\bwww\.)/i;
+const SAFE_SVG_NUMBER = /^-?(?:\d+(?:\.\d+)?|\.\d+)$/;
+const SAFE_SVG_PATH_DATA = /^[MmLlHhVvCcSsQqTtAaZzEe0-9,.+\-\s]+$/;
+const SAFE_SVG_PAINT = /^(?:none|currentColor|#[0-9a-fA-F]{3,8})$/;
 const JOURNAL_PHASES = new Set(['prepared', 'uploading', 'uploaded', 'promoting', 'promoted-awaiting-verification', 'published', 'artifact-quarantining', 'artifact-quarantined', 'staged-removing', 'artifact-removing', 'rolled-back']);
 
 export class DirectFileValidationError extends Error {
@@ -166,6 +172,51 @@ function normalizedColorSchemeContent(value) {
   return typeof value === 'string' && value.trim().toLowerCase() === 'dark';
 }
 
+function isSafeAnchorText(value) {
+  if (typeof value !== 'string' || value.trim() === '' || /[\u0000-\u001F\u007F]/.test(value) || URL_LIKE_TEXT.test(value)) return false;
+  try { assertNoSecretShape(value); } catch { return false; }
+  return true;
+}
+
+function assertSafeDocumentId(value) {
+  if (typeof value !== 'string' || !SAFE_DOCUMENT_ID.test(value)) fail('direct artifact contains an unsafe document id');
+}
+
+function safeFragmentTarget(token) {
+  if (!token.attributes.has('href') || [...token.attributes.keys()].some((attribute) => !['href', 'class', 'aria-label'].includes(attribute))) fail('direct artifact anchor has unsupported attributes');
+  const href = token.attributes.get('href');
+  if (typeof href !== 'string' || !/^#[A-Za-z][A-Za-z0-9_-]*$/.test(href)) fail('direct artifact anchor must use a safe same-document fragment');
+  if (token.attributes.has('class') && (!SAFE_ANCHOR_CLASS.test(token.attributes.get('class')) || !isSafeAnchorText(token.attributes.get('class')))) fail('direct artifact anchor has unsafe class text');
+  if (token.attributes.has('aria-label') && !isSafeAnchorText(token.attributes.get('aria-label'))) fail('direct artifact anchor has unsafe aria-label text');
+  return href.slice(1);
+}
+
+function hasExactAttributeNames(attributes, expected) {
+  return attributes.size === expected.length && expected.every((attribute) => attributes.has(attribute));
+}
+
+function isSafeSelfClosingSvgGeometry(token) {
+  if (!token.selfClosing) return false;
+  const { attributes } = token;
+  if (token.name === 'circle' && hasExactAttributeNames(attributes, ['cx', 'cy', 'fill', 'r'])) {
+    return SAFE_SVG_NUMBER.test(attributes.get('cx'))
+      && SAFE_SVG_NUMBER.test(attributes.get('cy'))
+      && SAFE_SVG_NUMBER.test(attributes.get('r'))
+      && SAFE_SVG_PAINT.test(attributes.get('fill'));
+  }
+  if (token.name !== 'path' || !SAFE_SVG_PATH_DATA.test(attributes.get('d')) || !SAFE_SVG_PAINT.test(attributes.get('fill'))) return false;
+  if (hasExactAttributeNames(attributes, ['d', 'fill'])) return true;
+  if (hasExactAttributeNames(attributes, ['d', 'fill', 'stroke', 'stroke-linecap', 'stroke-width'])) {
+    return SAFE_SVG_PAINT.test(attributes.get('stroke'))
+      && SAFE_SVG_NUMBER.test(attributes.get('stroke-width'))
+      && /^(?:butt|round|square)$/.test(attributes.get('stroke-linecap'));
+  }
+  return hasExactAttributeNames(attributes, ['d', 'fill', 'stroke', 'stroke-width', 'vector-effect'])
+    && SAFE_SVG_PAINT.test(attributes.get('stroke'))
+    && SAFE_SVG_NUMBER.test(attributes.get('stroke-width'))
+    && attributes.get('vector-effect') === 'non-scaling-stroke';
+}
+
 function assertHtmlPolicy(bytes) {
   const text = bytes.toString('utf8');
   if (!Buffer.from(text, 'utf8').equals(bytes) || text.includes('\0')) fail('direct artifact must be UTF-8 without NUL bytes');
@@ -173,6 +224,8 @@ function assertHtmlPolicy(bytes) {
   if (tokens[0]?.type !== 'doctype') fail('direct artifact must begin with an HTML doctype');
   const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
   const stack = [];
+  const documentIdCounts = new Map();
+  const fragmentTargets = [];
   let htmlOpened = false; let htmlClosed = false; let cspCount = 0; let charsetCount = 0; let viewportCount = 0; let colorSchemeCount = 0; let styleDepth = 0;
   for (const token of tokens) {
     if (token.type === 'text') {
@@ -189,6 +242,15 @@ function assertHtmlPolicy(bytes) {
       continue;
     }
     if (BLOCKED_TAGS.has(token.name)) fail('direct artifact contains navigation-capable or executable markup');
+    if (token.attributes.has('id')) {
+      const id = token.attributes.get('id');
+      assertSafeDocumentId(id);
+      const count = (documentIdCounts.get(id) ?? 0) + 1;
+      if (count > 1) fail('direct artifact contains duplicate document ids');
+      documentIdCounts.set(id, count);
+    }
+    const fragmentTarget = token.name === 'a' ? safeFragmentTarget(token) : null;
+    if (fragmentTarget !== null) fragmentTargets.push(fragmentTarget);
     if (token.name === 'html') {
       if (htmlOpened || htmlClosed || token.selfClosing) fail('direct artifact has malformed HTML document boundaries');
       htmlOpened = true;
@@ -214,16 +276,23 @@ function assertHtmlPolicy(bytes) {
       if (value === null && !SAFE_BOOLEAN_ATTRIBUTES.get(token.name)?.has(attribute)) fail('direct artifact contains an unsupported boolean attribute');
       if (attribute.startsWith('on') || NETWORK_ATTRIBUTES.has(attribute)) {
         const allowedDataImage = token.name === 'img' && attribute === 'src' && /^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+$/i.test(value);
-        if (!allowedDataImage) fail('direct artifact contains a script, network surface, or navigation attribute');
+        const allowedFragmentAnchor = token.name === 'a' && attribute === 'href' && fragmentTarget !== null;
+        if (!allowedDataImage && !allowedFragmentAnchor) fail('direct artifact contains a script, network surface, or navigation attribute');
       }
       if (attribute === 'style' && /(?:@import|\burl\s*\()/i.test(value)) fail('direct artifact style content has a network surface');
       if (attribute === 'http-equiv' && value.toLowerCase() === 'refresh') fail('direct artifact contains meta refresh navigation');
     }
     if (!voidTags.has(token.name)) {
-      if (token.selfClosing) fail('direct artifact has unsupported self-closing markup');
+      if (token.selfClosing) {
+        if (!stack.includes('svg') || !isSafeSelfClosingSvgGeometry(token)) fail('direct artifact has unsupported self-closing markup');
+        continue;
+      }
       stack.push(token.name);
       if (token.name === 'style') styleDepth += 1;
     }
+  }
+  for (const target of fragmentTargets) {
+    if (documentIdCounts.get(target) !== 1) fail('direct artifact anchor fragment does not resolve to exactly one document id');
   }
   if (!htmlOpened || !htmlClosed || stack.length !== 0 || styleDepth !== 0 || cspCount !== 1 || charsetCount > 1 || viewportCount > 1 || colorSchemeCount > 1) fail('direct artifact must be a complete static HTML document');
   if (/(?:serviceWorker|XMLHttpRequest|\bfetch\s*\(|WebSocket|EventSource|sendBeacon|javascript\s*:)/i.test(text)) fail('direct artifact contains a JavaScript or network API marker');

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { chmod, mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -23,6 +24,9 @@ import { constants, createLocalExecutor, createNodeFilesystem, fixedTarget } fro
 
 const NOW = '2026-07-18T12:00:00.000Z';
 const now = () => new Date(NOW);
+const privateReviewDirectory = path.join('/code', '.private', 'explainers', constants.directSlug);
+const reviewedArtifactPath = path.join(privateReviewDirectory, 'index.html');
+const reviewedMetadataPath = path.join(privateReviewDirectory, 'gallery-entry.json');
 
 function sha256(bytes) { return createHash('sha256').update(bytes).digest('hex'); }
 function artifact({ head = '', body = '<main><h1>Neutral direct artifact</h1><p>Neutral local proof.</p></main>' } = {}) {
@@ -211,6 +215,70 @@ test('neutral color-scheme dark metadata prepares while other metadata values, n
     artifact({ head: '<meta name="color-scheme" content="dark"><meta name="color-scheme" content="dark">' }),
   ];
   for (const bytes of invalid) assert.throws(() => prepareDirectFile({ artifactBytes: bytes, metadata: metadata(bytes) }), /unsupported meta declaration|complete static HTML document/);
+});
+
+test('neutral same-document fragment anchors with the approved attribute forms and unique ids prepare', () => {
+  const sections = ['overview', 'owners', 'updates', 'vault', 'registry', 'evidence', 'routing', 'summary'];
+  const anchors = [
+    ...sections.slice(0, 6).map((id) => `<a href="#${id}">Neutral ${id}</a>`),
+    '<a class="section-link" href="#routing">Neutral routing</a>',
+    '<a class="section-link" href="#summary" aria-label="Skip to neutral summary">Neutral summary</a>',
+  ].join('');
+  const bodies = sections.map((id) => `<section id="${id}"><p>Neutral ${id} section.</p></section>`).join('');
+  const valid = artifact({ body: `<nav>${anchors}</nav><main>${bodies}<p>Neutral local proof.</p></main>` });
+  const prepared = prepareDirectFile({ artifactBytes: valid, metadata: metadata(valid), artifactBodyMarker: 'Neutral local proof.' });
+  assert.equal(prepared.artifactSha256, sha256(valid));
+
+  const withAnchor = (anchor, ids = '<section id="target"><p>Neutral target.</p></section>') => artifact({ body: `<main>${anchor}${ids}<p>Neutral local proof.</p></main>` });
+  const invalid = [
+    withAnchor('<a href="#">Empty fragment</a>'),
+    withAnchor('<a href="#target%20encoded">Encoded fragment</a>'),
+    withAnchor('<a href="#target/path">Slash fragment</a>'),
+    withAnchor('<a href="#target:fragment">Colon fragment</a>'),
+    withAnchor('<a href="#target fragment">Whitespace fragment</a>'),
+    withAnchor('<a href="/target">Relative target</a>'),
+    withAnchor('<a href="https://attacker.test/#target">External target</a>'),
+    withAnchor('<a href="mailto:attacker@example.test">Protocol target</a>'),
+    withAnchor('<a href="#missing">Missing target</a>'),
+    withAnchor('<a href="#target" target="_blank">Target attribute</a>'),
+    withAnchor('<a href="#target" download>Download attribute</a>'),
+    withAnchor('<a href="#target" rel="noopener">Rel attribute</a>'),
+    withAnchor('<a href="#target" ping="https://attacker.test">Ping attribute</a>'),
+    withAnchor('<a href="#target" referrerpolicy="no-referrer">Referrer policy attribute</a>'),
+    withAnchor('<a href="#target" onclick="alert(1)">Event attribute</a>'),
+    withAnchor('<a href="#target" class="https://attacker.test">URL-like class</a>'),
+    withAnchor('<a href="#target" aria-label="https://attacker.test">URL-like label</a>'),
+    withAnchor('<a href="#target" aria-label="neutral\u0001label">Control label</a>'),
+    withAnchor('<a href="#target">Duplicate target</a>', '<section id="target"></section><section id="target"></section>'),
+    withAnchor('<a href="#target">Unsafe id</a>', '<section id="target:unsafe"></section>'),
+    artifact({ body: '<main><section id="duplicate"></section><section id="duplicate"></section><p>Neutral local proof.</p></main>' }),
+    artifact({ body: '<main><area href="#target"><p>Neutral local proof.</p></main>' }),
+  ];
+  for (const bytes of invalid) assert.throws(() => prepareDirectFile({ artifactBytes: bytes, metadata: metadata(bytes) }), /direct artifact/);
+});
+
+test('neutral self-closing static SVG geometry permits only the reviewed circle and path forms', () => {
+  const valid = artifact({ body: '<main><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="2" fill="#ffffff"/><path d="M 0 0 L 1 1" fill="none"/><path d="M 1 1 L 2 2" fill="none" stroke="#000000" stroke-width="1" stroke-linecap="round"/><path d="M 2 2 L 3 3" fill="none" stroke="#000000" stroke-width="1" vector-effect="non-scaling-stroke"/></svg><p>Neutral local proof.</p></main>' });
+  const prepared = prepareDirectFile({ artifactBytes: valid, metadata: metadata(valid), artifactBodyMarker: 'Neutral local proof.' });
+  assert.equal(prepared.artifactSha256, sha256(valid));
+  const invalid = [
+    artifact({ body: '<main><div/><p>Neutral local proof.</p></main>' }),
+    artifact({ body: '<main><circle cx="5" cy="5" r="2" fill="#ffffff"/><p>Neutral local proof.</p></main>' }),
+    artifact({ body: '<main><circle cx="5" cy="5" r="2" fill="url(https://attacker.test/paint)"/><p>Neutral local proof.</p></main>' }),
+    artifact({ body: '<main><path d="M 0 0 url(https://attacker.test/path)" fill="none"/><p>Neutral local proof.</p></main>' }),
+    artifact({ body: '<main><path d="M 0 0 L 1 1" fill="none" href="#target"/><p>Neutral local proof.</p></main>' }),
+    artifact({ body: '<main><path d="M 0 0 L 1 1" fill="none" stroke="#000000" stroke-width="1" vector-effect="scaling-stroke"/><p>Neutral local proof.</p></main>' }),
+  ];
+  for (const bytes of invalid) assert.throws(() => prepareDirectFile({ artifactBytes: bytes, metadata: metadata(bytes) }), /direct artifact/);
+});
+
+test('reviewed off-repository artifact prepares when local review inputs are available', {
+  skip: existsSync(reviewedArtifactPath) && existsSync(reviewedMetadataPath) ? false : 'off-repository reviewed artifact inputs are unavailable on this machine',
+}, async () => {
+  const [artifactBytes, metadataBytes] = await Promise.all([readFile(reviewedArtifactPath), readFile(reviewedMetadataPath)]);
+  const prepared = prepareDirectFile({ artifactBytes, metadata: JSON.parse(metadataBytes.toString('utf8')) });
+  assert.equal(prepared.artifactSize, artifactBytes.length);
+  assert.equal(prepared.artifactSha256, sha256(artifactBytes));
 });
 
 test('accepted parser policy plus a loopback request proof permits only the document request', async () => {
