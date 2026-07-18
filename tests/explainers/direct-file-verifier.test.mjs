@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -31,8 +31,8 @@ function promoted(body) {
 }
 
 function curlRunner({ privateBody, location = DIRECT_FILE_OAUTH_GATE_URL, calls }) {
-  return async (command, args) => {
-    calls.push({ command, args });
+  return async (command, args, options = {}) => {
+    calls.push({ command, args, options });
     const headerPath = args[args.indexOf('--dump-header') + 1];
     const bodyPath = args[args.indexOf('--output') + 1];
     const authenticated = args.includes('--cookie');
@@ -64,7 +64,7 @@ test('fixed verifier runs only sealed curl checks for the exact URL and binds fr
   for (const { command, args } of calls) {
     assert.equal(command, 'curl');
     assert.equal(args.at(-1), constants.directUrl);
-    assert.deepEqual(args.slice(0, 10), ['--silent', '--show-error', '--request', 'GET', '--proto', '=https', '--max-redirs', '0', '--connect-timeout', '10']);
+    assert.deepEqual(args.slice(0, 13), ['--disable', '--noproxy', '*', '--silent', '--show-error', '--request', 'GET', '--proto', '=https', '--max-redirs', '0', '--connect-timeout', '10']);
     assert.doesNotMatch(args.join(' '), /--location|--remote-name|http:\/\//);
   }
   assert.equal(calls[0].args.includes('--cookie'), false);
@@ -81,4 +81,43 @@ test('fixed verifier rejects a wrong OAuth redirect before emitting finalization
     run: curlRunner({ privateBody: body, location: 'https://attacker.test/oauth2/sign_in', calls: [] }),
   });
   await assert.rejects(() => verifier.verify(promoted(body)), /expected gate/);
+});
+
+test('fixed verifier disables hostile curl config and clears every proxy variable while retaining only the fixed URL', async (t) => {
+  const jar = await cookieJar();
+  const hostileHome = path.join(jar.root, 'hostile-home');
+  await mkdir(hostileHome, { mode: 0o700 });
+  await writeFile(path.join(hostileHome, '.curlrc'), 'url = https://attacker.test/extra\nproxy = http://attacker.test:8080\nheader = X-Attacker: enabled\n', { mode: 0o600 });
+  t.after(() => rm(jar.root, { recursive: true, force: true }));
+  const body = Buffer.from('<!doctype html><main>private artifact marker</main>');
+  const calls = [];
+  const environment = {
+    PATH: process.env.PATH,
+    HOME: hostileHome,
+    HTTP_PROXY: 'http://attacker.test:8080',
+    HTTPS_PROXY: 'http://attacker.test:8080',
+    ALL_PROXY: 'http://attacker.test:8080',
+    NO_PROXY: 'attacker.test',
+    http_proxy: 'http://attacker.test:8080',
+    https_proxy: 'http://attacker.test:8080',
+    all_proxy: 'http://attacker.test:8080',
+  };
+  const verifier = createFixedDirectFileVerifier({
+    cookieJar: jar.file,
+    now: () => new Date(NOW),
+    environment,
+    run: curlRunner({ privateBody: body, calls }),
+  });
+  await verifier.verify(promoted(body));
+
+  assert.equal(calls.length, 2);
+  for (const { command, args, options } of calls) {
+    assert.equal(command, 'curl');
+    assert.equal(args[0], '--disable');
+    assert.deepEqual(args.slice(0, 3), ['--disable', '--noproxy', '*']);
+    assert.equal(args.at(-1), constants.directUrl);
+    assert.doesNotMatch(args.join('\u0000'), /attacker\.test|--config|--proxy/);
+    assert.equal(options.env.HOME, hostileHome);
+    assert.equal(Object.keys(options.env).some((key) => /_proxy$/i.test(key)), false);
+  }
 });

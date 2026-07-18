@@ -39,9 +39,13 @@ async function assertCookieJar(cookieJar) {
   return cookieJar;
 }
 
-function defaultRun(command, args) {
+function sanitizedCurlEnvironment(environment = process.env) {
+  return Object.fromEntries(Object.entries(environment).filter(([key]) => !/_proxy$/i.test(key)));
+}
+
+function defaultRun(command, args, { env } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], env: sanitizedCurlEnvironment(env) });
     const stdout = []; const stderr = [];
     child.stdout.on('data', (chunk) => stdout.push(chunk));
     child.stderr.on('data', (chunk) => stderr.push(chunk));
@@ -78,15 +82,15 @@ function header(response, name) {
   return values[0];
 }
 
-async function curlResponse({ authenticated, cookieJar, run }) {
+async function curlResponse({ authenticated, cookieJar, run, environment }) {
   const directory = await mkdtemp('/var/tmp/heydex-direct-file-verifier-');
   const headersPath = path.join(directory, 'headers');
   const bodyPath = path.join(directory, 'body');
   try {
-    const args = ['--silent', '--show-error', '--request', 'GET', '--proto', '=https', '--max-redirs', '0', '--connect-timeout', '10', '--max-time', '30', '--dump-header', headersPath, '--output', bodyPath, '--write-out', '%{http_code}'];
+    const args = ['--disable', '--noproxy', '*', '--silent', '--show-error', '--request', 'GET', '--proto', '=https', '--max-redirs', '0', '--connect-timeout', '10', '--max-time', '30', '--dump-header', headersPath, '--output', bodyPath, '--write-out', '%{http_code}'];
     if (authenticated) args.push('--cookie', cookieJar);
     args.push(constants.directUrl);
-    const result = await run('curl', args);
+    const result = await run('curl', args, { env: sanitizedCurlEnvironment(environment) });
     if (!result || typeof result.stdout !== 'string' || !/^\d{3}$/.test(result.stdout.trim())) fail('fixed curl verifier returned an invalid status result');
     const [headers, body] = await Promise.all([readFile(headersPath), readFile(bodyPath)]);
     if (body.length > MAX_RESPONSE_BYTES) fail('fixed curl verifier response exceeded the fixed size limit');
@@ -111,14 +115,14 @@ function responseEvidence(response, { authenticated, artifactSha256, artifactSiz
 }
 
 /** The only network verifier: curl is fixed to one HTTPS URL and never follows redirects. */
-export function createFixedDirectFileVerifier({ cookieJar, now = () => new Date(), run = defaultRun } = {}) {
+export function createFixedDirectFileVerifier({ cookieJar, now = () => new Date(), run = defaultRun, environment = process.env } = {}) {
   if (typeof run !== 'function') fail('fixed curl verifier runner must be a function');
   return {
     async verify(input) {
       const promoted = assertVerifierInput(input);
       const validCookieJar = await assertCookieJar(cookieJar);
-      const unauthenticated = responseEvidence(await curlResponse({ authenticated: false, cookieJar: validCookieJar, run }), { ...promoted, authenticated: false });
-      const authenticated = responseEvidence(await curlResponse({ authenticated: true, cookieJar: validCookieJar, run }), { ...promoted, authenticated: true });
+      const unauthenticated = responseEvidence(await curlResponse({ authenticated: false, cookieJar: validCookieJar, run, environment }), { ...promoted, authenticated: false });
+      const authenticated = responseEvidence(await curlResponse({ authenticated: true, cookieJar: validCookieJar, run, environment }), { ...promoted, authenticated: true });
       return {
         schemaVersion: 1,
         kind: 'direct-file-finalization',
