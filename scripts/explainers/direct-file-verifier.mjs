@@ -5,7 +5,8 @@ import { spawn } from 'node:child_process';
 
 import { constants } from './direct-file-primitives.mjs';
 
-export const DIRECT_FILE_OAUTH_GATE_URL = 'https://heydex.ai/oauth2/sign_in';
+export const DIRECT_FILE_OAUTH_GATE_URL = `https://heydex.ai/oauth2/start?rd=${constants.directUrl}`;
+const DIRECT_FILE_OAUTH_GATE_URL_ENCODED = `https://heydex.ai/oauth2/start?rd=${encodeURIComponent(constants.directUrl)}`;
 const SHA256 = /^[a-f0-9]{64}$/;
 const NONCE = /^[a-f0-9]{64}$/;
 const MAX_COOKIE_JAR_BYTES = 1024 * 1024;
@@ -82,6 +83,10 @@ function header(response, name) {
   return values[0];
 }
 
+export function isFixedDirectFileOauthGateUrl(location) {
+  return location === DIRECT_FILE_OAUTH_GATE_URL || location === DIRECT_FILE_OAUTH_GATE_URL_ENCODED;
+}
+
 async function curlResponse({ authenticated, cookieJar, run, environment }) {
   const directory = await mkdtemp('/var/tmp/heydex-direct-file-verifier-');
   const headersPath = path.join(directory, 'headers');
@@ -110,7 +115,7 @@ function responseEvidence(response, { authenticated, artifactSha256, artifactSiz
     if (response.status !== 200 || response.body.length !== artifactSize || bodySha256 !== artifactSha256 || header(response, 'x-robots-tag') !== 'noindex, nofollow, noarchive') fail('authenticated fixed verifier response does not match the exact private artifact');
     return { status: response.status, bodySha256, bodySize: response.body.length, xRobotsTag: 'noindex, nofollow, noarchive', requestUrls: [constants.directUrl] };
   }
-  if (![302, 303, 307, 308].includes(response.status) || header(response, 'location') !== DIRECT_FILE_OAUTH_GATE_URL || bodySha256 === artifactSha256 || forbiddenStrings.some((marker) => response.body.toString('utf8').includes(marker))) fail('unauthenticated fixed verifier response does not prove the expected gate and no private body');
+  if (![302, 303, 307, 308].includes(response.status) || !isFixedDirectFileOauthGateUrl(header(response, 'location')) || bodySha256 === artifactSha256 || forbiddenStrings.some((marker) => response.body.toString('utf8').includes(marker))) fail('unauthenticated fixed verifier response does not prove the expected gate and no private body');
   return { status: response.status, bodySha256, artifactLeaked: false, requestUrls: [constants.directUrl], location: DIRECT_FILE_OAUTH_GATE_URL };
 }
 

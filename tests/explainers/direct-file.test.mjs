@@ -226,7 +226,7 @@ test('finalization evidence is current, nonce-bound to the promoted transaction,
     finalizationEvidence(journal, { authenticated: { ...finalizationEvidence(journal).authenticated, bodySha256: 'f'.repeat(64) } }),
     finalizationEvidence(journal, { authenticated: { ...finalizationEvidence(journal).authenticated, requestUrls: [DIRECT_FILE_URL, 'https://third-party.test/pixel'] } }),
     finalizationEvidence(journal, { unauthenticated: { ...finalizationEvidence(journal).unauthenticated, status: 200 } }),
-    finalizationEvidence(journal, { unauthenticated: { ...finalizationEvidence(journal).unauthenticated, location: 'https://attacker.test/oauth2/sign_in' } }),
+    finalizationEvidence(journal, { unauthenticated: { ...finalizationEvidence(journal).unauthenticated, location: 'https://heydex.ai/oauth2/sign_in' } }),
   ];
   for (const candidate of invalid) assert.throws(() => validateFinalizationEvidence(candidate, journal, now), /finalization evidence|verification evidence/);
   const prePromotionJournal = { ...journal, promotedAt: '2026-07-18T11:50:00.000Z' };

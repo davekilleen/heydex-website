@@ -26,7 +26,7 @@ import {
   syncJournal,
 } from './direct-file-primitives.mjs';
 import { createFixedSshSeams } from './direct-file-ssh-executor.mjs';
-import { createFixedDirectFileVerifier, DIRECT_FILE_OAUTH_GATE_URL } from './direct-file-verifier.mjs';
+import { createFixedDirectFileVerifier, isFixedDirectFileOauthGateUrl } from './direct-file-verifier.mjs';
 
 export const DIRECT_FILE_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src 'none'; connect-src 'none'; font-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
 export const DIRECT_FILE_POLICY_VERSION = 'direct-file-policy-v1';
@@ -268,7 +268,7 @@ function validateEvidencePart(value, label, expectedHash, expectedSize) {
   if (!isPlainObject(value) || !Number.isInteger(value.status) || typeof value.bodySha256 !== 'string' || !SHA256.test(value.bodySha256) || !Array.isArray(value.requestUrls) || value.requestUrls.some((url) => typeof url !== 'string')) fail(`${label} verification evidence is malformed`);
   if (label === 'authenticated') {
     if (value.status !== 200 || value.bodySha256 !== expectedHash || value.bodySize !== expectedSize || value.xRobotsTag !== 'noindex, nofollow, noarchive' || value.requestUrls.length !== 1 || value.requestUrls[0] !== DIRECT_FILE_URL) fail('authenticated verification evidence does not prove the exact private artifact');
-  } else if (![302, 303, 307, 308].includes(value.status) || value.bodySha256 === expectedHash || value.artifactLeaked !== false || value.requestUrls.length !== 1 || value.requestUrls[0] !== DIRECT_FILE_URL || value.location !== DIRECT_FILE_OAUTH_GATE_URL) {
+  } else if (![302, 303, 307, 308].includes(value.status) || value.bodySha256 === expectedHash || value.artifactLeaked !== false || value.requestUrls.length !== 1 || value.requestUrls[0] !== DIRECT_FILE_URL || !isFixedDirectFileOauthGateUrl(value.location)) {
     fail('unauthenticated verification evidence does not prove redirect and no leak');
   }
 }

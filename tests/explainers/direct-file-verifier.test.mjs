@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { constants } from '../../scripts/explainers/direct-file-primitives.mjs';
-import { createFixedDirectFileVerifier, DIRECT_FILE_OAUTH_GATE_URL } from '../../scripts/explainers/direct-file-verifier.mjs';
+import { createFixedDirectFileVerifier, DIRECT_FILE_OAUTH_GATE_URL, isFixedDirectFileOauthGateUrl } from '../../scripts/explainers/direct-file-verifier.mjs';
 
 const NOW = '2026-07-18T12:00:00.000Z';
 function sha256(bytes) { return createHash('sha256').update(bytes).digest('hex'); }
@@ -71,16 +71,34 @@ test('fixed verifier runs only sealed curl checks for the exact URL and binds fr
   assert.equal(calls[1].args.at(calls[1].args.indexOf('--cookie') + 1), jar.file);
 });
 
-test('fixed verifier rejects a wrong OAuth redirect before emitting finalization evidence', async (t) => {
+test('fixed OAuth gate accepts only the exact start redirect and canonical encoded rd', () => {
+  assert.equal(DIRECT_FILE_OAUTH_GATE_URL, `https://heydex.ai/oauth2/start?rd=${constants.directUrl}`);
+  assert.equal(isFixedDirectFileOauthGateUrl(DIRECT_FILE_OAUTH_GATE_URL), true);
+  assert.equal(isFixedDirectFileOauthGateUrl(`https://heydex.ai/oauth2/start?rd=${encodeURIComponent(constants.directUrl)}`), true);
+  for (const location of [
+    'https://heydex.ai/oauth2/sign_in',
+    'https://heydex.ai/oauth2/start?rd=https://heydex.ai/explainers/other.html',
+    `${DIRECT_FILE_OAUTH_GATE_URL}&extra=value`,
+    `https://attacker.test/oauth2/start?rd=${constants.directUrl}`,
+  ]) assert.equal(isFixedDirectFileOauthGateUrl(location), false);
+});
+
+test('fixed verifier rejects sign-in, wrong rd, and extra-query OAuth redirects before emitting finalization evidence', async (t) => {
   const jar = await cookieJar();
   t.after(() => rm(jar.root, { recursive: true, force: true }));
   const body = Buffer.from('<!doctype html><main>private artifact marker</main>');
-  const verifier = createFixedDirectFileVerifier({
-    cookieJar: jar.file,
-    now: () => new Date(NOW),
-    run: curlRunner({ privateBody: body, location: 'https://attacker.test/oauth2/sign_in', calls: [] }),
-  });
-  await assert.rejects(() => verifier.verify(promoted(body)), /expected gate/);
+  for (const location of [
+    'https://heydex.ai/oauth2/sign_in',
+    'https://heydex.ai/oauth2/start?rd=https://heydex.ai/explainers/other.html',
+    `${DIRECT_FILE_OAUTH_GATE_URL}&extra=value`,
+  ]) {
+    const verifier = createFixedDirectFileVerifier({
+      cookieJar: jar.file,
+      now: () => new Date(NOW),
+      run: curlRunner({ privateBody: body, location, calls: [] }),
+    });
+    await assert.rejects(() => verifier.verify(promoted(body)), /expected gate/);
+  }
 });
 
 test('fixed verifier disables hostile curl config and clears every proxy variable while retaining only the fixed URL', async (t) => {

@@ -57,7 +57,10 @@ behavior.
 uses only the fixed HTTPS URL, never follows redirects, records exactly that
 single request, and requires unauthenticated access to return `302`, `303`,
 `307`, or `308` to the exact HeyDex OAuth gate
-`https://heydex.ai/oauth2/sign_in` without an artifact hash or private marker.
+`https://heydex.ai/oauth2/start?rd=https://heydex.ai/explainers/dex-brain-vault-capability-architecture.html`
+without an artifact hash or private marker. Only that exact raw URL or its
+canonical percent-encoded `rd` equivalent is accepted; a different host, path,
+redirect destination, or extra query parameter fails finalization.
 It uses a supplied current-user-owned `0600` regular Netscape cookie-jar file
 for the authenticated request, which must return the exact artifact hash/size
 with `X-Robots-Tag: noindex, nofollow, noarchive`. The verifier itself binds the
