@@ -257,7 +257,7 @@ test('neutral same-document fragment anchors with the approved attribute forms a
   for (const bytes of invalid) assert.throws(() => prepareDirectFile({ artifactBytes: bytes, metadata: metadata(bytes) }), /direct artifact/);
 });
 
-test('neutral self-closing static SVG geometry permits only the reviewed circle and path forms', () => {
+test('neutral self-closing static SVG geometry permits only the reviewed circle and path forms and rejects SVG mutation markup', () => {
   const valid = artifact({ body: '<main><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="2" fill="#ffffff"/><path d="M 0 0 L 1 1" fill="none"/><path d="M 1 1 L 2 2" fill="none" stroke="#000000" stroke-width="1" stroke-linecap="round"/><path d="M 2 2 L 3 3" fill="none" stroke="#000000" stroke-width="1" vector-effect="non-scaling-stroke"/></svg><p>Neutral local proof.</p></main>' });
   const prepared = prepareDirectFile({ artifactBytes: valid, metadata: metadata(valid), artifactBodyMarker: 'Neutral local proof.' });
   assert.equal(prepared.artifactSha256, sha256(valid));
@@ -267,7 +267,11 @@ test('neutral self-closing static SVG geometry permits only the reviewed circle 
     artifact({ body: '<main><circle cx="5" cy="5" r="2" fill="url(https://attacker.test/paint)"/><p>Neutral local proof.</p></main>' }),
     artifact({ body: '<main><path d="M 0 0 url(https://attacker.test/path)" fill="none"/><p>Neutral local proof.</p></main>' }),
     artifact({ body: '<main><path d="M 0 0 L 1 1" fill="none" href="#target"/><p>Neutral local proof.</p></main>' }),
+    artifact({ body: '<main><svg><path d="M 0 0 L 1 1" fill="none"></path><p>Neutral local proof.</p></svg></main>' }),
     artifact({ body: '<main><path d="M 0 0 L 1 1" fill="none" stroke="#000000" stroke-width="1" vector-effect="scaling-stroke"/><p>Neutral local proof.</p></main>' }),
+    artifact({ body: '<main><section id="target"><p>Neutral target.</p></section><svg><a href="#target"><set attributeName="href" to="https://attacker.test/navigation" begin="0s"></set></a></svg><p>Neutral local proof.</p></main>' }),
+    ...['set', 'animate', 'animateMotion', 'animateTransform', 'discard'].map((element) => artifact({ body: `<main><svg><${element}></${element}></svg><p>Neutral local proof.</p></main>` })),
+    artifact({ body: '<main><svg><foreignObject><p>Neutral foreign content.</p></foreignObject></svg><p>Neutral local proof.</p></main>' }),
   ];
   for (const bytes of invalid) assert.throws(() => prepareDirectFile({ artifactBytes: bytes, metadata: metadata(bytes) }), /direct artifact/);
 });

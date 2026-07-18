@@ -45,6 +45,8 @@ const URL_LIKE_TEXT = /(?:[A-Za-z][A-Za-z0-9+.-]*:\/\/|\/\/|\b(?:mailto|tel|data
 const SAFE_SVG_NUMBER = /^-?(?:\d+(?:\.\d+)?|\.\d+)$/;
 const SAFE_SVG_PATH_DATA = /^[MmLlHhVvCcSsQqTtAaZzEe0-9,.+\-\s]+$/;
 const SAFE_SVG_PAINT = /^(?:none|currentColor|#[0-9a-fA-F]{3,8})$/;
+const STATIC_SVG_ELEMENTS = new Set(['svg', 'circle', 'path']);
+const STATIC_SVG_GEOMETRY_ELEMENTS = new Set(['circle', 'path']);
 const JOURNAL_PHASES = new Set(['prepared', 'uploading', 'uploaded', 'promoting', 'promoted-awaiting-verification', 'published', 'artifact-quarantining', 'artifact-quarantined', 'staged-removing', 'artifact-removing', 'rolled-back']);
 
 export class DirectFileValidationError extends Error {
@@ -242,6 +244,9 @@ function assertHtmlPolicy(bytes) {
       continue;
     }
     if (BLOCKED_TAGS.has(token.name)) fail('direct artifact contains navigation-capable or executable markup');
+    const insideSvg = stack.includes('svg');
+    if ((insideSvg || token.name === 'svg') && !STATIC_SVG_ELEMENTS.has(token.name)) fail('direct artifact contains unsupported SVG markup');
+    if (!insideSvg && STATIC_SVG_GEOMETRY_ELEMENTS.has(token.name)) fail('direct artifact contains SVG geometry outside an SVG container');
     if (token.attributes.has('id')) {
       const id = token.attributes.get('id');
       assertSafeDocumentId(id);
@@ -283,6 +288,7 @@ function assertHtmlPolicy(bytes) {
       if (attribute === 'http-equiv' && value.toLowerCase() === 'refresh') fail('direct artifact contains meta refresh navigation');
     }
     if (!voidTags.has(token.name)) {
+      if (insideSvg && STATIC_SVG_GEOMETRY_ELEMENTS.has(token.name) && !isSafeSelfClosingSvgGeometry(token)) fail('direct artifact contains unsupported static SVG geometry');
       if (token.selfClosing) {
         if (!stack.includes('svg') || !isSafeSelfClosingSvgGeometry(token)) fail('direct artifact has unsupported self-closing markup');
         continue;
