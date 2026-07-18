@@ -570,8 +570,9 @@ export async function rollbackDirectFile({ galleryRoot = constants.galleryRoot, 
   }
   if (live?.state === 'candidate') {
     if (quarantined !== 'absent') fail('direct-file rollback found an ambiguous quarantine state');
-    await makeStateDirectory(validFs, paths.quarantineDirectory, validSecurity.state, roots.device);
+    if (!paths.quarantineDirectoryStat) await makeStateDirectory(validFs, paths.quarantineDirectory, validSecurity.state, roots.device);
     paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireTarget: true, requireQuarantine: true });
+    if (paths.quarantine) fail('direct-file rollback found an ambiguous quarantine state');
     await setJournalPhase(validFs, paths.journalPath, journal, 'artifact-quarantining', validSecurity.state, now, roots.device, phaseHook);
     paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireTarget: true, requireQuarantine: true });
     await validFs.renameNoReplace(paths.target, paths.quarantineTarget);

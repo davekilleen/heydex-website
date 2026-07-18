@@ -157,6 +157,15 @@ async function publish(value, transactionId, options = {}) {
   });
 }
 
+async function createSafeEmptyQuarantineDirectory(value, transactionId) {
+  const directory = `${constants.stateRoot}/transactions/${transactionId}/quarantine`;
+  await value.fs.mkdir(directory, { recursive: false, mode: value.security.state.directoryMode });
+  await value.fs.chown(directory, value.security.state.uid, value.security.state.gid);
+  await value.fs.chmod(directory, value.security.state.directoryMode);
+  await value.fs.fsyncDirectory(`${constants.stateRoot}/transactions/${transactionId}`);
+  return directory;
+}
+
 test('receipt accepts the fixed full URL, safe charset/viewport metadata, data images, and bare details open while rejecting malformed, executable, navigation, and unsupported attributes', () => {
   const valid = artifact({ body: '<main><img alt="neutral" src="data:image/png;base64,AA=="><p>Neutral local proof.</p></main>' });
   const prepared = prepareDirectFile({ artifactBytes: valid, metadata: metadata(valid), artifactBodyMarker: 'Neutral local proof.' });
@@ -596,6 +605,56 @@ test('rollback retains a same-content quarantine replacement whose inode is not 
     /quarantined direct-file identity drift/,
   );
   assert.deepEqual(await readFile(quarantine), preparedBytes(value.prepared));
+});
+
+test('rollback retry reuses a safe empty quarantine directory after a pre-rename phase crash', async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const transactionId = 'quarantine-pre-rename-retry';
+  const published = await publish(value, transactionId);
+  const shellBefore = await readFile(value.shell); const unrelatedBefore = await readFile(value.unrelated);
+  const quarantineDirectory = `${constants.stateRoot}/transactions/${transactionId}/quarantine`;
+  const quarantineTarget = `${quarantineDirectory}/${constants.directFilename}`;
+  await assert.rejects(
+    () => rollbackDirectFile({ transactionId, security: value.security, fs: value.fs, executor: value.executor, now, phaseHook: async (phase) => { if (phase === 'artifact-quarantining') throw new Error('simulated pre-rename phase crash'); } }),
+    (error) => {
+      assert.equal(error.message, 'simulated pre-rename phase crash');
+      assert.doesNotMatch(error.message, /publication recovery failed/);
+      return true;
+    },
+  );
+  assert.equal((await value.fs.lstat(fixedTarget(constants.galleryRoot))).isFile(), true);
+  assert.equal((await value.fs.lstat(quarantineDirectory)).isDirectory(), true);
+  await assert.rejects(() => value.fs.lstat(quarantineTarget), { code: 'ENOENT' });
+  const interrupted = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', transactionId, 'transaction.json'), 'utf8'));
+  assert.equal(interrupted.phase, 'artifact-quarantining');
+
+  const rolled = await rollbackDirectFile({ transactionId: published.transactionId, security: value.security, fs: value.fs, executor: value.executor, now });
+  assert.equal(rolled.journal.phase, 'rolled-back');
+  await assert.rejects(() => value.fs.lstat(fixedTarget(constants.galleryRoot)), { code: 'ENOENT' });
+  await assert.rejects(() => value.fs.lstat(quarantineTarget), { code: 'ENOENT' });
+  assert.deepEqual(await readFile(value.shell), shellBefore);
+  assert.deepEqual(await readFile(value.unrelated), unrelatedBefore);
+});
+
+test('rollback reuses a safe empty quarantine directory created before its quarantine phase', async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const transactionId = 'quarantine-pre-phase-retry';
+  const published = await publish(value, transactionId);
+  const shellBefore = await readFile(value.shell); const unrelatedBefore = await readFile(value.unrelated);
+  const quarantineDirectory = await createSafeEmptyQuarantineDirectory(value, transactionId);
+  const quarantineTarget = `${quarantineDirectory}/${constants.directFilename}`;
+  assert.equal(published.journal.phase, 'promoted-awaiting-verification');
+  assert.equal((await value.fs.lstat(quarantineDirectory)).isDirectory(), true);
+  await assert.rejects(() => value.fs.lstat(quarantineTarget), { code: 'ENOENT' });
+
+  const rolled = await rollbackDirectFile({ transactionId: published.transactionId, security: value.security, fs: value.fs, executor: value.executor, now });
+  assert.equal(rolled.journal.phase, 'rolled-back');
+  await assert.rejects(() => value.fs.lstat(fixedTarget(constants.galleryRoot)), { code: 'ENOENT' });
+  await assert.rejects(() => value.fs.lstat(quarantineTarget), { code: 'ENOENT' });
+  assert.deepEqual(await readFile(value.shell), shellBefore);
+  assert.deepEqual(await readFile(value.unrelated), unrelatedBefore);
 });
 
 test('promotion crash recovery rolls back only the journal-authorized fixed file', async (t) => {
