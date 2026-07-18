@@ -31,9 +31,14 @@ The publisher is intentionally isolated:
   `rollback` operations. Its filesystem and command/executor seams keep unit
   tests in temporary local roots and keep SSH key material out of arguments,
   source control, logs, and test fixtures. The CLI accepts only a key-file path
-  and passes it to a reviewed executor module only after native local checks
-  prove it is an absolute normalized, non-symlink regular file with `0600`
-  permissions. It never accepts or reads key material as an option value.
+  and passes a private, temporary copy to a reviewed executor module only after
+  native local checks prove the supplied path is absolute and normalized, has a
+  canonical `realpath` equal to itself, has no symbolic-link component, and
+  names a current-user-owned `0600` regular file. The CLI opens it with
+  `O_NOFOLLOW`, verifies the opened descriptor's inode and metadata, copies that
+  descriptor into an agent-owned `0700` temporary directory as a `0600` file,
+  then removes the copy after the executor operation. It never accepts or reads
+  key material as an option value.
 
 ### Publisher lifecycle and authorization
 
@@ -77,19 +82,25 @@ instead of leaving an unverified publication live.
 Before any journal is created, the publisher verifies canonical, non-symlink,
 disjoint gallery/state/artifact roots; expected owner, group, and strict root
 modes; available space; and a shared filesystem device for atomic promotion.
-State directories/files are `0700`/`0600`; web artifact directories/files are
-`0755`/`0644`; and the candidate index preserves the audited prior index
-ownership and mode. Every transaction file uses a unique same-directory,
+State directories and journals are `0700`/`0600`; web artifact
+directories/files are `0755`/`0644`; and index-exchange staging files preserve
+the audited web-index ownership and mode while remaining inside a private
+transaction directory. Every transaction file uses a unique same-directory,
 exclusive no-follow temporary file, durable file sync, rename, and directory
 sync. Artifact promotion uses Linux `renameat2(..., RENAME_NOREPLACE)` so an
 existing destination cannot be overwritten.
 
 The durable lease records the Linux boot ID, PID, and kernel process start time.
-It is released normally only by its matching owner; a fresh process can reclaim
-it after a crash only after proving the recorded owner is gone or has a different
-start identity, preventing PID-reuse takeover. Journal phases are written and
-synced before every promotion. The final index update persists `index-promoting`,
-re-validates live bytes and metadata, then uses atomic `renameat2(...,
+Lease acquisition first writes and fsyncs a complete JSON record to a unique
+`O_EXCL|O_NOFOLLOW` temporary file, atomically installs it as `publisher.lock`
+with `RENAME_NOREPLACE`, and fsyncs the lock directory. A crash before that
+installation can leave only ignored lease temporaries, never an incomplete final
+lock. It is released normally only by its matching owner; a fresh process can
+reclaim a complete final lease after a crash only after proving the recorded
+owner is gone or has a different start identity, preventing PID-reuse takeover.
+Journal phases are written and synced before every promotion. The final index
+update persists `index-promoting`, re-validates live bytes and metadata, then
+uses atomic `renameat2(...,
 RENAME_EXCHANGE)` to verify the displaced index still has the recorded prior
 hash. If another writer appears in the last race window, the exchange is reversed
 and the external bytes remain live.
@@ -103,6 +114,22 @@ and deletes it only on an exact match. A changed quarantined artifact is retaine
 for reconciliation, never recursively deleted. A late external index change
 before index promotion leaves that external index intact while removing only this
 transaction's new artifact.
+
+Rollback uses a separate durable index-exchange protocol. It stages the audited
+previous index under the private transaction directory, records
+`rollback-index-exchanging`, revalidates that the live index is the exact
+recorded candidate (bytes, ownership, and mode), and exchanges the two paths.
+It retains both paths until the displaced index is classified. A known candidate
+is discarded only after the restored prior index is proven. If an external index
+appears in the final rollback race, the publisher records
+`rollback-index-reversing` before attempting the reverse exchange. An
+interrupted or failed reversal records `rollback-index-manual-reconciliation`
+with only a relative safe path (`index.html` or `rollback-index.html`) and the
+available SHA-256 of the displaced regular file. It never deletes or silently
+demotes unclassified external content; automatic recovery stops fail-closed, and
+an explicit rollback retry can only attempt the safe reversal needed to return
+that external content to the live index before again requiring manual
+reconciliation.
 
 The path-based CLI is intentionally incomplete until Task 4 supplies a reviewed
 adapter and executor module:

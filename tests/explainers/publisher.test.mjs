@@ -8,6 +8,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  rename,
   rm,
   symlink,
   writeFile,
@@ -166,6 +167,20 @@ async function publishFixture(fixture, overrides = {}) {
   });
 }
 
+async function rollbackFixture(fixture, overrides = {}) {
+  const fs = overrides.fs ?? fixture.fs;
+  return rollback({
+    galleryRoot: fixture.galleryRoot,
+    stateRoot: fixture.stateRoot,
+    transactionId: 'transaction-1',
+    security: fixture.security,
+    fs,
+    executor: createLocalExecutor(fs),
+    authenticatedVerifier: async () => ({ status: 200, body: 'authenticated gallery fallback' }),
+    ...overrides,
+  });
+}
+
 async function writeCrashWorkers(fixture) {
   const configPath = path.join(fixture.root, 'crash-worker-config.json');
   const workerPath = path.join(fixture.root, 'crash-worker.mjs');
@@ -228,6 +243,9 @@ async function writeCrashWorkers(fixture) {
         phaseHook(phase) {
           if (phase === crashPhase) process.kill(process.pid, 'SIGKILL');
         },
+        leasePhaseHook(phase) {
+          if (phase === crashPhase) process.kill(process.pid, 'SIGKILL');
+        },
       });
     } else if (operation === 'rollback' || operation === 'reconcile') {
       await rollback({
@@ -240,6 +258,9 @@ async function writeCrashWorkers(fixture) {
         authenticatedVerifier: async () => ({ status: 200, body: 'authenticated gallery fallback' }),
         phaseHook(phase) {
           if (operation === 'rollback' && phase === crashPhase) process.kill(process.pid, 'SIGKILL');
+        },
+        leasePhaseHook(phase) {
+          if (phase === crashPhase) process.kill(process.pid, 'SIGKILL');
         },
       });
     } else {
@@ -398,6 +419,49 @@ test('publisher lease rejects a live concurrent process', async (t) => {
   await firstPublish;
 });
 
+test('SIGKILL at every lease-install boundary leaves only ignorable temps and a fresh process reconciles', async (t) => {
+  const phases = [
+    'lease-temp-before-write',
+    'lease-temp-after-write',
+    'lease-temp-before-fsync',
+    'lease-temp-after-fsync',
+    'lease-before-rename',
+    'lease-after-rename',
+    'lease-before-directory-fsync',
+    'lease-after-directory-fsync',
+  ];
+
+  for (const phase of phases) {
+    const fixture = await setup();
+    t.after(() => rm(fixture.root, { recursive: true, force: true }));
+    await publishFixture(fixture);
+    const { configPath, workerPath } = await writeCrashWorkers(fixture);
+    const crash = await runProcess(process.execPath, [workerPath, 'rollback', configPath, phase], {
+      cwd: fixture.root,
+    });
+    assert.equal(crash.signal, 'SIGKILL', phase);
+
+    const locksRoot = path.join(fixture.stateRoot, 'locks');
+    const incompleteTemp = path.join(locksRoot, `.publisher.lease-incomplete-${phase}.tmp`);
+    await writeFile(incompleteTemp, '{"incomplete"', { mode: 0o600 });
+    await chmod(incompleteTemp, 0o600);
+    const finalLease = path.join(locksRoot, 'publisher.lock');
+    if (await exists(finalLease)) {
+      const installedLease = JSON.parse(await readFile(finalLease, 'utf8'));
+      assert.equal(typeof installedLease.pid, 'number', phase);
+    }
+
+    const reconcile = await runProcess(process.execPath, [workerPath, 'reconcile', configPath], {
+      cwd: fixture.root,
+    });
+    assert.equal(reconcile.code, 0, `${phase}: ${reconcile.stderr}`);
+    assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true, phase);
+    assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false, phase);
+    assert.equal(await exists(finalLease), false, phase);
+    assert.equal(await exists(incompleteTemp), true, phase);
+  }
+});
+
 test('publish requires lstat and test ! -e absence evidence before staging', async (t) => {
   const fixture = await setup();
   t.after(() => rm(fixture.root, { recursive: true, force: true }));
@@ -439,7 +503,7 @@ test('rename errors after artifact promotion reconcile exact artifact cleanup fr
     ...baseFs,
     async renameNoReplace(source, destination) {
       await baseFs.renameNoReplace(source, destination);
-      if (!interrupted) {
+      if (destination === path.join(fixture.galleryRoot, 'new-entry') && !interrupted) {
         interrupted = true;
         throw new Error('rename reported interruption after effect');
       }
@@ -585,8 +649,10 @@ test('a late index drift after artifact promotion removes only the transaction a
     ...baseFs,
     async renameNoReplace(source, destination) {
       await baseFs.renameNoReplace(source, destination);
-      await writeFile(path.join(fixture.galleryRoot, 'index.html'), 'another publisher changed the index');
-      await chmod(path.join(fixture.galleryRoot, 'index.html'), 0o644);
+      if (destination === path.join(fixture.galleryRoot, 'new-entry')) {
+        await writeFile(path.join(fixture.galleryRoot, 'index.html'), 'another publisher changed the index');
+        await chmod(path.join(fixture.galleryRoot, 'index.html'), 0o644);
+      }
     },
   };
 
@@ -645,8 +711,10 @@ test('atomic no-replace promotion preserves an artifact that appears after prefl
   const fs = {
     ...baseFs,
     async renameNoReplace(source, destination) {
-      await mkdir(destination, { mode: 0o755 });
-      await writeFile(path.join(destination, 'external.txt'), 'another publisher artifact');
+      if (destination === externalArtifact) {
+        await mkdir(destination, { mode: 0o755 });
+        await writeFile(path.join(destination, 'external.txt'), 'another publisher artifact');
+      }
       return baseFs.renameNoReplace(source, destination);
     },
   };
@@ -654,6 +722,140 @@ test('atomic no-replace promotion preserves an artifact that appears after prefl
   await assert.rejects(() => publishFixture(fixture, { fs }), /durable recovery could not be verified/);
   assert.equal((await readFile(path.join(externalArtifact, 'external.txt'), 'utf8')), 'another publisher artifact');
   assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true);
+});
+
+test('rollback conditional exchange preserves external bytes written immediately before the exchange', async (t) => {
+  const fixture = await setup();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  await publishFixture(fixture);
+  const externalIndex = Buffer.from('external rollback index written immediately before exchange');
+  const baseFs = fixture.fs;
+  let exchangeCount = 0;
+  const fs = {
+    ...baseFs,
+    async renameExchange(source, destination) {
+      exchangeCount += 1;
+      if (exchangeCount === 1 && destination === path.join(fixture.galleryRoot, 'index.html')) {
+        await writeFile(destination, externalIndex);
+        await chmod(destination, 0o644);
+      }
+      return baseFs.renameExchange(source, destination);
+    },
+  };
+
+  await assert.rejects(() => rollbackFixture(fixture, { fs }), /external index drift was restored/);
+  assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(externalIndex), true);
+  assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), true);
+  const journal = JSON.parse(await readFile(
+    path.join(fixture.stateRoot, 'transactions', 'transaction-1', 'transaction.json'),
+    'utf8',
+  ));
+  assert.equal(journal.phase, 'rollback-index-manual-reconciliation');
+  assert.deepEqual(journal.rollbackIndexExchange.displaced, {
+    path: 'index.html',
+    location: 'live',
+    sha256: sha256(externalIndex),
+  });
+});
+
+test('rollback exchange faults after exchange and each directory sync recover without losing classified candidate bytes', async (t) => {
+  for (const fault of ['after-first-exchange', 'after-gallery-fsync', 'after-transaction-fsync']) {
+    const fixture = await setup();
+    t.after(() => rm(fixture.root, { recursive: true, force: true }));
+    await publishFixture(fixture);
+    const baseFs = fixture.fs;
+    let exchangeCompleted = false;
+    let injected = false;
+    const fs = {
+      ...baseFs,
+      async renameExchange(source, destination) {
+        const result = await baseFs.renameExchange(source, destination);
+        if (!injected && fault === 'after-first-exchange' && destination === path.join(fixture.galleryRoot, 'index.html')) {
+          injected = true;
+          throw new Error(fault);
+        }
+        if (destination === path.join(fixture.galleryRoot, 'index.html')) exchangeCompleted = true;
+        return result;
+      },
+      async fsyncDirectory(target) {
+        await baseFs.fsyncDirectory(target);
+        if (
+          !injected
+          && exchangeCompleted
+          && ((fault === 'after-gallery-fsync' && target === fixture.galleryRoot)
+            || (fault === 'after-transaction-fsync' && target === path.join(fixture.stateRoot, 'transactions', 'transaction-1')))
+        ) {
+          injected = true;
+          throw new Error(fault);
+        }
+      },
+    };
+
+    await assert.rejects(() => rollbackFixture(fixture, { fs }), new RegExp(fault));
+    assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true, fault);
+    assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), true, fault);
+
+    await rollbackFixture(fixture);
+    assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true, fault);
+    assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), false, fault);
+  }
+});
+
+test('rollback reversal faults retain external content for explicit retry without generic demotion', async (t) => {
+  for (const fault of [
+    'during-reversal',
+    'after-reversal',
+    'after-reversal-gallery-fsync',
+    'after-reversal-transaction-fsync',
+  ]) {
+    const fixture = await setup();
+    t.after(() => rm(fixture.root, { recursive: true, force: true }));
+    await publishFixture(fixture);
+    const externalIndex = Buffer.from(`external rollback exchange ${fault}`);
+    const baseFs = fixture.fs;
+    let exchangeCount = 0;
+    const fs = {
+      ...baseFs,
+      async renameExchange(source, destination) {
+        exchangeCount += 1;
+        if (exchangeCount === 1) {
+          await writeFile(destination, externalIndex);
+          await chmod(destination, 0o644);
+          return baseFs.renameExchange(source, destination);
+        }
+        if (fault === 'during-reversal') throw new Error(fault);
+        const result = await baseFs.renameExchange(source, destination);
+        if (fault === 'after-reversal') throw new Error(fault);
+        return result;
+      },
+      async fsyncDirectory(target) {
+        await baseFs.fsyncDirectory(target);
+        if (
+          exchangeCount === 2
+          && ((fault === 'after-reversal-gallery-fsync' && target === fixture.galleryRoot)
+            || (fault === 'after-reversal-transaction-fsync' && target === path.join(fixture.stateRoot, 'transactions', 'transaction-1')))
+        ) {
+          throw new Error(fault);
+        }
+      },
+    };
+
+    await assert.rejects(() => rollbackFixture(fixture, { fs }), /manual reconciliation/);
+    if (fault === 'during-reversal') {
+      assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(ORIGINAL_INDEX), true, fault);
+      await assert.rejects(() => rollbackFixture(fixture), /manual reconciliation/);
+    }
+    assert.equal((await readFile(path.join(fixture.galleryRoot, 'index.html'))).equals(externalIndex), true, fault);
+    assert.equal(await exists(path.join(fixture.galleryRoot, 'new-entry')), true, fault);
+    const journal = JSON.parse(await readFile(
+      path.join(fixture.stateRoot, 'transactions', 'transaction-1', 'transaction.json'),
+      'utf8',
+    ));
+    assert.equal(journal.phase, 'rollback-index-manual-reconciliation', fault);
+    assert.equal(journal.rollbackIndexExchange.displaced.path, 'index.html', fault);
+    assert.equal(journal.rollbackIndexExchange.displaced.location, 'live', fault);
+    assert.equal(journal.rollbackIndexExchange.displaced.sha256, sha256(externalIndex), fault);
+  }
 });
 
 test('rollback preserves audited index metadata, deletion scope, and dual absence evidence', async (t) => {
@@ -911,12 +1113,18 @@ test('CLI rejects literal, symlinked, and non-0600 key files before executor mod
   t.after(() => rm(fixture.root, { recursive: true, force: true }));
   const keyFile = path.join(fixture.root, 'reviewed-key');
   const linkedKeyFile = path.join(fixture.root, 'linked-key');
+  const realKeyParent = path.join(fixture.root, 'real-key-parent');
+  const linkedKeyParent = path.join(fixture.root, 'linked-key-parent');
   const securityPath = path.join(fixture.root, 'security.json');
   const executorPath = path.join(fixture.root, 'must-not-load-executor.mjs');
   const importMarker = path.join(fixture.root, 'executor-imported');
   await writeFile(keyFile, 'test-only key path', { mode: 0o600 });
   await chmod(keyFile, 0o600);
   await symlink(keyFile, linkedKeyFile);
+  await mkdir(realKeyParent, { mode: 0o700 });
+  await writeFile(path.join(realKeyParent, 'reviewed-key'), 'test-only ancestor path', { mode: 0o600 });
+  await chmod(path.join(realKeyParent, 'reviewed-key'), 0o600);
+  await symlink(realKeyParent, linkedKeyParent);
   await writeFile(securityPath, JSON.stringify(fixture.security));
   await writeFile(executorPath, `
     import { writeFileSync } from 'node:fs';
@@ -941,12 +1149,65 @@ test('CLI rejects literal, symlinked, and non-0600 key files before executor mod
     () => runCli(rollbackOptions(linkedKeyFile)),
     /local non-symlink regular file/,
   );
+  await assert.rejects(
+    () => runCli(rollbackOptions(path.join(linkedKeyParent, 'reviewed-key'))),
+    /symbolic-link ancestor components/,
+  );
   await chmod(keyFile, 0o644);
   await assert.rejects(
     () => runCli(rollbackOptions(keyFile)),
     /strict 0600 permissions/,
   );
   assert.equal(await exists(importMarker), false);
+});
+
+test('CLI stages a validated key from its secure descriptor before source replacement and executor import', async (t) => {
+  const fixture = await setup();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const keyFile = path.join(fixture.root, 'reviewed-key');
+  const replacementKeyFile = path.join(fixture.root, 'replacement-key');
+  const securityPath = path.join(fixture.root, 'security.json');
+  const executorPath = path.join(fixture.root, 'stable-key-executor.mjs');
+  const contentsMarker = path.join(fixture.root, 'executor-key-contents');
+  const pathMarker = path.join(fixture.root, 'executor-key-path');
+  await writeFile(keyFile, 'validated key contents', { mode: 0o600 });
+  await chmod(keyFile, 0o600);
+  await writeFile(securityPath, JSON.stringify(fixture.security));
+  await writeFile(executorPath, `
+    import { readFileSync, writeFileSync } from 'node:fs';
+    export function createPublisherSeams({ keyFile }) {
+      writeFileSync(${JSON.stringify(contentsMarker)}, readFileSync(keyFile, 'utf8'));
+      writeFileSync(${JSON.stringify(pathMarker)}, keyFile);
+      throw new Error('executor observed staged key');
+    }
+  `);
+  const options = [
+    'rollback',
+    '--key-file', keyFile,
+    '--gallery-root', fixture.galleryRoot,
+    '--state-root', fixture.stateRoot,
+    '--transaction', 'transaction-1',
+    '--security', securityPath,
+    '--executor-module', executorPath,
+  ];
+
+  await assert.rejects(
+    () => runCli(options, {
+      async beforeExecutorModuleLoad({ sourceKeyFile, executorKeyFile }) {
+        assert.equal(sourceKeyFile, keyFile);
+        assert.notEqual(executorKeyFile, keyFile);
+        await writeFile(replacementKeyFile, 'replacement key contents', { mode: 0o600 });
+        await chmod(replacementKeyFile, 0o600);
+        await rename(replacementKeyFile, keyFile);
+      },
+    }),
+    /executor observed staged key/,
+  );
+  assert.equal(await readFile(contentsMarker, 'utf8'), 'validated key contents');
+  const stagedPath = await readFile(pathMarker, 'utf8');
+  assert.notEqual(stagedPath, keyFile);
+  assert.equal(await exists(stagedPath), false);
+  assert.equal(await readFile(keyFile, 'utf8'), 'replacement key contents');
 });
 
 test('path-based CLI prepares, publishes, and rolls back through a reviewed key-file seam', async (t) => {
@@ -989,9 +1250,10 @@ test('path-based CLI prepares, publishes, and rolls back through a reviewed key-
     };
   `);
   await writeFile(executorPath, `
+    import { readFileSync } from 'node:fs';
     import { createLocalExecutor, createNodeFilesystem } from ${JSON.stringify(new URL('../../scripts/explainers/publisher.mjs', import.meta.url).href)};
     export function createPublisherSeams({ keyFile }) {
-      if (keyFile !== ${JSON.stringify(keyFile)}) throw new Error('key contents were not accepted');
+      if (keyFile === ${JSON.stringify(keyFile)} || readFileSync(keyFile, 'utf8') !== 'test-only key-file path proof') throw new Error('key contents were not accepted');
       const fs = createNodeFilesystem();
       return {
         fs,

@@ -6,6 +6,7 @@ import {
   constants as fsConstants,
   lstat as nodeLstat,
   mkdir as nodeMkdir,
+  mkdtemp as nodeMkdtemp,
   open as nodeOpen,
   readFile as nodeReadFile,
   readdir as nodeReaddir,
@@ -14,7 +15,7 @@ import {
   rm as nodeRm,
   statfs as nodeStatfs,
 } from 'node:fs/promises';
-import { constants as osConstants } from 'node:os';
+import { constants as osConstants, tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -121,6 +122,18 @@ function normalizeMetadata(stat) {
   return { uid: stat.uid, gid: stat.gid, mode: modeOf(stat) };
 }
 
+function assertAuditedIndexMetadata(metadata, label) {
+  if (
+    !isPlainObject(metadata)
+    || !Number.isInteger(metadata.uid)
+    || !Number.isInteger(metadata.gid)
+    || metadata.mode !== 0o644
+  ) {
+    fail(`${label} has unsafe index metadata`);
+  }
+  return metadata;
+}
+
 function normalizeSecurity(security) {
   if (!isPlainObject(security)) fail('security policy is required');
   const normalized = {};
@@ -146,8 +159,9 @@ function normalizeSecurity(security) {
 function assertFilesystem(fs) {
   if (!fs || typeof fs !== 'object') fail('filesystem seam must be an object');
   for (const method of [
-    'chmod', 'chown', 'fsyncDirectory', 'lstat', 'mkdir', 'openExclusive', 'readFile', 'readdir',
+    'chmod', 'chown', 'fsyncDirectory', 'lstat', 'mkdir', 'readFile', 'readdir',
     'realpath', 'renameExchange', 'renameNoReplace', 'renameReplace', 'rm', 'statfs', 'writeAtomic',
+    'writeLeaseTemp',
   ]) {
     if (typeof fs[method] !== 'function') fail(`filesystem seam is missing ${method}`);
   }
@@ -500,9 +514,33 @@ async function readJournal(fs, journalPath, stateSecurity) {
     }
   }
   if (!isPlainObject(journal.previousIndexMetadata)) fail('transaction journal has no prior index metadata');
-  const prior = journal.previousIndexMetadata;
-  if (!Number.isInteger(prior.uid) || !Number.isInteger(prior.gid) || prior.mode !== 0o644) {
-    fail('transaction journal has unsafe prior index metadata');
+  assertAuditedIndexMetadata(journal.previousIndexMetadata, 'transaction journal prior');
+  if (journal.candidateIndexMetadata === undefined) {
+    // Transactions written before candidate metadata was recorded used the same
+    // audited metadata for both indexes. Preserve that safe compatibility rule.
+    journal.candidateIndexMetadata = { ...journal.previousIndexMetadata };
+  }
+  assertAuditedIndexMetadata(journal.candidateIndexMetadata, 'transaction journal candidate');
+  if (journal.rollbackIndexExchange !== undefined) {
+    const exchange = journal.rollbackIndexExchange;
+    if (
+      !isPlainObject(exchange)
+      || !['exchanging', 'reversing', 'manual-reconciliation'].includes(exchange.status)
+      || exchange.stagePath !== 'rollback-index.html'
+    ) {
+      fail('transaction journal has an unsafe rollback index exchange record');
+    }
+    if (exchange.displaced !== undefined) {
+      const displaced = exchange.displaced;
+      if (
+        !isPlainObject(displaced)
+        || !['index.html', 'rollback-index.html'].includes(displaced.path)
+        || !['live', 'staged'].includes(displaced.location)
+        || (displaced.sha256 !== null && (typeof displaced.sha256 !== 'string' || !SHA256.test(displaced.sha256)))
+      ) {
+        fail('transaction journal has an unsafe rollback displaced-index record');
+      }
+    }
   }
   if (!Array.isArray(journal.forbiddenStrings) || journal.forbiddenStrings.some(
     (value) => typeof value !== 'string' || value.length === 0,
@@ -649,26 +687,263 @@ async function inspectLiveState(fs, galleryRoot, transactionRoot, journal, secur
   };
 }
 
-async function restorePreviousIndex({ fs, galleryRoot, transactionRoot, journal, security }) {
+function rollbackIndexStagePath(transactionRoot) {
+  return childPath(transactionRoot, 'rollback-index.html');
+}
+
+async function previousIndexSnapshot(fs, transactionRoot, journal, security) {
   const previousPath = childPath(transactionRoot, 'previous-index.html');
   const snapshotStat = await assertRegularFile(fs, previousPath, 'previous index snapshot');
   assertExpectedMetadata(snapshotStat, security.state, 'previous index snapshot', security.state.fileMode);
   const previous = toBuffer(await fs.readFile(previousPath), 'previous index snapshot');
   if (sha256(previous) !== journal.previousIndexSha256) fail('rollback refused because the previous index snapshot has drifted');
+  return previous;
+}
+
+async function inspectRollbackIndexPath(fs, target, journal) {
+  const stat = await lstatOrNull(fs, target);
+  if (stat === null) return { state: 'absent', target, sha256: null, metadata: null };
+  if (isSymlink(stat) || !isFile(stat)) return { state: 'unsafe', target, sha256: null, metadata: null };
+  const bytes = toBuffer(await fs.readFile(target), 'rollback index exchange path');
+  const metadata = normalizeMetadata(stat);
+  const checksum = sha256(bytes);
+  if (checksum === journal.previousIndexSha256 && sameJson(metadata, journal.previousIndexMetadata)) {
+    return { state: 'previous', target, sha256: checksum, metadata };
+  }
+  if (checksum === journal.candidateIndexSha256 && sameJson(metadata, journal.candidateIndexMetadata)) {
+    return { state: 'candidate', target, sha256: checksum, metadata };
+  }
+  return { state: 'external', target, sha256: checksum, metadata };
+}
+
+async function inspectRollbackIndexExchange(fs, galleryRoot, transactionRoot, journal) {
+  const livePath = childPath(galleryRoot, INDEX_NAME);
+  const stagePath = rollbackIndexStagePath(transactionRoot);
+  return {
+    live: await inspectRollbackIndexPath(fs, livePath, journal),
+    staged: await inspectRollbackIndexPath(fs, stagePath, journal),
+  };
+}
+
+function rollbackDisplacedRecord(observed) {
+  if (observed.live.state === 'external' || observed.live.state === 'unsafe') {
+    return {
+      path: 'index.html',
+      location: 'live',
+      sha256: observed.live.sha256,
+    };
+  }
+  return {
+    path: 'rollback-index.html',
+    location: 'staged',
+    sha256: observed.staged.sha256,
+  };
+}
+
+async function markRollbackIndexManualReconciliation({
+  fs,
+  journalPath,
+  journal,
+  security,
+  now,
+  phaseHook,
+  observed,
+}) {
+  journal.rollbackIndexExchange = {
+    status: 'manual-reconciliation',
+    stagePath: 'rollback-index.html',
+    displaced: rollbackDisplacedRecord(observed),
+  };
+  await setPhase(
+    fs,
+    journalPath,
+    journal,
+    'rollback-index-manual-reconciliation',
+    security.state,
+    now,
+    phaseHook,
+  );
+}
+
+async function stagePreviousIndexForRollback({ fs, transactionRoot, journal, security }) {
+  const stagePath = rollbackIndexStagePath(transactionRoot);
+  const existing = await lstatOrNull(fs, stagePath);
+  if (existing !== null) return stagePath;
+  const previous = await previousIndexSnapshot(fs, transactionRoot, journal, security);
   await fs.writeAtomic({
-    directory: galleryRoot,
-    filename: INDEX_NAME,
+    directory: transactionRoot,
+    filename: 'rollback-index.html',
     contents: previous,
     mode: journal.previousIndexMetadata.mode,
     uid: journal.previousIndexMetadata.uid,
     gid: journal.previousIndexMetadata.gid,
-    replace: true,
+    replace: false,
   });
-  const restored = await readIndex(fs, galleryRoot);
-  if (sha256(restored.bytes) !== journal.previousIndexSha256) fail('rollback did not restore the byte-identical previous index');
-  if (!sameJson(normalizeMetadata(restored.stat), journal.previousIndexMetadata)) {
-    fail('rollback did not restore the previous index ownership and mode');
+  const staged = await inspectRollbackIndexPath(fs, stagePath, journal);
+  if (staged.state !== 'previous') {
+    fail('rollback refused because the staged previous index does not match its recorded bytes and metadata');
   }
+  return stagePath;
+}
+
+async function completeKnownRollbackIndexRestore({
+  fs,
+  galleryRoot,
+  transactionRoot,
+  journalPath,
+  journal,
+  security,
+  now,
+  phaseHook,
+}) {
+  await fs.fsyncDirectory(galleryRoot);
+  await fs.fsyncDirectory(transactionRoot);
+  await setPhase(fs, journalPath, journal, 'rollback-index-restored', security.state, now, phaseHook);
+  const stagePath = rollbackIndexStagePath(transactionRoot);
+  await fs.rm(stagePath, { force: false });
+  await fs.fsyncDirectory(transactionRoot);
+  delete journal.rollbackIndexExchange;
+  await writeJournal(fs, journalPath, journal, security.state, now);
+}
+
+async function reverseRollbackIndexExchange({
+  fs,
+  galleryRoot,
+  transactionRoot,
+  journalPath,
+  journal,
+  security,
+  now,
+  phaseHook,
+}) {
+  const livePath = childPath(galleryRoot, INDEX_NAME);
+  const stagePath = rollbackIndexStagePath(transactionRoot);
+  const before = await inspectRollbackIndexExchange(fs, galleryRoot, transactionRoot, journal);
+  if (before.live.state !== 'previous' || before.staged.state !== 'external') {
+    await markRollbackIndexManualReconciliation({
+      fs, journalPath, journal, security, now, phaseHook, observed: before,
+    });
+    fail('rollback index exchange requires manual reconciliation before external content can be classified');
+  }
+  journal.rollbackIndexExchange = {
+    status: 'reversing',
+    stagePath: 'rollback-index.html',
+    displaced: rollbackDisplacedRecord(before),
+  };
+  await setPhase(fs, journalPath, journal, 'rollback-index-reversing', security.state, now, phaseHook);
+
+  const revalidated = await inspectRollbackIndexExchange(fs, galleryRoot, transactionRoot, journal);
+  if (revalidated.live.state !== 'previous' || revalidated.staged.state !== 'external') {
+    await markRollbackIndexManualReconciliation({
+      fs, journalPath, journal, security, now, phaseHook, observed: revalidated,
+    });
+    fail('rollback index exchange changed before external content could be restored');
+  }
+
+  try {
+    await fs.renameExchange(stagePath, livePath);
+    await fs.fsyncDirectory(galleryRoot);
+    await fs.fsyncDirectory(transactionRoot);
+  } catch (error) {
+    const observed = await inspectRollbackIndexExchange(fs, galleryRoot, transactionRoot, journal);
+    await markRollbackIndexManualReconciliation({
+      fs, journalPath, journal, security, now, phaseHook, observed,
+    });
+    throw new PublisherError('rollback index exchange reversal requires manual reconciliation', { cause: error });
+  }
+
+  const observed = await inspectRollbackIndexExchange(fs, galleryRoot, transactionRoot, journal);
+  await markRollbackIndexManualReconciliation({
+    fs, journalPath, journal, security, now, phaseHook, observed,
+  });
+  fail('rollback refused because external index drift was restored and requires manual reconciliation');
+}
+
+async function resolveRollbackIndexExchange({
+  fs,
+  galleryRoot,
+  transactionRoot,
+  journalPath,
+  journal,
+  security,
+  now,
+  phaseHook,
+  allowExternalRetry,
+}) {
+  const livePath = childPath(galleryRoot, INDEX_NAME);
+  const stagePath = rollbackIndexStagePath(transactionRoot);
+  let observed = await inspectRollbackIndexExchange(fs, galleryRoot, transactionRoot, journal);
+
+  if (observed.live.state === 'candidate' && observed.staged.state === 'previous') {
+    journal.rollbackIndexExchange = {
+      status: 'exchanging',
+      stagePath: 'rollback-index.html',
+    };
+    await setPhase(fs, journalPath, journal, 'rollback-index-exchanging', security.state, now, phaseHook);
+    observed = await inspectRollbackIndexExchange(fs, galleryRoot, transactionRoot, journal);
+    if (observed.live.state !== 'candidate' || observed.staged.state !== 'previous') {
+      return resolveRollbackIndexExchange({
+        fs, galleryRoot, transactionRoot, journalPath, journal, security, now, phaseHook, allowExternalRetry,
+      });
+    }
+    await fs.renameExchange(stagePath, livePath);
+    await fs.fsyncDirectory(galleryRoot);
+    await fs.fsyncDirectory(transactionRoot);
+    observed = await inspectRollbackIndexExchange(fs, galleryRoot, transactionRoot, journal);
+  }
+
+  if (observed.live.state === 'previous' && observed.staged.state === 'candidate') {
+    await completeKnownRollbackIndexRestore({
+      fs, galleryRoot, transactionRoot, journalPath, journal, security, now, phaseHook,
+    });
+    return { restored: true };
+  }
+
+  if (
+    observed.live.state === 'previous'
+    && observed.staged.state === 'absent'
+    && journal.phase === 'rollback-index-restored'
+  ) {
+    delete journal.rollbackIndexExchange;
+    await writeJournal(fs, journalPath, journal, security.state, now);
+    return { restored: true };
+  }
+
+  if (observed.live.state === 'previous' && observed.staged.state === 'external' && allowExternalRetry) {
+    return reverseRollbackIndexExchange({
+      fs, galleryRoot, transactionRoot, journalPath, journal, security, now, phaseHook,
+    });
+  }
+
+  await markRollbackIndexManualReconciliation({
+    fs, journalPath, journal, security, now, phaseHook, observed,
+  });
+  fail('rollback index exchange requires manual reconciliation; unclassified external content was retained');
+}
+
+async function restorePreviousIndex({
+  fs,
+  galleryRoot,
+  transactionRoot,
+  journalPath,
+  journal,
+  security,
+  now,
+  phaseHook,
+  allowExternalRetry,
+}) {
+  await stagePreviousIndexForRollback({ fs, transactionRoot, journal, security });
+  return resolveRollbackIndexExchange({
+    fs,
+    galleryRoot,
+    transactionRoot,
+    journalPath,
+    journal,
+    security,
+    now,
+    phaseHook,
+    allowExternalRetry,
+  });
 }
 
 async function removeOnlyTransactionArtifact({
@@ -783,6 +1058,20 @@ async function reconcileTransaction({
       fail('rollback refused because the candidate index snapshot has drifted');
     }
   }
+  const rollbackStage = await lstatOrNull(fs, rollbackIndexStagePath(transactionRoot));
+  if (rollbackStage !== null || journal.rollbackIndexExchange !== undefined) {
+    await resolveRollbackIndexExchange({
+      fs,
+      galleryRoot,
+      transactionRoot,
+      journalPath,
+      journal,
+      security,
+      now,
+      phaseHook,
+      allowExternalRetry: rollback,
+    });
+  }
   const state = await inspectLiveState(fs, galleryRoot, transactionRoot, journal, security);
   if (candidateStat === null && (state.indexState !== 'previous' || state.artifactState !== 'absent')) {
     fail('recovery refused because the required candidate snapshot is missing');
@@ -809,7 +1098,17 @@ async function reconcileTransaction({
 
   if (state.indexState === 'candidate') {
     await setPhase(fs, journalPath, journal, 'recovery-index-restoring', security.state, now);
-    await restorePreviousIndex({ fs, galleryRoot, transactionRoot, journal, security });
+    await restorePreviousIndex({
+      fs,
+      galleryRoot,
+      transactionRoot,
+      journalPath,
+      journal,
+      security,
+      now,
+      phaseHook,
+      allowExternalRetry: rollback,
+    });
   }
   if (['candidate', 'quarantined'].includes(state.artifactState)) {
     await setPhase(fs, journalPath, journal, 'recovery-artifact-removing', security.state, now);
@@ -917,12 +1216,50 @@ async function leaseIsActive(record) {
   return await leaseProcessStartTime(record.pid) === record.startTime;
 }
 
-async function createLease(fs, target, record, stateSecurity) {
-  await fs.openExclusive(target, `${JSON.stringify(record)}\n`, stateSecurity.fileMode);
-  await fs.chown(target, stateSecurity.uid, stateSecurity.gid);
-  await fs.chmod(target, stateSecurity.fileMode);
-  const stat = await assertRegularFile(fs, target, 'publisher lease');
-  assertExpectedMetadata(stat, stateSecurity, 'publisher lease', stateSecurity.fileMode);
+async function emitLeasePhase(leasePhaseHook, phase) {
+  if (leasePhaseHook) await leasePhaseHook(phase);
+}
+
+async function createLease(fs, locksRoot, target, record, stateSecurity, leasePhaseHook) {
+  let temporary;
+  for (let attempt = 0; attempt < TEMP_ATTEMPTS; attempt += 1) {
+    const candidate = childPath(locksRoot, `.publisher.lease-${randomUUID()}.tmp`);
+    try {
+      await fs.writeLeaseTemp({
+        target: candidate,
+        contents: `${JSON.stringify(record)}\n`,
+        mode: stateSecurity.fileMode,
+        uid: stateSecurity.uid,
+        gid: stateSecurity.gid,
+        phaseHook: leasePhaseHook,
+      });
+      temporary = candidate;
+      break;
+    } catch (error) {
+      if (error?.code === 'EEXIST') continue;
+      const staged = await lstatOrNull(fs, candidate);
+      if (staged !== null) await fs.rm(candidate, { force: false });
+      throw error;
+    }
+  }
+  if (!temporary) fail('could not allocate a unique publisher lease temporary file');
+
+  try {
+    const staged = await readLeaseRecord(fs, temporary, stateSecurity);
+    if (!sameJson(staged, record)) fail('publisher lease temporary changed before installation');
+    await emitLeasePhase(leasePhaseHook, 'lease-before-rename');
+    await fs.renameNoReplace(temporary, target);
+    await emitLeasePhase(leasePhaseHook, 'lease-after-rename');
+    await emitLeasePhase(leasePhaseHook, 'lease-before-directory-fsync');
+    await fs.fsyncDirectory(locksRoot);
+    await emitLeasePhase(leasePhaseHook, 'lease-after-directory-fsync');
+    const installed = await readLeaseRecord(fs, target, stateSecurity);
+    if (!sameJson(installed, record)) fail('publisher lease changed during installation');
+  } catch (error) {
+    const staged = await lstatOrNull(fs, temporary);
+    if (staged !== null) await fs.rm(temporary, { force: false });
+    throw error;
+  }
 }
 
 async function reclaimStaleLease(fs, locksRoot, lockPath, record, stateSecurity) {
@@ -956,7 +1293,7 @@ async function releaseLease(fs, lockPath, record, stateSecurity) {
   await fs.fsyncDirectory(path.dirname(lockPath));
 }
 
-async function withLock(fs, stateRoot, stateSecurity, label, callback) {
+async function withLock(fs, stateRoot, stateSecurity, label, callback, leasePhaseHook) {
   const locksRoot = childPath(stateRoot, 'locks');
   await ensureStateDirectory(fs, locksRoot, stateSecurity, 'lock state root');
   const lockPath = childPath(locksRoot, 'publisher.lock');
@@ -965,11 +1302,19 @@ async function withLock(fs, stateRoot, stateSecurity, label, callback) {
 
   for (let attempt = 0; attempt < 8 && !acquired; attempt += 1) {
     try {
-      await createLease(fs, lockPath, record, stateSecurity);
+      await createLease(fs, locksRoot, lockPath, record, stateSecurity, leasePhaseHook);
       acquired = true;
       break;
     } catch (error) {
-      if (error?.code !== 'EEXIST') throw error;
+      if (error?.code !== 'EEXIST') {
+        try {
+          const installed = await readLeaseRecord(fs, lockPath, stateSecurity);
+          if (sameJson(installed, record)) await releaseLease(fs, lockPath, record, stateSecurity);
+        } catch (releaseError) {
+          if (!isNotFound(releaseError)) throw releaseError;
+        }
+        throw error;
+      }
     }
 
     let incumbent;
@@ -1010,6 +1355,7 @@ export async function publish({
   executor = createLocalExecutor(fs),
   now = () => new Date(),
   phaseHook,
+  leasePhaseHook,
 }) {
   const reviewed = assertPrepared(prepared);
   const validAdapter = assertAdapterContract(adapter);
@@ -1020,6 +1366,7 @@ export async function publish({
   if (typeof postPublishVerifier !== 'function') fail('publish requires a postPublishVerifier');
   if (typeof authenticatedVerifier !== 'function') fail('publish requires an authenticated rollback verifier');
   if (phaseHook !== undefined && typeof phaseHook !== 'function') fail('phaseHook must be a function when supplied');
+  if (leasePhaseHook !== undefined && typeof leasePhaseHook !== 'function') fail('leasePhaseHook must be a function when supplied');
 
   const sourceTree = await checksumTree(validFs, artifactDirectory);
   if (await checksumArtifactIndex(validFs, artifactDirectory, 'artifact source') !== reviewed.metadata.artifactSha256) {
@@ -1077,6 +1424,7 @@ export async function publish({
       previousIndexSha256: regenerated.previousIndexSha256,
       candidateIndexSha256: regenerated.candidateIndexSha256,
       previousIndexMetadata: current.indexMetadata,
+      candidateIndexMetadata: current.indexMetadata,
       artifactIndexSha256: reviewed.metadata.artifactSha256,
       artifactTreeSha256: sourceTree.sha256,
       adapterFingerprint: regenerated.adapterFingerprint,
@@ -1202,7 +1550,7 @@ export async function publish({
       }
       throw error;
     }
-  });
+  }, leasePhaseHook);
 }
 
 export async function rollback({
@@ -1215,6 +1563,7 @@ export async function rollback({
   executor = createLocalExecutor(fs),
   now = () => new Date(),
   phaseHook,
+  leasePhaseHook,
 }) {
   const validFs = assertFilesystem(fs);
   const validExecutor = assertExecutor(executor);
@@ -1222,6 +1571,7 @@ export async function rollback({
   const validTransactionId = assertTransactionId(transactionId);
   if (typeof authenticatedVerifier !== 'function') fail('rollback requires an authenticated former-artifact verifier');
   if (phaseHook !== undefined && typeof phaseHook !== 'function') fail('phaseHook must be a function when supplied');
+  if (leasePhaseHook !== undefined && typeof leasePhaseHook !== 'function') fail('leasePhaseHook must be a function when supplied');
   const initial = await preflight({
     fs: validFs,
     galleryRoot,
@@ -1249,7 +1599,7 @@ export async function rollback({
       rollback: true,
       phaseHook,
     });
-  });
+  }, leasePhaseHook);
 }
 
 const RENAMEAT2 = String.raw`
@@ -1373,7 +1723,7 @@ export function createNodeFilesystem({ randomId = randomUUID } = {}) {
     rm: nodeRm,
     statfs: nodeStatfs,
     writeAtomic,
-    async openExclusive(target, contents, mode) {
+    async writeLeaseTemp({ target, contents, mode, uid, gid, phaseHook }) {
       const handle = await nodeOpen(
         target,
         fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_NOFOLLOW,
@@ -1382,12 +1732,17 @@ export function createNodeFilesystem({ randomId = randomUUID } = {}) {
       try {
         const stat = await handle.stat();
         if (!stat.isFile()) fail('exclusive lock path is not a regular file');
+        await emitLeasePhase(phaseHook, 'lease-temp-before-write');
         await handle.writeFile(contents);
+        await emitLeasePhase(phaseHook, 'lease-temp-after-write');
+        await nodeChown(target, uid, gid);
+        await nodeChmod(target, mode);
+        await emitLeasePhase(phaseHook, 'lease-temp-before-fsync');
         await handle.sync();
+        await emitLeasePhase(phaseHook, 'lease-temp-after-fsync');
       } finally {
         await handle.close();
       }
-      await fsyncDirectory(path.dirname(target));
     },
   };
   return api;
@@ -1422,7 +1777,7 @@ function assertSshRemotePath(remotePath) {
   return remotePath;
 }
 
-async function assertCliKeyFile(keyFile) {
+function assertCliKeyFileSyntax(keyFile) {
   if (
     typeof keyFile !== 'string'
     || !path.isAbsolute(keyFile)
@@ -1433,16 +1788,110 @@ async function assertCliKeyFile(keyFile) {
   ) {
     fail('--key-file must be an absolute normalized key-file path, never key material');
   }
-  let stat;
+  return keyFile;
+}
+
+async function assertNativeKeyPathComponents(keyFile) {
+  const parsed = path.parse(keyFile);
+  let cursor = parsed.root;
+  const components = keyFile.slice(parsed.root.length).split(path.sep).filter(Boolean);
+  for (let index = 0; index < components.length; index += 1) {
+    cursor = path.join(cursor, components[index]);
+    let stat;
+    try {
+      stat = await nodeLstat(cursor);
+    } catch (error) {
+      if (isNotFound(error)) fail('--key-file must name an existing local regular file');
+      throw error;
+    }
+    if (isSymlink(stat)) {
+      if (index === components.length - 1) fail('--key-file must name a local non-symlink regular file');
+      fail('--key-file must not have symbolic-link ancestor components');
+    }
+  }
+}
+
+function assertSecureCliKeyStat(stat) {
+  if (!isFile(stat)) fail('--key-file must name a local non-symlink regular file');
+  if (
+    modeOf(stat) !== 0o600
+    || stat.uid !== process.getuid()
+    || stat.gid !== process.getgid()
+  ) {
+    fail('--key-file must have strict 0600 permissions and current-user ownership');
+  }
+}
+
+async function fsyncNativeDirectory(directory) {
+  const handle = await nodeOpen(directory, fsConstants.O_RDONLY | fsConstants.O_DIRECTORY);
   try {
-    stat = await nodeLstat(keyFile);
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
+async function stageCliKeyFile(keyFile) {
+  const absolute = assertCliKeyFileSyntax(keyFile);
+  await assertNativeKeyPathComponents(absolute);
+  let canonical;
+  try {
+    canonical = await nodeRealpath(absolute);
   } catch (error) {
     if (isNotFound(error)) fail('--key-file must name an existing local regular file');
     throw error;
   }
-  if (isSymlink(stat) || !isFile(stat)) fail('--key-file must name a local non-symlink regular file');
-  if (modeOf(stat) !== 0o600) fail('--key-file must have strict 0600 permissions');
-  return keyFile;
+  if (canonical !== absolute) fail('--key-file must be a canonical local key-file path');
+
+  const observed = await nodeLstat(absolute);
+  assertSecureCliKeyStat(observed);
+  let source;
+  let keyDirectory;
+  try {
+    try {
+      source = await nodeOpen(absolute, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+    } catch (error) {
+      if (error?.code === 'ELOOP') fail('--key-file changed before secure open');
+      throw error;
+    }
+    const stable = await source.stat();
+    assertSecureCliKeyStat(stable);
+    if (stable.dev !== observed.dev || stable.ino !== observed.ino) {
+      fail('--key-file changed between validation and secure open');
+    }
+
+    keyDirectory = await nodeMkdtemp(path.join(tmpdir(), 'heydex-publisher-key-'));
+    await nodeChown(keyDirectory, process.getuid(), process.getgid());
+    await nodeChmod(keyDirectory, 0o700);
+    const stagedPath = path.join(keyDirectory, 'key');
+    const destination = await nodeOpen(
+      stagedPath,
+      fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_NOFOLLOW,
+      0o600,
+    );
+    try {
+      await destination.writeFile(await source.readFile());
+      await nodeChown(stagedPath, process.getuid(), process.getgid());
+      await nodeChmod(stagedPath, 0o600);
+      await destination.sync();
+    } finally {
+      await destination.close();
+    }
+    await fsyncNativeDirectory(keyDirectory);
+    const staged = await nodeLstat(stagedPath);
+    assertSecureCliKeyStat(staged);
+    return {
+      keyFile: stagedPath,
+      async cleanup() {
+        await nodeRm(keyDirectory, { recursive: true, force: true });
+      },
+    };
+  } catch (error) {
+    if (keyDirectory) await nodeRm(keyDirectory, { recursive: true, force: true });
+    throw error;
+  } finally {
+    if (source) await source.close();
+  }
 }
 
 export function createSshExecutor({ keyFile, host, user, run }) {
@@ -1516,7 +1965,11 @@ function parseOptions(argv) {
   return options;
 }
 
-export async function runCli(argv, { fs = createNodeFilesystem(), stdout = process.stdout } = {}) {
+export async function runCli(argv, {
+  fs = createNodeFilesystem(),
+  stdout = process.stdout,
+  beforeExecutorModuleLoad,
+} = {}) {
   const [command, ...rest] = argv;
   const options = parseOptions(rest);
   if (command === 'prepare') {
@@ -1543,39 +1996,52 @@ export async function runCli(argv, { fs = createNodeFilesystem(), stdout = proce
     for (const flag of ['--gallery-root', '--state-root', '--transaction', '--security', '--executor-module']) {
       if (!options[flag]) fail(`${command} requires ${flag}`);
     }
-    const keyFile = await assertCliKeyFile(options['--key-file']);
-    const security = JSON.parse((await fs.readFile(options['--security'])).toString('utf8'));
-    const seams = await loadPublisherSeams(options['--executor-module'], {
-      keyFile,
-      host: options['--ssh-host'],
-      user: options['--ssh-user'],
-    });
-    if (command === 'rollback') {
-      return rollback({
+    if (beforeExecutorModuleLoad !== undefined && typeof beforeExecutorModuleLoad !== 'function') {
+      fail('beforeExecutorModuleLoad must be a function when supplied');
+    }
+    const stagedKey = await stageCliKeyFile(options['--key-file']);
+    try {
+      if (beforeExecutorModuleLoad) {
+        await beforeExecutorModuleLoad({
+          sourceKeyFile: options['--key-file'],
+          executorKeyFile: stagedKey.keyFile,
+        });
+      }
+      const security = JSON.parse((await fs.readFile(options['--security'])).toString('utf8'));
+      const seams = await loadPublisherSeams(options['--executor-module'], {
+        keyFile: stagedKey.keyFile,
+        host: options['--ssh-host'],
+        user: options['--ssh-user'],
+      });
+      if (command === 'rollback') {
+        return await rollback({
+          galleryRoot: options['--gallery-root'],
+          stateRoot: options['--state-root'],
+          transactionId: options['--transaction'],
+          security,
+          fs: seams.fs,
+          executor: seams.executor,
+          authenticatedVerifier: seams.authenticatedVerifier,
+        });
+      }
+      for (const flag of ['--prepared', '--adapter', '--artifact-dir']) if (!options[flag]) fail(`publish requires ${flag}`);
+      const prepared = deserializePrepared(JSON.parse((await fs.readFile(options['--prepared'])).toString('utf8')));
+      return await publish({
+        prepared,
+        adapter: await loadAdapter(options['--adapter']),
+        artifactDirectory: options['--artifact-dir'],
         galleryRoot: options['--gallery-root'],
         stateRoot: options['--state-root'],
         transactionId: options['--transaction'],
         security,
         fs: seams.fs,
         executor: seams.executor,
+        postPublishVerifier: seams.postPublishVerifier,
         authenticatedVerifier: seams.authenticatedVerifier,
       });
+    } finally {
+      await stagedKey.cleanup();
     }
-    for (const flag of ['--prepared', '--adapter', '--artifact-dir']) if (!options[flag]) fail(`publish requires ${flag}`);
-    const prepared = deserializePrepared(JSON.parse((await fs.readFile(options['--prepared'])).toString('utf8')));
-    return publish({
-      prepared,
-      adapter: await loadAdapter(options['--adapter']),
-      artifactDirectory: options['--artifact-dir'],
-      galleryRoot: options['--gallery-root'],
-      stateRoot: options['--state-root'],
-      transactionId: options['--transaction'],
-      security,
-      fs: seams.fs,
-      executor: seams.executor,
-      postPublishVerifier: seams.postPublishVerifier,
-      authenticatedVerifier: seams.authenticatedVerifier,
-    });
   }
   fail('usage: publisher.mjs <prepare|publish|rollback> --name value ...');
 }
