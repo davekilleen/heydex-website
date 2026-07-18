@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test:direct-file-explainer": "node --test tests/explainers/direct-file-primitives.test.mjs tests/explainers/direct-file.test.mjs",
+    "test:direct-file-explainer": "node --test tests/explainers/direct-file-primitives.test.mjs tests/explainers/direct-file-ssh-executor.test.mjs tests/explainers/direct-file.test.mjs",
     "preview": "vite preview",
     "e2e": "playwright test",
     "e2e:dev": "bash ./scripts/run-e2e-dev.sh",

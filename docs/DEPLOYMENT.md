@@ -14,8 +14,10 @@ stop and ask why.
 ## Private explainer direct-file publication
 
 The private architecture explainer is not part of the React/Convex deployment.
-The focused direct-file publisher addresses only the authorized fixed target
-`/var/www/explainers/dex-brain-vault-capability-architecture.html` and its
+The focused direct-file publisher addresses only the authorized fixed URL
+`https://heydex.ai/explainers/dex-brain-vault-capability-architecture.html`,
+the matching fixed target
+`/var/www/explainers/dex-brain-vault-capability-architecture.html`, and its
 transaction-private staging/quarantine paths. It does not import the generic
 gallery publisher, enumerate the explainer root, read or write `index.html`,
 create a card, use a root-wide lease, run `deploy.sh`, reload Caddy, or touch
@@ -36,21 +38,32 @@ remote assets, forms, executable handlers, or arbitrary target paths.
 
 Publication and rollback hardcode the audited remote roots
 `/var/www/explainers` and `/var/www/.heydex-explainer-publisher`; callers
-cannot supply another root or child path. They use a reviewed executor module
-with one explicit SSH host/user target. The executor must provide fixed-target
-`lstat` and `test ! -e` probes plus same-filesystem staging, `RENAME_NOREPLACE`,
-and file/directory fsync. External HTTPS responses corroborate the transaction
-but never determine deletion authority:
+cannot supply another root or child path. The command uses its internal,
+reviewed fixed SSH executor/helper; there is no caller-selected executor module.
+The helper accepts only the fixed target and transaction-private state paths for
+upload, `lstat`/absence probes, metadata, fsync, `RENAME_NOREPLACE`, and exact
+quarantine/removal. It never enumerates a directory or accepts a glob,
+recursive operation, shell path, or unrelated child.
+
+Before publication, create current JSON verification evidence bound to the
+fixed URL and prepared artifact hash/size. It must record an authenticated
+`200` response with the exact body hash and size,
+`X-Robots-Tag: noindex, nofollow, noarchive`, and exactly the document request;
+and an unauthenticated `302`, `303`, `307`, or `308` redirect with no artifact
+body leak and exactly the document request. The timestamp must be canonical UTC
+and no older than 30 minutes. Missing or invalid evidence immediately triggers
+journal-authorized exact rollback; evidence availability never blocks a later
+identity-authorized rollback:
 
 ```bash
 node scripts/explainers/direct-file.mjs publish-file \
   --prepared /protected/prepared-direct-file.json \
+  --verification-evidence /protected/verification-evidence.json \
   --transaction <id> \
   --security /protected/publisher-security.json \
   --key-file /protected/key \
   --ssh-host publisher.example.internal \
-  --ssh-user publisher \
-  --executor-module /reviewed/publisher-executor.mjs
+  --ssh-user publisher
 
 node scripts/explainers/direct-file.mjs rollback-file \
   --transaction <id> \
@@ -58,17 +71,24 @@ node scripts/explainers/direct-file.mjs rollback-file \
   --key-file /protected/key \
   --ssh-host publisher.example.internal \
   --ssh-user publisher \
-  --executor-module /reviewed/publisher-executor.mjs
+  --verify-only true
 ```
 
 Rollback is authorized by the synced journal and exact fixed target identity
 (hash, size, regular-file type, owner, group, and mode). It quarantines and
 removes only that unchanged target, proves both absence probes, and records
 external verification as `verified`, `failed`, or `pending` without enumerating
-unrelated children. The staged key is normalized into a private temporary file,
-validated with `ssh-keygen`, and removed after execution. A failed or unavailable
-external check does not prevent journal-authorized rollback; unavailable
-former-URL evidence remains `pending`.
+unrelated children. Every mutation and recovery rechecks canonical real paths,
+rejects nested symlink components, and requires every transaction/staging/
+journal/quarantine/target directory to remain on the gallery filesystem. A
+`RENAME_NOREPLACE` collision that leaves both live and staged candidates fails
+closed and preserves both for reconciliation; it never treats either as owned
+solely by matching content. `rollback-file --verify-only true` validates the
+journal, paths, identities, quarantine absence, and planned exact operations
+without writing anything. The staged key is normalized into a private temporary
+file, validated with `ssh-keygen`, and removed after execution. A failed or
+unavailable external check does not prevent journal-authorized rollback;
+unavailable former-URL evidence remains `pending`.
 
 ## Convex Deployments
 
