@@ -460,6 +460,50 @@ test('promoting recovery accepts only the journaled staged inode after the stage
   assert.equal(journal.phase, 'rolled-back');
 });
 
+test('pre-promotion recovery removes staged content without a quarantine and preserves the original failure', async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const transactionId = 'uploaded-recovery';
+  const shellBefore = await readFile(value.shell); const unrelatedBefore = await readFile(value.unrelated);
+  await assert.rejects(
+    () => publish(value, transactionId, { phaseHook: async (phase) => { if (phase === 'uploaded') throw new Error('simulated post-upload failure'); } }),
+    (error) => {
+      assert.equal(error.message, 'simulated post-upload failure');
+      assert.doesNotMatch(error.message, /publication recovery failed/);
+      return true;
+    },
+  );
+  await assert.rejects(() => value.fs.lstat(fixedTarget(constants.galleryRoot)), { code: 'ENOENT' });
+  await assert.rejects(() => value.fs.lstat(`${constants.stateRoot}/staging/${transactionId}/${constants.directFilename}`), { code: 'ENOENT' });
+  await assert.rejects(() => value.fs.lstat(`${constants.stateRoot}/transactions/${transactionId}/quarantine`), { code: 'ENOENT' });
+  const journal = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', transactionId, 'transaction.json'), 'utf8'));
+  assert.equal(journal.phase, 'rolled-back');
+  assert.deepEqual(await readFile(value.shell), shellBefore);
+  assert.deepEqual(await readFile(value.unrelated), unrelatedBefore);
+});
+
+test('pre-staging recovery completes without a staging file or quarantine', async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const transactionId = 'uploading-recovery';
+  const shellBefore = await readFile(value.shell); const unrelatedBefore = await readFile(value.unrelated);
+  await assert.rejects(
+    () => publish(value, transactionId, { phaseHook: async (phase) => { if (phase === 'uploading') throw new Error('simulated pre-staging failure'); } }),
+    (error) => {
+      assert.equal(error.message, 'simulated pre-staging failure');
+      assert.doesNotMatch(error.message, /publication recovery failed/);
+      return true;
+    },
+  );
+  await assert.rejects(() => value.fs.lstat(fixedTarget(constants.galleryRoot)), { code: 'ENOENT' });
+  await assert.rejects(() => value.fs.lstat(`${constants.stateRoot}/staging/${transactionId}/${constants.directFilename}`), { code: 'ENOENT' });
+  await assert.rejects(() => value.fs.lstat(`${constants.stateRoot}/transactions/${transactionId}/quarantine`), { code: 'ENOENT' });
+  const journal = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', transactionId, 'transaction.json'), 'utf8'));
+  assert.equal(journal.phase, 'rolled-back');
+  assert.deepEqual(await readFile(value.shell), shellBefore);
+  assert.deepEqual(await readFile(value.unrelated), unrelatedBefore);
+});
+
 test('nested symlink and cross-device transaction paths reject rollback before any mutation', async (t) => {
   const symlinked = await fixture();
   t.after(() => rm(symlinked.root, { recursive: true, force: true }));

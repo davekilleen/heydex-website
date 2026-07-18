@@ -552,6 +552,7 @@ export async function rollbackDirectFile({ galleryRoot = constants.galleryRoot, 
   const live = await targetIdentity(validFs, paths.target, journal);
   const staged = paths.stage ? await targetIdentity(validFs, paths.stagedTarget, journal) : 'absent';
   const quarantined = paths.quarantineDirectoryStat ? await targetIdentity(validFs, paths.quarantineTarget, journal) : 'absent';
+  let quarantineCandidate = quarantined?.state === 'candidate';
   if ([live, staged, quarantined].includes('drift')) fail('direct-file server identity drift refuses rollback');
   assertRecoveryOwnership(live, staged, journal);
   if (verifyOnly && quarantined?.state === 'candidate') fail('verify-only requires an absent quarantine target');
@@ -577,23 +578,28 @@ export async function rollbackDirectFile({ galleryRoot = constants.galleryRoot, 
     await validFs.fsyncDirectory(roots.galleryRoot);
     await validFs.fsyncDirectory(paths.quarantineDirectory);
     await setJournalPhase(validFs, paths.journalPath, journal, 'artifact-quarantined', validSecurity.state, now, roots.device, phaseHook);
+    quarantineCandidate = true;
   } else if (staged?.state === 'candidate') {
     await setJournalPhase(validFs, paths.journalPath, journal, 'staged-removing', validSecurity.state, now, roots.device, phaseHook);
     paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireStage: true, requireStaged: true });
     await validFs.rm(paths.stagedTarget, { recursive: false, force: false });
     await validFs.fsyncDirectory(paths.stageDirectory);
+    paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireStage: true });
+    if (await targetIdentity(validFs, paths.stagedTarget, journal) !== 'absent') fail('staged direct-file target remains after removal');
   } else if (quarantined !== 'absent') {
     if (quarantined?.state !== 'candidate') fail('direct-file rollback found an ambiguous quarantine state');
   }
-  paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireQuarantine: true, requireQuarantined: true });
-  const held = await targetIdentity(validFs, paths.quarantineTarget, journal);
-  if (held !== 'absent' && held?.state !== 'candidate') fail('quarantined direct-file identity drift refuses deletion');
-  assertQuarantineOwnership(held, journal);
-  if (held?.state === 'candidate') {
-    await setJournalPhase(validFs, paths.journalPath, journal, 'artifact-removing', validSecurity.state, now, roots.device, phaseHook);
+  if (quarantineCandidate) {
     paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireQuarantine: true, requireQuarantined: true });
-    await validFs.rm(paths.quarantineTarget, { recursive: false, force: false });
-    await validFs.fsyncDirectory(paths.quarantineDirectory);
+    const held = await targetIdentity(validFs, paths.quarantineTarget, journal);
+    if (held !== 'absent' && held?.state !== 'candidate') fail('quarantined direct-file identity drift refuses deletion');
+    assertQuarantineOwnership(held, journal);
+    if (held?.state === 'candidate') {
+      await setJournalPhase(validFs, paths.journalPath, journal, 'artifact-removing', validSecurity.state, now, roots.device, phaseHook);
+      paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireQuarantine: true, requireQuarantined: true });
+      await validFs.rm(paths.quarantineTarget, { recursive: false, force: false });
+      await validFs.fsyncDirectory(paths.quarantineDirectory);
+    }
   }
   paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true });
   await assertTargetAbsent({ fs: validFs, executor: validExecutor, galleryRoot: roots.galleryRoot, slug: journal.slug });
