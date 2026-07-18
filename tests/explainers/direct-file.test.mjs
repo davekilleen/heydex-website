@@ -196,6 +196,23 @@ test('neutral structural fixture with the exact safe details open form prepares 
   assert.equal(prepared.artifactSize, bytes.length);
 });
 
+test('neutral color-scheme dark metadata prepares while other metadata values, names, and attributes fail', () => {
+  const valid = artifact({ head: '<meta content=" DARK " name="color-scheme">' });
+  const prepared = prepareDirectFile({ artifactBytes: valid, metadata: metadata(valid), artifactBodyMarker: 'Neutral local proof.' });
+  assert.equal(prepared.artifactSha256, sha256(valid));
+  const invalid = [
+    artifact({ head: '<meta name="color-scheme" content="light">' }),
+    artifact({ head: '<meta name="color-scheme" content="dark light">' }),
+    artifact({ head: '<meta name="color-scheme" content="dark https://attacker.test">' }),
+    artifact({ head: '<meta name="theme-color" content="dark">' }),
+    artifact({ head: '<meta name="referrer" content="dark">' }),
+    artifact({ head: '<meta property="og:image" content="https://attacker.test/preview.png">' }),
+    artifact({ head: '<meta name="color-scheme" content="dark" data-extra="no">' }),
+    artifact({ head: '<meta name="color-scheme" content="dark"><meta name="color-scheme" content="dark">' }),
+  ];
+  for (const bytes of invalid) assert.throws(() => prepareDirectFile({ artifactBytes: bytes, metadata: metadata(bytes) }), /unsupported meta declaration|complete static HTML document/);
+});
+
 test('accepted parser policy plus a loopback request proof permits only the document request', async () => {
   const bytes = artifact();
   const prepared = prepareDirectFile({ artifactBytes: bytes, metadata: metadata(bytes) });

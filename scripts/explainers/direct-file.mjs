@@ -162,6 +162,10 @@ function normalizedViewportContent(value) {
   return new Set(values).has('width=device-width') && new Set(values).has('initial-scale=1') ? values : null;
 }
 
+function normalizedColorSchemeContent(value) {
+  return typeof value === 'string' && value.trim().toLowerCase() === 'dark';
+}
+
 function assertHtmlPolicy(bytes) {
   const text = bytes.toString('utf8');
   if (!Buffer.from(text, 'utf8').equals(bytes) || text.includes('\0')) fail('direct artifact must be UTF-8 without NUL bytes');
@@ -169,7 +173,7 @@ function assertHtmlPolicy(bytes) {
   if (tokens[0]?.type !== 'doctype') fail('direct artifact must begin with an HTML doctype');
   const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
   const stack = [];
-  let htmlOpened = false; let htmlClosed = false; let cspCount = 0; let charsetCount = 0; let viewportCount = 0; let styleDepth = 0;
+  let htmlOpened = false; let htmlClosed = false; let cspCount = 0; let charsetCount = 0; let viewportCount = 0; let colorSchemeCount = 0; let styleDepth = 0;
   for (const token of tokens) {
     if (token.type === 'text') {
       if (stack.length === 0 && token.value.trim() !== '') fail('direct artifact has text outside the HTML document');
@@ -200,6 +204,8 @@ function assertHtmlPolicy(bytes) {
         charsetCount += 1;
       } else if (name === 'viewport' && token.attributes.size === 2 && normalizedViewportContent(token.attributes.get('content'))) {
         viewportCount += 1;
+      } else if (name === 'color-scheme' && token.attributes.size === 2 && normalizedColorSchemeContent(token.attributes.get('content'))) {
+        colorSchemeCount += 1;
       } else {
         fail('direct artifact contains an unsupported meta declaration');
       }
@@ -219,7 +225,7 @@ function assertHtmlPolicy(bytes) {
       if (token.name === 'style') styleDepth += 1;
     }
   }
-  if (!htmlOpened || !htmlClosed || stack.length !== 0 || styleDepth !== 0 || cspCount !== 1 || charsetCount > 1 || viewportCount > 1) fail('direct artifact must be a complete static HTML document');
+  if (!htmlOpened || !htmlClosed || stack.length !== 0 || styleDepth !== 0 || cspCount !== 1 || charsetCount > 1 || viewportCount > 1 || colorSchemeCount > 1) fail('direct artifact must be a complete static HTML document');
   if (/(?:serviceWorker|XMLHttpRequest|\bfetch\s*\(|WebSocket|EventSource|sendBeacon|javascript\s*:)/i.test(text)) fail('direct artifact contains a JavaScript or network API marker');
   assertNoSecretShape(text);
   return text;
