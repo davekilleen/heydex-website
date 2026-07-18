@@ -11,6 +11,7 @@ import {
   deserializeDirectFile,
   DIRECT_FILE_CSP,
   DIRECT_FILE_URL,
+  DirectFileValidationError,
   finalizeDirectFile,
   prepareDirectFile,
   publishDirectFile,
@@ -164,6 +165,16 @@ async function createSafeEmptyQuarantineDirectory(value, transactionId) {
   await value.fs.chmod(directory, value.security.state.directoryMode);
   await value.fs.fsyncDirectory(`${constants.stateRoot}/transactions/${transactionId}`);
   return directory;
+}
+
+async function assertFinalizationRolledBack(value, transactionId) {
+  const journal = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', transactionId, 'transaction.json'), 'utf8'));
+  assert.equal(journal.phase, 'rolled-back');
+  for (const target of [
+    fixedTarget(constants.galleryRoot),
+    `${constants.stateRoot}/staging/${transactionId}/${constants.directFilename}`,
+    `${constants.stateRoot}/transactions/${transactionId}/quarantine/${constants.directFilename}`,
+  ]) await assert.rejects(() => value.fs.lstat(target), { code: 'ENOENT' });
 }
 
 test('receipt accepts the fixed full URL, safe charset/viewport metadata, data images, and bare details open while rejecting malformed, executable, navigation, and unsupported attributes', () => {
@@ -376,22 +387,37 @@ test('successful publish and exact rollback preserve the shell and unrelated chi
   assert.deepEqual(await readFile(value.unrelated), unrelatedBefore);
 });
 
-test('fabricated finalization evidence leaves the journal unpublished for the caller to roll back', async (t) => {
+test('fabricated finalization evidence automatically rolls back the exact promoted artifact', async (t) => {
   const value = await fixture();
   t.after(() => rm(value.root, { recursive: true, force: true }));
   const promoted = await publish(value, 'fabricated-finalization');
   await assert.rejects(
     () => finalizeDirectFile({ transactionId: promoted.transactionId, security: value.security, fs: value.fs, executor: value.executor, now, verifier: { verify: async (input) => finalizationEvidence(input, { verificationNonce: 'f'.repeat(64) }) } }),
-    /not bound/,
+    (error) => {
+      assert.match(error.message, /not bound/);
+      assert.doesNotMatch(error.message, /finalization recovery failed/);
+      return true;
+    },
   );
-  const awaiting = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', promoted.transactionId, 'transaction.json'), 'utf8'));
-  assert.equal(awaiting.phase, 'promoted-awaiting-verification');
-  assert.equal(awaiting.publicationVerification.status, 'pending');
-  await rollbackDirectFile({ transactionId: promoted.transactionId, security: value.security, fs: value.fs, executor: value.executor, now });
-  await assert.rejects(() => value.fs.lstat(fixedTarget(constants.galleryRoot)), { code: 'ENOENT' });
+  await assertFinalizationRolledBack(value, promoted.transactionId);
 });
 
-test('finalization rechecks the exact promoted remote identity after the fixed verifier returns', async (t) => {
+test('fixed verifier failure automatically rolls back and preserves the original error', async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const promoted = await publish(value, 'verifier-finalization-failure');
+  const verifierFailure = new Error('simulated fixed verifier network failure');
+  await assert.rejects(
+    () => finalizeDirectFile({ transactionId: promoted.transactionId, security: value.security, fs: value.fs, executor: value.executor, now, verifier: { verify: async () => { throw verifierFailure; } } }),
+    (error) => {
+      assert.equal(error, verifierFailure);
+      return true;
+    },
+  );
+  await assertFinalizationRolledBack(value, promoted.transactionId);
+});
+
+test('failed finalization recovery reports identity drift distinctly and retains the replacement', async (t) => {
   const value = await fixture();
   t.after(() => rm(value.root, { recursive: true, force: true }));
   const promoted = await publish(value, 'post-verifier-identity-check');
@@ -412,11 +438,19 @@ test('finalization rechecks the exact promoted remote identity after the fixed v
         },
       },
     }),
-    /identity drift/,
+    (error) => {
+      assert.ok(error instanceof DirectFileValidationError);
+      assert.match(error.message, /direct-file finalization recovery failed: promoted direct-file identity drift refuses deletion/);
+      assert.ok(error.cause instanceof DirectFileValidationError);
+      assert.match(error.cause.message, /promoted direct-file identity drift refuses finalization/);
+      return true;
+    },
   );
   const journal = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', promoted.transactionId, 'transaction.json'), 'utf8'));
   assert.equal(journal.phase, 'promoted-awaiting-verification');
   assert.equal(journal.publicationVerification.status, 'pending');
+  assert.equal((await value.fs.lstat(fixedTarget(constants.galleryRoot))).isFile(), true);
+  await assert.rejects(() => value.fs.lstat(`${constants.stateRoot}/transactions/${promoted.transactionId}/quarantine/${constants.directFilename}`), { code: 'ENOENT' });
 });
 
 test('RENAME_NOREPLACE collision with identical live and staged content fails closed and preserves both files', async (t) => {

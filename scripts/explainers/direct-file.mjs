@@ -519,26 +519,35 @@ export async function finalizeDirectFile({ galleryRoot = constants.galleryRoot, 
   let paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireTarget: true });
   const journal = validateJournal(await readJsonFile(validFs, paths.journalPath, validSecurity.state, roots.device, 'direct-file transaction journal'), transactionId, validSecurity);
   if (journal.phase !== 'promoted-awaiting-verification') fail('direct-file transaction is not awaiting finalization');
-  const liveBeforeVerification = await targetIdentity(validFs, paths.target, journal);
-  if (liveBeforeVerification?.state !== 'candidate' || !sameFileIdentity(journal.promotedIdentity, liveBeforeVerification.identity)) fail('promoted direct-file identity drift refuses finalization');
-  const evidence = validateFinalizationEvidence(await validVerifier.verify({
-    transactionId: journal.transactionId,
-    verificationNonce: journal.verificationNonce,
-    promotedAt: journal.promotedAt,
-    url: journal.url,
-    artifactSha256: journal.artifactSha256,
-    artifactSize: journal.artifactSize,
-    forbiddenStrings: journal.forbiddenStrings,
-  }), journal, now);
-  paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireTarget: true });
-  const currentJournal = validateJournal(await readJsonFile(validFs, paths.journalPath, validSecurity.state, roots.device, 'direct-file transaction journal'), transactionId, validSecurity);
-  if (currentJournal.phase !== 'promoted-awaiting-verification' || currentJournal.verificationNonce !== journal.verificationNonce || currentJournal.promotedAt !== journal.promotedAt || !sameFileIdentity(currentJournal.promotedIdentity, journal.promotedIdentity)) fail('direct-file transaction changed during finalization');
-  const liveAfterVerification = await targetIdentity(validFs, paths.target, currentJournal);
-  if (liveAfterVerification?.state !== 'candidate' || !sameFileIdentity(currentJournal.promotedIdentity, liveAfterVerification.identity)) fail('promoted direct-file identity drift refuses finalization');
-  currentJournal.publicationVerification = { status: 'verified', evidence };
-  await syncJournal(validFs, paths.journalPath, currentJournal, validSecurity.state, now, roots.device);
-  await setJournalPhase(validFs, paths.journalPath, currentJournal, 'published', validSecurity.state, now, roots.device, phaseHook);
-  return { transactionId, transactionRoot: paths.transactionRoot, journal: { ...currentJournal } };
+  try {
+    const liveBeforeVerification = await targetIdentity(validFs, paths.target, journal);
+    if (liveBeforeVerification?.state !== 'candidate' || !sameFileIdentity(journal.promotedIdentity, liveBeforeVerification.identity)) fail('promoted direct-file identity drift refuses finalization');
+    const evidence = validateFinalizationEvidence(await validVerifier.verify({
+      transactionId: journal.transactionId,
+      verificationNonce: journal.verificationNonce,
+      promotedAt: journal.promotedAt,
+      url: journal.url,
+      artifactSha256: journal.artifactSha256,
+      artifactSize: journal.artifactSize,
+      forbiddenStrings: journal.forbiddenStrings,
+    }), journal, now);
+    paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireTarget: true });
+    const currentJournal = validateJournal(await readJsonFile(validFs, paths.journalPath, validSecurity.state, roots.device, 'direct-file transaction journal'), transactionId, validSecurity);
+    if (currentJournal.phase !== 'promoted-awaiting-verification' || currentJournal.verificationNonce !== journal.verificationNonce || currentJournal.promotedAt !== journal.promotedAt || !sameFileIdentity(currentJournal.promotedIdentity, journal.promotedIdentity)) fail('direct-file transaction changed during finalization');
+    const liveAfterVerification = await targetIdentity(validFs, paths.target, currentJournal);
+    if (liveAfterVerification?.state !== 'candidate' || !sameFileIdentity(currentJournal.promotedIdentity, liveAfterVerification.identity)) fail('promoted direct-file identity drift refuses finalization');
+    currentJournal.publicationVerification = { status: 'verified', evidence };
+    await syncJournal(validFs, paths.journalPath, currentJournal, validSecurity.state, now, roots.device);
+    await setJournalPhase(validFs, paths.journalPath, currentJournal, 'published', validSecurity.state, now, roots.device, phaseHook);
+    return { transactionId, transactionRoot: paths.transactionRoot, journal: { ...currentJournal } };
+  } catch (error) {
+    try {
+      await rollbackDirectFile({ galleryRoot: fixedRoots.galleryRoot, stateRoot: fixedRoots.stateRoot, transactionId, security: validSecurity, fs: validFs, executor: validExecutor, now, phaseHook });
+    } catch (recoveryError) {
+      throw new DirectFileValidationError(`direct-file finalization recovery failed: ${recoveryError.message}`, { cause: error });
+    }
+    throw error;
+  }
 }
 
 export async function rollbackDirectFile({ galleryRoot = constants.galleryRoot, stateRoot = constants.stateRoot, transactionId, security, verifyOnly = false, fs = createNodeFilesystem(), executor = createLocalExecutor(fs), now = () => new Date(), phaseHook }) {

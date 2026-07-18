@@ -67,10 +67,14 @@ with `X-Robots-Tag: noindex, nofollow, noarchive`. The verifier itself binds the
 fresh result to the transaction ID, nonce, `promotedAt`, URL, and hash/size;
 finalization rechecks the sealed remote target identity after the network checks
 before it can set the journal to `published`. Do not store cookie jars or
-verification output in Git. If finalization fails, run exact
-journal-authorized rollback; the transaction remains unpublished until that
-separate recovery succeeds. Evidence availability never blocks a later
-identity-authorized rollback:
+verification output in Git. After its synced `promoted-awaiting-verification`
+journal is validated, any verifier or finalization failure automatically invokes
+exact journal-authorized rollback. A successful recovery removes only the
+unchanged transaction-owned artifact and rethrows the original verification or
+finalization error. If rollback cannot safely complete, including after identity
+drift, finalization reports a distinct recovery error with the original failure
+as its cause and retains the ambiguous file for reconciliation. Evidence
+availability never blocks identity-authorized rollback:
 
 ```bash
 node scripts/explainers/direct-file.mjs publish-file \
