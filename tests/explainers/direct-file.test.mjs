@@ -106,6 +106,7 @@ function remappedFilesystem(root, galleryRoot, stateRoot) {
   const fs = {
     chmod: (target, ...args) => rawFs.chmod(remap(target), ...args),
     chown: (target, ...args) => rawFs.chown(remap(target), ...args),
+    compareAndSwap: ({ directory, ...args }) => rawFs.compareAndSwap({ directory: remap(directory), ...args }),
     fsyncDirectory: (target) => rawFs.fsyncDirectory(remap(target)),
     lstat: (target) => rawFs.lstat(remap(target)),
     mkdir: (target, ...args) => rawFs.mkdir(remap(target), ...args),
@@ -121,7 +122,7 @@ function remappedFilesystem(root, galleryRoot, stateRoot) {
 
 function mutationSpy(fs) {
   const calls = [];
-  const mutations = ['mkdir', 'writeAtomic', 'chmod', 'chown', 'renameNoReplace', 'rm', 'fsyncDirectory'];
+  const mutations = ['mkdir', 'writeAtomic', 'compareAndSwap', 'chmod', 'chown', 'renameNoReplace', 'rm', 'fsyncDirectory'];
   return {
     calls,
     fs: Object.fromEntries(Object.entries(fs).map(([name, method]) => [name, mutations.includes(name)
@@ -165,6 +166,12 @@ async function createSafeEmptyQuarantineDirectory(value, transactionId) {
   await value.fs.chmod(directory, value.security.state.directoryMode);
   await value.fs.fsyncDirectory(`${constants.stateRoot}/transactions/${transactionId}`);
   return directory;
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((settle) => { resolve = settle; });
+  return { promise, resolve };
 }
 
 async function assertFinalizationRolledBack(value, transactionId) {
@@ -417,6 +424,125 @@ test('fixed verifier failure automatically rolls back and preserves the original
   await assertFinalizationRolledBack(value, promoted.transactionId);
 });
 
+test('a finalizer that loses to a concurrent published finalizer preserves the published artifact', async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const promoted = await publish(value, 'concurrent-finalization');
+  const firstVerifierStarted = deferred();
+  const releaseFirstVerifier = deferred();
+  const first = finalizeDirectFile({
+    transactionId: promoted.transactionId,
+    security: value.security,
+    fs: value.fs,
+    executor: value.executor,
+    now,
+    verifier: {
+      verify: async (input) => {
+        firstVerifierStarted.resolve();
+        await releaseFirstVerifier.promise;
+        return finalizationEvidence(input);
+      },
+    },
+  });
+  await firstVerifierStarted.promise;
+  const published = await finalizeDirectFile({
+    transactionId: promoted.transactionId,
+    security: value.security,
+    fs: value.fs,
+    executor: value.executor,
+    now,
+    verifier: { verify: async (input) => finalizationEvidence(input) },
+  });
+  releaseFirstVerifier.resolve();
+  await assert.rejects(first, /changed during finalization/);
+  assert.equal(published.journal.phase, 'published');
+  const journal = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', promoted.transactionId, 'transaction.json'), 'utf8'));
+  assert.equal(journal.phase, 'published');
+  assert.equal(journal.publicationVerification.status, 'verified');
+  assert.equal((await value.fs.lstat(fixedTarget(constants.galleryRoot))).isFile(), true);
+});
+
+test('a post-published phase hook error preserves the committed publication', async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const promoted = await publish(value, 'published-phase-hook');
+  const hookFailure = new Error('simulated post-published hook failure');
+  await assert.rejects(
+    () => finalizeDirectFile({
+      transactionId: promoted.transactionId,
+      security: value.security,
+      fs: value.fs,
+      executor: value.executor,
+      now,
+      verifier: { verify: async (input) => finalizationEvidence(input) },
+      phaseHook: async (phase) => { if (phase === 'published') throw hookFailure; },
+    }),
+    (error) => {
+      assert.equal(error, hookFailure);
+      return true;
+    },
+  );
+  const journal = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', promoted.transactionId, 'transaction.json'), 'utf8'));
+  assert.equal(journal.phase, 'published');
+  assert.equal(journal.publicationVerification.status, 'verified');
+  assert.equal((await value.fs.lstat(fixedTarget(constants.galleryRoot))).isFile(), true);
+});
+
+test('a post-rollback phase hook error preserves the original verifier failure after durable recovery', async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const promoted = await publish(value, 'rolled-back-phase-hook');
+  const verifierFailure = new Error('simulated fixed verifier failure');
+  await assert.rejects(
+    () => finalizeDirectFile({
+      transactionId: promoted.transactionId,
+      security: value.security,
+      fs: value.fs,
+      executor: value.executor,
+      now,
+      verifier: { verify: async () => { throw verifierFailure; } },
+      phaseHook: async (phase) => { if (phase === 'rolled-back') throw new Error('simulated post-rollback hook failure'); },
+    }),
+    (error) => {
+      assert.equal(error, verifierFailure);
+      return true;
+    },
+  );
+  await assertFinalizationRolledBack(value, promoted.transactionId);
+});
+
+test('a durable finalization recovery claim supports exact rollback retry after an uncertain claim result', async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const promoted = await publish(value, 'finalization-recovery-retry');
+  let claimAcknowledgementLost = false;
+  const uncertainFs = {
+    ...value.fs,
+    async compareAndSwap(options) {
+      const replaced = await value.fs.compareAndSwap(options);
+      if (replaced && !claimAcknowledgementLost) {
+        claimAcknowledgementLost = true;
+        throw new Error('simulated finalization recovery claim acknowledgement loss');
+      }
+      return replaced;
+    },
+  };
+  const verifierFailure = new Error('simulated verifier failure before recovery claim');
+  await assert.rejects(
+    () => finalizeDirectFile({ transactionId: promoted.transactionId, security: value.security, fs: uncertainFs, executor: createLocalExecutor(uncertainFs), now, verifier: { verify: async () => { throw verifierFailure; } } }),
+    (error) => {
+      assert.match(error.message, /finalization recovery failed: simulated finalization recovery claim acknowledgement loss/);
+      assert.equal(error.cause, verifierFailure);
+      return true;
+    },
+  );
+  const claimed = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', promoted.transactionId, 'transaction.json'), 'utf8'));
+  assert.equal(claimed.phase, 'finalization-recovery');
+  assert.equal((await value.fs.lstat(fixedTarget(constants.galleryRoot))).isFile(), true);
+  await rollbackDirectFile({ transactionId: promoted.transactionId, security: value.security, fs: value.fs, executor: value.executor, now });
+  await assertFinalizationRolledBack(value, promoted.transactionId);
+});
+
 test('failed finalization recovery reports identity drift distinctly and retains the replacement', async (t) => {
   const value = await fixture();
   t.after(() => rm(value.root, { recursive: true, force: true }));
@@ -447,7 +573,7 @@ test('failed finalization recovery reports identity drift distinctly and retains
     },
   );
   const journal = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', promoted.transactionId, 'transaction.json'), 'utf8'));
-  assert.equal(journal.phase, 'promoted-awaiting-verification');
+  assert.equal(journal.phase, 'finalization-recovery');
   assert.equal(journal.publicationVerification.status, 'pending');
   assert.equal((await value.fs.lstat(fixedTarget(constants.galleryRoot))).isFile(), true);
   await assert.rejects(() => value.fs.lstat(`${constants.stateRoot}/transactions/${promoted.transactionId}/quarantine/${constants.directFilename}`), { code: 'ENOENT' });

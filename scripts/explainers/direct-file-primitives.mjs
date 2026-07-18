@@ -1,4 +1,5 @@
 import { constants as fsConstants } from 'node:fs';
+import { spawn } from 'node:child_process';
 import {
   chmod as nodeChmod,
   chown as nodeChown,
@@ -121,7 +122,7 @@ export function sameFileIdentity(expected, actual) {
 }
 
 export function assertFilesystem(fs) {
-  for (const method of ['chmod', 'chown', 'fsyncDirectory', 'lstat', 'mkdir', 'readFile', 'realpath', 'renameNoReplace', 'rm', 'statfs', 'writeAtomic']) {
+  for (const method of ['chmod', 'chown', 'compareAndSwap', 'fsyncDirectory', 'lstat', 'mkdir', 'readFile', 'realpath', 'renameNoReplace', 'rm', 'statfs', 'writeAtomic']) {
     if (typeof fs?.[method] !== 'function') fail(`filesystem seam is missing ${method}`);
   }
   return fs;
@@ -264,6 +265,18 @@ export async function syncJournal(fs, journalPath, journal, security, now, devic
   await assertSafePath(fs, journalPath, { device, policy: security, type: 'file', label: 'transaction journal' });
 }
 
+export async function compareAndSwapJournal(fs, journalPath, expectedSha256, journal, security, now, device) {
+  if (typeof expectedSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(expectedSha256)) fail('journal compare-and-swap requires an exact journal revision');
+  const date = now();
+  if (!(date instanceof Date) || Number.isNaN(date.valueOf())) fail('clock must return a valid date');
+  await assertCanonicalDirectory(fs, path.dirname(journalPath), { device, policy: security, label: 'journal parent' });
+  journal.updatedAt = date.toISOString();
+  const replaced = await fs.compareAndSwap({ directory: path.dirname(journalPath), filename: 'transaction.json', expectedSha256, contents: `${JSON.stringify(journal, null, 2)}\n`, mode: security.fileMode, uid: security.uid, gid: security.gid });
+  if (typeof replaced !== 'boolean') fail('journal compare-and-swap returned an invalid result');
+  if (replaced) await assertSafePath(fs, journalPath, { device, policy: security, type: 'file', label: 'transaction journal' });
+  return replaced;
+}
+
 export async function setJournalPhase(fs, journalPath, journal, phase, security, now, device, phaseHook) {
   journal.phase = phase;
   journal.phases[phase] = now().toISOString();
@@ -286,6 +299,21 @@ async function renameAt2(source, destination, flags) {
     }
     throw error;
   }
+}
+
+function runPython(script, args, input) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('python3', ['-c', script, ...args], { stdio: ['pipe', 'pipe', 'pipe'] });
+    const stdout = []; const stderr = [];
+    child.stdout.on('data', (chunk) => stdout.push(chunk));
+    child.stderr.on('data', (chunk) => stderr.push(chunk));
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) resolve(Buffer.concat(stdout).toString('utf8'));
+      else reject(new Error(`journal compare-and-swap failed (${code}): ${Buffer.concat(stderr).toString('utf8').trim()}`));
+    });
+    child.stdin.end(input);
+  });
 }
 
 function assertWriteFilename(filename) {
@@ -313,8 +341,18 @@ export function createNodeFilesystem({ randomId = () => `${Date.now()}-${Math.ra
     }
     fail('could not allocate an atomic temporary file');
   }
+  async function compareAndSwap({ directory, filename, expectedSha256, contents, mode, uid, gid }) {
+    assertAbsolutePath(directory, 'atomic write directory');
+    assertWriteFilename(filename);
+    if (filename !== 'transaction.json' || typeof expectedSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(expectedSha256)) fail('atomic compare-and-swap is outside the transaction journal allowlist');
+    const script = `import fcntl,hashlib,os,secrets,stat,sys\nfolder,name,expected,mode,uid,gid=sys.argv[1:7]\nd=os.open(folder,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)\ntry:\n lock=os.open("."+name+".lock",os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,int(mode,8),dir_fd=d)\n try:\n  s=os.fstat(lock)\n  if not stat.S_ISREG(s.st_mode): raise SystemExit("journal lock is not regular")\n  os.fchown(lock,int(uid),int(gid));os.fchmod(lock,int(mode,8));fcntl.flock(lock,fcntl.LOCK_EX)\n  try:\n   current=os.open(name,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=d)\n  except FileNotFoundError:\n   print("false");raise SystemExit(0)\n  try:\n   s=os.fstat(current)\n   if not stat.S_ISREG(s.st_mode): raise SystemExit("journal is not regular")\n   data=[]\n   while True:\n    chunk=os.read(current,1048576)\n    if not chunk: break\n    data.append(chunk)\n  finally: os.close(current)\n  if hashlib.sha256(b"".join(data)).hexdigest()!=expected:\n   print("false");raise SystemExit(0)\n  temporary="."+name+"."+secrets.token_hex(12)+".tmp"\n  fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,int(mode,8),dir_fd=d)\n  try:\n   payload=sys.stdin.buffer.read();offset=0\n   while offset<len(payload): offset+=os.write(fd,payload[offset:])\n   os.fchown(fd,int(uid),int(gid));os.fchmod(fd,int(mode,8));os.fsync(fd)\n  finally: os.close(fd)\n  try:\n   os.replace(temporary,name,src_dir_fd=d,dst_dir_fd=d);os.fsync(d)\n  finally:\n   try: os.unlink(temporary,dir_fd=d)\n   except FileNotFoundError: pass\n  print("true")\n finally: os.close(lock)\nfinally: os.close(d)`;
+    const result = (await runPython(script, [directory, filename, expectedSha256, mode.toString(8), String(uid), String(gid)], Buffer.from(contents))).trim();
+    if (result === 'true') return true;
+    if (result === 'false') return false;
+    fail('journal compare-and-swap returned an invalid result');
+  }
   const api = {
-    chmod: nodeChmod, chown: nodeChown, fsyncDirectory, lstat: nodeLstat, mkdir: nodeMkdir,
+    chmod: nodeChmod, chown: nodeChown, compareAndSwap, fsyncDirectory, lstat: nodeLstat, mkdir: nodeMkdir,
     readFile: nodeReadFile, realpath: nodeRealpath, renameNoReplace: (source, target) => renameAt2(source, target, 1),
     rm: nodeRm, statfs: nodeStatfs, writeAtomic,
   };

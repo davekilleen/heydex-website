@@ -66,6 +66,10 @@ function assertWritableFile(directory, filename) {
   return target;
 }
 
+function assertJournalCompareAndSwap(directory, filename, expectedSha256) {
+  if (!TRANSACTION_DIR.test(directory) || filename !== 'transaction.json' || typeof expectedSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(expectedSha256)) fail('SSH journal compare-and-swap is outside the transaction-private direct-file allowlist');
+}
+
 function assertRename(source, target) {
   const staged = STAGE_FILE.exec(source);
   const quarantined = QUARANTINE_FILE.exec(target);
@@ -131,6 +135,39 @@ finally:
  try: os.unlink(tmp,dir_fd=d)
  except FileNotFoundError: pass
  os.close(d)'
+py_compare_and_swap='import fcntl,hashlib,os,secrets,stat,sys
+folder,name,expected,mode,uid,gid=sys.argv[1:7];d=os.open(folder,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+try:
+ lock=os.open("."+name+".lock",os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,int(mode,8),dir_fd=d)
+ try:
+  s=os.fstat(lock)
+  if not stat.S_ISREG(s.st_mode): raise SystemExit("journal lock is not regular")
+  os.fchown(lock,int(uid),int(gid));os.fchmod(lock,int(mode,8));fcntl.flock(lock,fcntl.LOCK_EX)
+  try: current=os.open(name,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=d)
+  except FileNotFoundError: print("false");raise SystemExit(0)
+  try:
+   s=os.fstat(current)
+   if not stat.S_ISREG(s.st_mode): raise SystemExit("journal is not regular")
+   data=[]
+   while True:
+    chunk=os.read(current,1048576)
+    if not chunk: break
+    data.append(chunk)
+  finally: os.close(current)
+  if hashlib.sha256(b"".join(data)).hexdigest()!=expected: print("false");raise SystemExit(0)
+  temporary="."+name+"."+secrets.token_hex(12)+".tmp";fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,int(mode,8),dir_fd=d)
+  try:
+   payload=sys.stdin.buffer.read();offset=0
+   while offset<len(payload): offset+=os.write(fd,payload[offset:])
+   os.fchown(fd,int(uid),int(gid));os.fchmod(fd,int(mode,8));os.fsync(fd)
+  finally: os.close(fd)
+  try: os.replace(temporary,name,src_dir_fd=d,dst_dir_fd=d);os.fsync(d)
+  finally:
+   try: os.unlink(temporary,dir_fd=d)
+   except FileNotFoundError: pass
+  print("true")
+ finally: os.close(lock)
+finally: os.close(d)'
 py_remove='import os,stat,sys
 s=os.lstat(sys.argv[1])
 if not stat.S_ISREG(s.st_mode): raise SystemExit("refusing non-regular removal")
@@ -171,6 +208,10 @@ elif op=="write-atomic":
  if directory and stage(directory) and filename==name and mode_value=="644" and replace=="false": pass
  elif directory and tx(directory) and filename in ("transaction.json","reviewed-direct-file.json") and mode_value=="600": pass
  else: fail()
+elif op=="compare-and-swap-journal":
+ if len(args)!=6 or not args[2] or not re.fullmatch(r"[a-f0-9]{64}",args[2]) or not args[3].isdigit() or not args[4].isdigit() or not args[5].isdigit(): fail()
+ directory,filename,expected,mode_value,uid,gid=args
+ if not tx(directory) or filename!="transaction.json" or mode_value!="600": fail()
 elif op=="rename-no-replace":
  if len(args)!=2 or not ((staged_file(args[0]) and args[1]==target) or (args[0]==target and quarantine_file(args[1]))): fail()
 elif op=="remove-file":
@@ -188,6 +229,7 @@ case "$op" in
  chown) exec chown "$2:$3" -- "$1" ;;
  fsync-directory) exec python3 -c "$py_fsync" "$1" ;;
  write-atomic) exec python3 -c "$py_write" "$@" ;;
+ compare-and-swap-journal) exec python3 -c "$py_compare_and_swap" "$@" ;;
  rename-no-replace) exec python3 -c "$py_rename" "$1" "$2" ;;
  remove-file) python3 -c "$py_remove" "$1"; exec python3 -c "$py_fsync" "$(dirname -- "$1")" ;;
  *) exit 64 ;;
@@ -246,6 +288,14 @@ export function createFixedSshSeams({ keyFile, host, user, run = defaultRun }) {
       assertWritableFile(directory, filename);
       if (!Number.isInteger(uid) || !Number.isInteger(gid)) fail('SSH ownership is invalid');
       await invoke('write-atomic', [directory, filename, octal(mode), String(uid), String(gid), String(replace)], { input: Buffer.from(contents) });
+    },
+    async compareAndSwap({ directory, filename, expectedSha256, contents, mode, uid, gid }) {
+      assertWritableFile(directory, filename); assertJournalCompareAndSwap(directory, filename, expectedSha256);
+      if (!Number.isInteger(uid) || !Number.isInteger(gid)) fail('SSH ownership is invalid');
+      const result = (await invoke('compare-and-swap-journal', [directory, filename, expectedSha256, octal(mode), String(uid), String(gid)], { input: Buffer.from(contents) })).stdout.trim();
+      if (result === 'true') return true;
+      if (result === 'false') return false;
+      fail('SSH journal compare-and-swap returned an invalid result');
     },
     async renameNoReplace(source, target) { assertRename(source, target); await invoke('rename-no-replace', [source, target]); },
     async rm(target) { assertRemove(target); await invoke('remove-file', [target]); },

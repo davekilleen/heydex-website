@@ -11,6 +11,7 @@ import {
   assertSshTarget,
   assertTargetAbsent,
   assertTransactionPaths,
+  compareAndSwapJournal,
   constants,
   createLocalExecutor,
   createNodeFilesystem,
@@ -47,7 +48,7 @@ const SAFE_SVG_PATH_DATA = /^[MmLlHhVvCcSsQqTtAaZzEe0-9,.+\-\s]+$/;
 const SAFE_SVG_PAINT = /^(?:none|currentColor|#[0-9a-fA-F]{3,8})$/;
 const STATIC_SVG_ELEMENTS = new Set(['svg', 'circle', 'path']);
 const STATIC_SVG_GEOMETRY_ELEMENTS = new Set(['circle', 'path']);
-const JOURNAL_PHASES = new Set(['prepared', 'uploading', 'uploaded', 'promoting', 'promoted-awaiting-verification', 'published', 'artifact-quarantining', 'artifact-quarantined', 'staged-removing', 'artifact-removing', 'rolled-back']);
+const JOURNAL_PHASES = new Set(['prepared', 'uploading', 'uploaded', 'promoting', 'promoted-awaiting-verification', 'finalization-recovery', 'published', 'artifact-quarantining', 'artifact-quarantined', 'staged-removing', 'artifact-removing', 'rolled-back']);
 
 export class DirectFileValidationError extends Error {
   constructor(message, options) { super(message, options); this.name = 'DirectFileValidationError'; }
@@ -413,9 +414,9 @@ function validateJournal(journal, transactionId, security) {
   if (journal.stagedIdentity !== undefined) validateIdentity(journal.stagedIdentity, 'staged identity');
   if (journal.promotedIdentity !== undefined) validateIdentity(journal.promotedIdentity, 'promoted identity');
   if (['uploaded', 'promoting'].includes(journal.phase) && journal.stagedIdentity === undefined) fail('transaction journal is missing its staged identity');
-  const promotedPhases = ['promoted-awaiting-verification', 'published', 'artifact-quarantining', 'artifact-quarantined', 'artifact-removing'];
+  const promotedPhases = ['promoted-awaiting-verification', 'finalization-recovery', 'published', 'artifact-quarantining', 'artifact-quarantined', 'artifact-removing'];
   if (promotedPhases.includes(journal.phase) && journal.promotedIdentity === undefined) fail('transaction journal is missing its promoted identity');
-  if (['promoted-awaiting-verification', 'published'].includes(journal.phase)) {
+  if (['promoted-awaiting-verification', 'finalization-recovery', 'published'].includes(journal.phase)) {
     if (typeof journal.verificationNonce !== 'string' || !NONCE.test(journal.verificationNonce)) fail('transaction journal is missing its finalization nonce');
     assertCanonicalTime(journal.promotedAt, 'journal promotedAt');
   }
@@ -512,12 +513,69 @@ function assertVerifier(verifier) {
   return verifier;
 }
 
+async function readFinalizationJournal(fs, journalPath, transactionId, security) {
+  const bytes = Buffer.from(await fs.readFile(journalPath));
+  let parsed;
+  try { parsed = JSON.parse(bytes.toString('utf8')); } catch { fail('direct-file transaction journal is not valid JSON'); }
+  return { journal: validateJournal(parsed, transactionId, security), revision: hash(bytes) };
+}
+
+function sameFinalizationSnapshot(current, snapshot) {
+  return current.revision === snapshot.revision
+    && current.journal.phase === 'promoted-awaiting-verification'
+    && current.journal.verificationNonce === snapshot.journal.verificationNonce
+    && current.journal.promotedAt === snapshot.journal.promotedAt
+    && sameFileIdentity(current.journal.promotedIdentity, snapshot.journal.promotedIdentity);
+}
+
+function journalWithPhase(journal, phase, now) {
+  const next = JSON.parse(JSON.stringify(journal));
+  const date = now();
+  if (!(date instanceof Date) || Number.isNaN(date.valueOf())) fail('clock must return a valid date');
+  next.phase = phase;
+  next.phases[phase] = date.toISOString();
+  return next;
+}
+
+async function transitionFinalizationJournal({ fs, paths, snapshot, phase, security, now, device, phaseHook }) {
+  const journal = journalWithPhase(snapshot.journal, phase, now);
+  const replaced = await compareAndSwapJournal(fs, paths.journalPath, snapshot.revision, journal, security.state, now, device);
+  if (replaced && phaseHook) await phaseHook(phase, { ...journal });
+  return { replaced, journal };
+}
+
+async function completedFinalizationRollback({ fs, executor, roots, transactionId, security }) {
+  try {
+    const paths = await guardPaths(fs, roots, transactionId, security, { requireTransaction: true, requireJournal: true });
+    const journal = validateJournal(await readJsonFile(fs, paths.journalPath, security.state, roots.device, 'direct-file transaction journal'), transactionId, security);
+    if (journal.phase !== 'rolled-back' || journal.formerUrlVerification.status !== 'pending') return false;
+    if (await targetIdentity(fs, paths.target, journal) !== 'absent') return false;
+    if (paths.stage && await targetIdentity(fs, paths.stagedTarget, journal) !== 'absent') return false;
+    if (paths.quarantineDirectoryStat && await targetIdentity(fs, paths.quarantineTarget, journal) !== 'absent') return false;
+    await assertTargetAbsent({ fs, executor, galleryRoot: roots.galleryRoot, slug: journal.slug });
+    return true;
+  } catch { return false; }
+}
+
+async function recoverFinalization({ fixedRoots, transactionId, security, fs, executor, now, phaseHook, roots, paths, snapshot }) {
+  const claim = await transitionFinalizationJournal({ fs, paths, snapshot, phase: 'finalization-recovery', security, now, device: roots.device });
+  if (!claim.replaced) return false;
+  try {
+    await rollbackDirectFile({ galleryRoot: fixedRoots.galleryRoot, stateRoot: fixedRoots.stateRoot, transactionId, security, fs, executor, now, phaseHook });
+  } catch (error) {
+    if (await completedFinalizationRollback({ fs, executor, roots, transactionId, security })) return true;
+    throw error;
+  }
+  return true;
+}
+
 export async function finalizeDirectFile({ galleryRoot = constants.galleryRoot, stateRoot = constants.stateRoot, transactionId, security, verifier, fs = createNodeFilesystem(), executor = createLocalExecutor(fs), now = () => new Date(), phaseHook }) {
   const validFs = assertFilesystem(fs); const validExecutor = assertExecutor(executor); const validSecurity = normalizeSecurity(security); const validVerifier = assertVerifier(verifier);
   const fixedRoots = assertFixedRemoteRoots(galleryRoot, stateRoot);
   const roots = await preflightFixedRoots({ fs: validFs, ...fixedRoots, security: validSecurity, requiredBytes: validSecurity.minFreeBytes });
   let paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireTarget: true });
-  const journal = validateJournal(await readJsonFile(validFs, paths.journalPath, validSecurity.state, roots.device, 'direct-file transaction journal'), transactionId, validSecurity);
+  const snapshot = await readFinalizationJournal(validFs, paths.journalPath, transactionId, validSecurity);
+  const journal = snapshot.journal;
   if (journal.phase !== 'promoted-awaiting-verification') fail('direct-file transaction is not awaiting finalization');
   try {
     const liveBeforeVerification = await targetIdentity(validFs, paths.target, journal);
@@ -532,18 +590,21 @@ export async function finalizeDirectFile({ galleryRoot = constants.galleryRoot, 
       forbiddenStrings: journal.forbiddenStrings,
     }), journal, now);
     paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireTarget: true });
-    const currentJournal = validateJournal(await readJsonFile(validFs, paths.journalPath, validSecurity.state, roots.device, 'direct-file transaction journal'), transactionId, validSecurity);
-    if (currentJournal.phase !== 'promoted-awaiting-verification' || currentJournal.verificationNonce !== journal.verificationNonce || currentJournal.promotedAt !== journal.promotedAt || !sameFileIdentity(currentJournal.promotedIdentity, journal.promotedIdentity)) fail('direct-file transaction changed during finalization');
+    const current = await readFinalizationJournal(validFs, paths.journalPath, transactionId, validSecurity);
+    if (!sameFinalizationSnapshot(current, snapshot)) fail('direct-file transaction changed during finalization');
+    const currentJournal = current.journal;
     const liveAfterVerification = await targetIdentity(validFs, paths.target, currentJournal);
     if (liveAfterVerification?.state !== 'candidate' || !sameFileIdentity(currentJournal.promotedIdentity, liveAfterVerification.identity)) fail('promoted direct-file identity drift refuses finalization');
     currentJournal.publicationVerification = { status: 'verified', evidence };
-    await syncJournal(validFs, paths.journalPath, currentJournal, validSecurity.state, now, roots.device);
-    await setJournalPhase(validFs, paths.journalPath, currentJournal, 'published', validSecurity.state, now, roots.device, phaseHook);
-    return { transactionId, transactionRoot: paths.transactionRoot, journal: { ...currentJournal } };
+    const published = await transitionFinalizationJournal({ fs: validFs, paths, snapshot: { ...snapshot, journal: currentJournal }, phase: 'published', security: validSecurity, now, device: roots.device, phaseHook });
+    if (!published.replaced) fail('direct-file transaction changed during finalization');
+    return { transactionId, transactionRoot: paths.transactionRoot, journal: { ...published.journal } };
   } catch (error) {
     try {
-      await rollbackDirectFile({ galleryRoot: fixedRoots.galleryRoot, stateRoot: fixedRoots.stateRoot, transactionId, security: validSecurity, fs: validFs, executor: validExecutor, now, phaseHook });
+      const recovered = await recoverFinalization({ fixedRoots, transactionId, security: validSecurity, fs: validFs, executor: validExecutor, now, phaseHook, roots, paths, snapshot });
+      if (!recovered) throw error;
     } catch (recoveryError) {
+      if (recoveryError === error) throw error;
       throw new DirectFileValidationError(`direct-file finalization recovery failed: ${recoveryError.message}`, { cause: error });
     }
     throw error;

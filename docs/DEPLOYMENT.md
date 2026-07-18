@@ -106,8 +106,8 @@ node scripts/explainers/direct-file.mjs rollback-file \
 Rollback is authorized by the synced journal and exact fixed target identity
 (hash, size, regular-file type, owner, group, and mode). It quarantines and
 removes only that unchanged target, proves both absence probes, and records
-external verification as `verified`, `failed`, or `pending` without enumerating
-unrelated children. Every mutation and recovery rechecks canonical real paths,
+former-URL verification as `pending` without performing an external former-URL
+check or enumerating unrelated children. Every mutation and recovery rechecks canonical real paths,
 rejects nested symlink components, and requires every transaction/staging/
 journal/quarantine/target directory to remain on the gallery filesystem. A
 `RENAME_NOREPLACE` collision that leaves both live and staged candidates fails

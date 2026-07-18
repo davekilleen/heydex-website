@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { chmod, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
@@ -9,6 +10,7 @@ import {
   assertFixedRemoteRoots,
   assertTargetAbsent,
   assertTransactionPaths,
+  compareAndSwapJournal,
   constants,
   createLocalExecutor,
   createNodeFilesystem,
@@ -195,4 +197,22 @@ test('no-replace rename preserves both source and an existing target', async (t)
   assert.deepEqual(await readFile(source), Buffer.from('new bytes\n'));
   assert.deepEqual(await readFile(target), Buffer.from('existing bytes\n'));
   assert.equal((await createLocalExecutor(value.fs).testAbsent(target)), false);
+});
+
+test('journal compare-and-swap atomically admits only one matching revision', async (t) => {
+  const value = await roots();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const { paths, roots: canonicalRoots } = await nestedState(value, 'journal-compare-and-swap');
+  const initial = { transaction: 'journal-compare-and-swap', phase: 'promoted-awaiting-verification' };
+  await value.fs.writeAtomic({ directory: paths.transactionRoot, filename: 'transaction.json', contents: `${JSON.stringify(initial)}\n`, mode: 0o600, uid: value.security.state.uid, gid: value.security.state.gid, replace: false });
+  const revision = createHash('sha256').update(`${JSON.stringify(initial)}\n`).digest('hex');
+  const now = () => new Date('2026-07-18T12:00:00.000Z');
+  const [left, right] = await Promise.all([
+    compareAndSwapJournal(value.fs, paths.journalPath, revision, { ...initial, writer: 'left' }, value.security.state, now, canonicalRoots.device),
+    compareAndSwapJournal(value.fs, paths.journalPath, revision, { ...initial, writer: 'right' }, value.security.state, now, canonicalRoots.device),
+  ]);
+  assert.deepEqual([left, right].sort(), [false, true]);
+  const committed = JSON.parse(await readFile(paths.journalPath, 'utf8'));
+  assert.ok(['left', 'right'].includes(committed.writer));
+  assert.equal(committed.updatedAt, '2026-07-18T12:00:00.000Z');
 });

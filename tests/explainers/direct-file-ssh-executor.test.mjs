@@ -16,7 +16,7 @@ function stat(type = 'file') {
 }
 
 function operation(command) {
-  const match = command.match(/'((?:lstat|test-absent|realpath|read-file|statfs|mkdir|chmod|chown|fsync-directory|write-atomic|rename-no-replace|remove-file))'/);
+  const match = command.match(/'((?:lstat|test-absent|realpath|read-file|statfs|mkdir|chmod|chown|fsync-directory|write-atomic|compare-and-swap-journal|rename-no-replace|remove-file))'/);
   return match?.[1];
 }
 
@@ -33,6 +33,7 @@ test('fixed SSH executor exposes only sealed exact-path operations and uses a st
       if (op === 'read-file') return { stdout: Buffer.from('sealed bytes').toString('base64'), stderr: '' };
       if (op === 'realpath') return { stdout: `${constants.galleryRoot}\n`, stderr: '' };
       if (op === 'statfs') return { stdout: '4096 1\n', stderr: '' };
+      if (op === 'compare-and-swap-journal') return { stdout: 'true\n', stderr: '' };
       return { stdout: '', stderr: '' };
     },
   });
@@ -48,12 +49,13 @@ test('fixed SSH executor exposes only sealed exact-path operations and uses a st
   await seams.fs.fsyncDirectory(stageDirectory);
   assert.deepEqual(await seams.fs.readFile(stagedTarget), Buffer.from('sealed bytes'));
   await seams.fs.writeAtomic({ directory: stageDirectory, filename: constants.directFilename, contents: Buffer.from('upload body'), mode: 0o644, uid: 1000, gid: 1000, replace: false });
+  assert.equal(await seams.fs.compareAndSwap({ directory: `${constants.stateRoot}/transactions/${transactionId}`, filename: 'transaction.json', expectedSha256: 'a'.repeat(64), contents: Buffer.from('updated journal'), mode: 0o600, uid: 1000, gid: 1000 }), true);
   await seams.fs.renameNoReplace(stagedTarget, target);
   await seams.fs.renameNoReplace(target, quarantineTarget);
   await seams.fs.rm(quarantineTarget);
 
   const operations = calls.map((call) => call.helperOperation);
-  for (const required of ['lstat', 'test-absent', 'realpath', 'read-file', 'statfs', 'mkdir', 'chmod', 'chown', 'fsync-directory', 'write-atomic', 'rename-no-replace', 'remove-file']) assert.ok(operations.includes(required), `missing ${required}`);
+  for (const required of ['lstat', 'test-absent', 'realpath', 'read-file', 'statfs', 'mkdir', 'chmod', 'chown', 'fsync-directory', 'write-atomic', 'compare-and-swap-journal', 'rename-no-replace', 'remove-file']) assert.ok(operations.includes(required), `missing ${required}`);
   for (const call of calls) {
     assert.equal(call.command, 'ssh');
     assert.deepEqual(call.args.slice(0, 6), ['-i', '/var/tmp/staged-direct-file-key', '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes']);
@@ -75,6 +77,7 @@ test('fixed SSH executor rejects shell, ancestor-mutation, arbitrary path, glob,
   await assert.rejects(() => seams.fs.fsyncDirectory('/var'), /allowlist/);
   await assert.rejects(() => seams.fs.readFile(`${constants.stateRoot}/transactions/${transactionId}/unrelated.txt`), /allowlist/);
   await assert.rejects(() => seams.fs.writeAtomic({ directory: stageDirectory, filename: 'index.html', contents: Buffer.alloc(0), mode: 0o644, uid: 1000, gid: 1000 }), /allowlist/);
+  await assert.rejects(() => seams.fs.compareAndSwap({ directory: `${constants.stateRoot}/transactions/${transactionId}`, filename: 'reviewed-direct-file.json', expectedSha256: 'a'.repeat(64), contents: Buffer.alloc(0), mode: 0o600, uid: 1000, gid: 1000 }), /allowlist/);
   await assert.rejects(() => seams.fs.renameNoReplace(stagedTarget, `${constants.galleryRoot}/unrelated.html`), /allowlist/);
   await assert.rejects(() => seams.fs.rm(`${constants.stateRoot}/transactions/${transactionId}/quarantine/*`), /allowlist/);
 });
