@@ -47,6 +47,7 @@ function isPlainObject(value) {
 export const constants = {
   directSlug: DIRECT_SLUG,
   directFilename: DIRECT_FILENAME,
+  directUrl: 'https://heydex.ai/explainers/dex-brain-vault-capability-architecture.html',
   galleryRoot: DIRECT_GALLERY_ROOT,
   stateRoot: DIRECT_STATE_ROOT,
 };

@@ -10,13 +10,15 @@ import {
   deserializeDirectFile,
   DIRECT_FILE_CSP,
   DIRECT_FILE_URL,
+  finalizeDirectFile,
   prepareDirectFile,
   publishDirectFile,
   rollbackDirectFile,
   runCli,
   serializableDirectFile,
-  validateVerificationEvidence,
+  validateFinalizationEvidence,
 } from '../../scripts/explainers/direct-file.mjs';
+import { DIRECT_FILE_OAUTH_GATE_URL } from '../../scripts/explainers/direct-file-verifier.mjs';
 import { constants, createLocalExecutor, createNodeFilesystem, fixedTarget } from '../../scripts/explainers/direct-file-primitives.mjs';
 
 const NOW = '2026-07-18T12:00:00.000Z';
@@ -26,6 +28,8 @@ function sha256(bytes) { return createHash('sha256').update(bytes).digest('hex')
 function artifact({ head = '', body = '<main><h1>Neutral direct artifact</h1><p>Neutral local proof.</p></main>' } = {}) {
   return Buffer.from(`<!doctype html>
 <html lang="en"><head>
+<meta charset="UTF-8">
+<meta content=" initial-scale = 1, width = device-width " name="viewport">
 <meta http-equiv="Content-Security-Policy" content="${DIRECT_FILE_CSP}">
 <title>Neutral direct artifact</title>${head}</head>
 <body>${body}</body></html>
@@ -49,18 +53,21 @@ function security() {
   };
 }
 function preparedBytes(prepared) { return Buffer.from(prepared.artifactBytesBase64, 'base64'); }
-function evidence(prepared, overrides = {}) {
+function finalizationEvidence(journal, overrides = {}) {
   return {
     schemaVersion: 1,
-    kind: 'direct-file-verification',
+    kind: 'direct-file-finalization',
+    transactionId: journal.transactionId,
+    verificationNonce: journal.verificationNonce,
+    promotedAt: journal.promotedAt,
     url: DIRECT_FILE_URL,
-    artifactSha256: prepared.artifactSha256,
-    artifactSize: prepared.artifactSize,
+    artifactSha256: journal.artifactSha256,
+    artifactSize: journal.artifactSize,
     capturedAt: NOW,
     authenticated: {
       status: 200,
-      bodySha256: prepared.artifactSha256,
-      bodySize: prepared.artifactSize,
+      bodySha256: journal.artifactSha256,
+      bodySize: journal.artifactSize,
       xRobotsTag: 'noindex, nofollow, noarchive',
       requestUrls: [DIRECT_FILE_URL],
     },
@@ -69,7 +76,7 @@ function evidence(prepared, overrides = {}) {
       bodySha256: '0'.repeat(64),
       artifactLeaked: false,
       requestUrls: [DIRECT_FILE_URL],
-      location: 'https://heydex.ai/oauth2/sign_in',
+      location: DIRECT_FILE_OAUTH_GATE_URL,
     },
     ...overrides,
   };
@@ -141,13 +148,12 @@ async function publish(value, transactionId, options = {}) {
     security: value.security,
     fs: value.fs,
     executor: value.executor,
-    verificationEvidence: evidence(value.prepared),
     now,
     ...options,
   });
 }
 
-test('receipt accepts the fixed full URL and valid data image while rejecting malformed, executable, navigation, and refresh markup', () => {
+test('receipt accepts the fixed full URL, safe charset and viewport declarations, and data images while rejecting malformed, executable, navigation, and unsupported meta markup', () => {
   const valid = artifact({ body: '<main><img alt="neutral" src="data:image/png;base64,AA=="><p>Neutral local proof.</p></main>' });
   const prepared = prepareDirectFile({ artifactBytes: valid, metadata: metadata(valid), artifactBodyMarker: 'Neutral local proof.' });
   assert.equal(prepared.filename, constants.directFilename);
@@ -164,6 +170,10 @@ test('receipt accepts the fixed full URL and valid data image while rejecting ma
     artifact({ body: '<iframe src="https://example.test"></iframe>' }),
     artifact({ body: '<img srcset="https://example.test/a.png 1x">' }),
     artifact({ body: '<script>fetch("https://example.test")</script>' }),
+    artifact({ head: '<meta name="description" content="not allowed">' }),
+    artifact({ head: '<meta charset="iso-8859-1">' }),
+    artifact({ head: '<meta name="viewport" content="width=device-width, initial-scale=2">' }),
+    artifact({ head: '<meta charset="utf-8">' }),
     Buffer.from(`<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="${DIRECT_FILE_CSP}"></head><body><main>broken</main></html>`),
   ];
   for (const invalid of invalidArtifacts) {
@@ -196,29 +206,51 @@ test('accepted parser policy plus a loopback request proof permits only the docu
   assert.deepEqual(requests, ['GET /artifact.html']);
 });
 
-test('verification evidence binds a current exact body/hash, noindex, no-third-party request set, and unauthenticated redirect', () => {
+test('finalization evidence is current, nonce-bound to the promoted transaction, and proves the exact artifact and expected OAuth gate', () => {
   const bytes = artifact();
   const prepared = prepareDirectFile({ artifactBytes: bytes, metadata: metadata(bytes) });
-  assert.deepEqual(validateVerificationEvidence(evidence(prepared), prepared, now), evidence(prepared));
+  const journal = {
+    transactionId: 'evidence-transaction',
+    verificationNonce: 'a'.repeat(64),
+    promotedAt: NOW,
+    artifactSha256: prepared.artifactSha256,
+    artifactSize: prepared.artifactSize,
+  };
+  assert.deepEqual(validateFinalizationEvidence(finalizationEvidence(journal), journal, now), finalizationEvidence(journal));
   const invalid = [
     undefined,
-    evidence(prepared, { url: 'https://heydex.ai/explainers/other.html' }),
-    evidence(prepared, { capturedAt: '2026-07-18T11:00:00.000Z' }),
-    evidence(prepared, { authenticated: { ...evidence(prepared).authenticated, xRobotsTag: 'noindex' } }),
-    evidence(prepared, { authenticated: { ...evidence(prepared).authenticated, bodySha256: 'f'.repeat(64) } }),
-    evidence(prepared, { authenticated: { ...evidence(prepared).authenticated, requestUrls: [DIRECT_FILE_URL, 'https://third-party.test/pixel'] } }),
-    evidence(prepared, { unauthenticated: { ...evidence(prepared).unauthenticated, status: 200 } }),
+    finalizationEvidence(journal, { url: 'https://heydex.ai/explainers/other.html' }),
+    finalizationEvidence(journal, { verificationNonce: 'b'.repeat(64) }),
+    finalizationEvidence(journal, { capturedAt: '2026-07-18T11:00:00.000Z' }),
+    finalizationEvidence(journal, { authenticated: { ...finalizationEvidence(journal).authenticated, xRobotsTag: 'noindex' } }),
+    finalizationEvidence(journal, { authenticated: { ...finalizationEvidence(journal).authenticated, bodySha256: 'f'.repeat(64) } }),
+    finalizationEvidence(journal, { authenticated: { ...finalizationEvidence(journal).authenticated, requestUrls: [DIRECT_FILE_URL, 'https://third-party.test/pixel'] } }),
+    finalizationEvidence(journal, { unauthenticated: { ...finalizationEvidence(journal).unauthenticated, status: 200 } }),
+    finalizationEvidence(journal, { unauthenticated: { ...finalizationEvidence(journal).unauthenticated, location: 'https://attacker.test/oauth2/sign_in' } }),
   ];
-  for (const candidate of invalid) assert.throws(() => validateVerificationEvidence(candidate, prepared, now), /verification evidence/);
+  for (const candidate of invalid) assert.throws(() => validateFinalizationEvidence(candidate, journal, now), /finalization evidence|verification evidence/);
+  const prePromotionJournal = { ...journal, promotedAt: '2026-07-18T11:50:00.000Z' };
+  assert.throws(() => validateFinalizationEvidence(finalizationEvidence(prePromotionJournal, { capturedAt: '2026-07-18T11:49:00.000Z' }), prePromotionJournal, now), /post-promotion/);
 });
 
 test('successful publish and exact rollback preserve the shell and unrelated children', async (t) => {
   const value = await fixture();
   t.after(() => rm(value.root, { recursive: true, force: true }));
   const shellBefore = await readFile(value.shell); const unrelatedBefore = await readFile(value.unrelated);
-  const published = await publish(value, 'successful-transaction');
+  const promoted = await publish(value, 'successful-transaction');
+  assert.equal(promoted.journal.phase, 'promoted-awaiting-verification');
+  assert.equal(promoted.journal.url, DIRECT_FILE_URL);
+  assert.match(promoted.journal.verificationNonce, /^[a-f0-9]{64}$/);
+  assert.equal(promoted.journal.publicationVerification.status, 'pending');
+  const published = await finalizeDirectFile({
+    transactionId: promoted.transactionId,
+    security: value.security,
+    fs: value.fs,
+    executor: value.executor,
+    now,
+    verifier: { verify: async (input) => finalizationEvidence(input) },
+  });
   assert.equal(published.journal.phase, 'published');
-  assert.equal(published.journal.url, DIRECT_FILE_URL);
   assert.equal(published.journal.publicationVerification.status, 'verified');
   assert.equal((await readFile(path.join(value.galleryRoot, constants.directFilename))).equals(preparedBytes(value.prepared)), true);
   assert.deepEqual(await readFile(value.shell), shellBefore);
@@ -234,23 +266,47 @@ test('successful publish and exact rollback preserve the shell and unrelated chi
   assert.deepEqual(await readFile(value.unrelated), unrelatedBefore);
 });
 
-test('missing or failed publication evidence rolls back the exact promoted file without relying on a verifier callback', async (t) => {
+test('fabricated finalization evidence leaves the journal unpublished for the caller to roll back', async (t) => {
   const value = await fixture();
   t.after(() => rm(value.root, { recursive: true, force: true }));
+  const promoted = await publish(value, 'fabricated-finalization');
   await assert.rejects(
-    () => publish(value, 'missing-evidence', { verificationEvidence: undefined }),
-    /verification evidence/,
+    () => finalizeDirectFile({ transactionId: promoted.transactionId, security: value.security, fs: value.fs, executor: value.executor, now, verifier: { verify: async (input) => finalizationEvidence(input, { verificationNonce: 'f'.repeat(64) }) } }),
+    /not bound/,
   );
+  const awaiting = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', promoted.transactionId, 'transaction.json'), 'utf8'));
+  assert.equal(awaiting.phase, 'promoted-awaiting-verification');
+  assert.equal(awaiting.publicationVerification.status, 'pending');
+  await rollbackDirectFile({ transactionId: promoted.transactionId, security: value.security, fs: value.fs, executor: value.executor, now });
   await assert.rejects(() => value.fs.lstat(fixedTarget(constants.galleryRoot)), { code: 'ENOENT' });
-  const journal = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', 'missing-evidence', 'transaction.json'), 'utf8'));
-  assert.equal(journal.phase, 'rolled-back');
-  assert.equal(journal.formerUrlVerification.status, 'pending');
+});
 
+test('finalization rechecks the exact promoted remote identity after the fixed verifier returns', async (t) => {
+  const value = await fixture();
+  t.after(() => rm(value.root, { recursive: true, force: true }));
+  const promoted = await publish(value, 'post-verifier-identity-check');
   await assert.rejects(
-    () => publish(value, 'invalid-evidence', { verificationEvidence: evidence(value.prepared, { authenticated: { ...evidence(value.prepared).authenticated, xRobotsTag: 'noindex' } }) }),
-    /verification evidence/,
+    () => finalizeDirectFile({
+      transactionId: promoted.transactionId,
+      security: value.security,
+      fs: value.fs,
+      executor: value.executor,
+      now,
+      verifier: {
+        verify: async (input) => {
+          const replacement = path.join(value.galleryRoot, 'replacement.html');
+          await writeFile(replacement, preparedBytes(value.prepared), { mode: 0o644 });
+          await chmod(replacement, 0o644);
+          await rename(replacement, path.join(value.galleryRoot, constants.directFilename));
+          return finalizationEvidence(input);
+        },
+      },
+    }),
+    /identity drift/,
   );
-  await assert.rejects(() => value.fs.lstat(fixedTarget(constants.galleryRoot)), { code: 'ENOENT' });
+  const journal = JSON.parse(await readFile(path.join(value.stateRoot, 'transactions', promoted.transactionId, 'transaction.json'), 'utf8'));
+  assert.equal(journal.phase, 'promoted-awaiting-verification');
+  assert.equal(journal.publicationVerification.status, 'pending');
 });
 
 test('RENAME_NOREPLACE collision with identical live and staged content fails closed and preserves both files', async (t) => {
@@ -270,7 +326,7 @@ test('RENAME_NOREPLACE collision with identical live and staged content fails cl
     },
   };
   await assert.rejects(
-    () => publishDirectFile({ prepared: value.prepared, transactionId, security: value.security, fs: collisionFs, executor: createLocalExecutor(collisionFs), verificationEvidence: evidence(value.prepared), now }),
+    () => publishDirectFile({ prepared: value.prepared, transactionId, security: value.security, fs: collisionFs, executor: createLocalExecutor(collisionFs), now }),
     /collision preserves live and staged files/,
   );
   const livePath = path.join(value.galleryRoot, constants.directFilename);
@@ -294,7 +350,7 @@ test('promoting recovery accepts only the journaled staged inode after the stage
     },
   };
   await assert.rejects(
-    () => publishDirectFile({ prepared: value.prepared, transactionId: 'promoting-recovery', security: value.security, fs: promotionFs, executor: createLocalExecutor(promotionFs), verificationEvidence: evidence(value.prepared), now }),
+    () => publishDirectFile({ prepared: value.prepared, transactionId: 'promoting-recovery', security: value.security, fs: promotionFs, executor: createLocalExecutor(promotionFs), now }),
     /simulated crash after no-replace rename/,
   );
   await assert.rejects(() => value.fs.lstat(fixedTarget(constants.galleryRoot)), { code: 'ENOENT' });
@@ -311,7 +367,7 @@ test('nested symlink and cross-device transaction paths reject rollback before a
   await symlink(outsideTransactions, path.join(symlinked.stateRoot, 'transactions'));
   const publishSpy = mutationSpy(symlinked.fs);
   await assert.rejects(
-    () => publishDirectFile({ prepared: symlinked.prepared, transactionId: 'symlinked-transaction-parent', security: symlinked.security, fs: publishSpy.fs, executor: createLocalExecutor(publishSpy.fs), verificationEvidence: evidence(symlinked.prepared), now }),
+    () => publishDirectFile({ prepared: symlinked.prepared, transactionId: 'symlinked-transaction-parent', security: symlinked.security, fs: publishSpy.fs, executor: createLocalExecutor(publishSpy.fs), now }),
     /symbolic[ -]link/,
   );
   assert.equal(publishSpy.calls.length, 0);
@@ -401,7 +457,7 @@ test('promotion crash recovery rolls back only the journal-authorized fixed file
   const value = await fixture();
   t.after(() => rm(value.root, { recursive: true, force: true }));
   await assert.rejects(
-    () => publish(value, 'promoted-crash', { phaseHook: async (phase) => { if (phase === 'promoted') throw new Error('simulated crash'); } }),
+    () => publish(value, 'promoted-crash', { phaseHook: async (phase) => { if (phase === 'promoted-awaiting-verification') throw new Error('simulated crash'); } }),
     /simulated crash/,
   );
   await assert.rejects(() => value.fs.lstat(fixedTarget(constants.galleryRoot)), { code: 'ENOENT' });
@@ -413,6 +469,10 @@ test('CLI seals the internal executor and source code cannot address the shell o
     () => runCli(['publish-file', '--executor-module', '/var/tmp/unreviewed.mjs']),
     /outside the direct-file allowlist/,
   );
+  await assert.rejects(
+    () => runCli(['finalize-file', '--verification-evidence', '/var/tmp/caller-authored.json']),
+    /outside the direct-file allowlist/,
+  );
   const [source, primitives, executor] = await Promise.all([
     readFile(new URL('../../scripts/explainers/direct-file.mjs', import.meta.url), 'utf8'),
     readFile(new URL('../../scripts/explainers/direct-file-primitives.mjs', import.meta.url), 'utf8'),
@@ -420,5 +480,7 @@ test('CLI seals the internal executor and source code cannot address the shell o
   ]);
   for (const value of [source, primitives, executor]) assert.doesNotMatch(value, /gallery-index|publisher\.mjs|index\.html|readdir|withLock|locks/);
   assert.doesNotMatch(source, /executor-module/);
+  assert.doesNotMatch(source, /verification-evidence/);
+  assert.match(source, /finalize-file/);
   assert.doesNotMatch(executor, /recursive|glob|wildcard/);
 });

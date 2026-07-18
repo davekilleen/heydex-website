@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { readFile as nodeReadFile, writeFile as nodeWriteFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -26,17 +26,19 @@ import {
   syncJournal,
 } from './direct-file-primitives.mjs';
 import { createFixedSshSeams } from './direct-file-ssh-executor.mjs';
+import { createFixedDirectFileVerifier, DIRECT_FILE_OAUTH_GATE_URL } from './direct-file-verifier.mjs';
 
 export const DIRECT_FILE_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src 'none'; connect-src 'none'; font-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
 export const DIRECT_FILE_POLICY_VERSION = 'direct-file-policy-v1';
-export const DIRECT_FILE_URL = 'https://heydex.ai/explainers/dex-brain-vault-capability-architecture.html';
+export const DIRECT_FILE_URL = constants.directUrl;
 const SCHEMA_VERSION = 1;
 const SHA256 = /^[a-f0-9]{64}$/;
+const NONCE = /^[a-f0-9]{64}$/;
 const METADATA_KEYS = new Set(['schemaVersion', 'slug', 'title', 'summary', 'createdAt', 'artifactSha256']);
-const EVIDENCE_KEYS = new Set(['schemaVersion', 'kind', 'url', 'artifactSha256', 'artifactSize', 'capturedAt', 'authenticated', 'unauthenticated']);
+const FINALIZATION_EVIDENCE_KEYS = new Set(['schemaVersion', 'kind', 'transactionId', 'verificationNonce', 'promotedAt', 'url', 'artifactSha256', 'artifactSize', 'capturedAt', 'authenticated', 'unauthenticated']);
 const BLOCKED_TAGS = new Set(['a', 'area', 'applet', 'base', 'embed', 'form', 'frame', 'frameset', 'iframe', 'link', 'object', 'portal', 'script']);
 const NETWORK_ATTRIBUTES = new Set(['action', 'data', 'formaction', 'href', 'ping', 'poster', 'src', 'srcset', 'xlink:href']);
-const JOURNAL_PHASES = new Set(['prepared', 'uploading', 'uploaded', 'promoting', 'promoted', 'published', 'artifact-quarantining', 'artifact-quarantined', 'staged-removing', 'artifact-removing', 'rolled-back']);
+const JOURNAL_PHASES = new Set(['prepared', 'uploading', 'uploaded', 'promoting', 'promoted-awaiting-verification', 'published', 'artifact-quarantining', 'artifact-quarantined', 'staged-removing', 'artifact-removing', 'rolled-back']);
 
 export class DirectFileValidationError extends Error {
   constructor(message, options) { super(message, options); this.name = 'DirectFileValidationError'; }
@@ -149,6 +151,13 @@ function tokenizeHtml(text) {
   return tokens;
 }
 
+function normalizedViewportContent(value) {
+  if (typeof value !== 'string') return null;
+  const values = value.split(',').map((part) => part.trim().toLowerCase().replace(/\s*=\s*/g, '=')).filter(Boolean);
+  if (values.length !== 2 || new Set(values).size !== 2) return null;
+  return new Set(values).has('width=device-width') && new Set(values).has('initial-scale=1') ? values : null;
+}
+
 function assertHtmlPolicy(bytes) {
   const text = bytes.toString('utf8');
   if (!Buffer.from(text, 'utf8').equals(bytes) || text.includes('\0')) fail('direct artifact must be UTF-8 without NUL bytes');
@@ -156,7 +165,7 @@ function assertHtmlPolicy(bytes) {
   if (tokens[0]?.type !== 'doctype') fail('direct artifact must begin with an HTML doctype');
   const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
   const stack = [];
-  let htmlOpened = false; let htmlClosed = false; let cspCount = 0; let styleDepth = 0;
+  let htmlOpened = false; let htmlClosed = false; let cspCount = 0; let charsetCount = 0; let viewportCount = 0; let styleDepth = 0;
   for (const token of tokens) {
     if (token.type === 'text') {
       if (stack.length === 0 && token.value.trim() !== '') fail('direct artifact has text outside the HTML document');
@@ -177,9 +186,19 @@ function assertHtmlPolicy(bytes) {
       htmlOpened = true;
     }
     if (token.name === 'meta') {
-      if (token.attributes.get('http-equiv')?.toLowerCase() === 'refresh') fail('direct artifact contains meta refresh navigation');
-      if (token.attributes.size !== 2 || token.attributes.get('http-equiv')?.toLowerCase() !== 'content-security-policy' || token.attributes.get('content') !== DIRECT_FILE_CSP) fail('direct artifact must declare exactly one restrictive CSP meta tag');
-      cspCount += 1;
+      const httpEquiv = token.attributes.get('http-equiv')?.trim().toLowerCase();
+      const charset = token.attributes.get('charset')?.trim().toLowerCase();
+      const name = token.attributes.get('name')?.trim().toLowerCase();
+      if (httpEquiv === 'refresh') fail('direct artifact contains meta refresh navigation');
+      if (httpEquiv === 'content-security-policy' && token.attributes.size === 2 && token.attributes.get('content') === DIRECT_FILE_CSP) {
+        cspCount += 1;
+      } else if (charset === 'utf-8' && token.attributes.size === 1) {
+        charsetCount += 1;
+      } else if (name === 'viewport' && token.attributes.size === 2 && normalizedViewportContent(token.attributes.get('content'))) {
+        viewportCount += 1;
+      } else {
+        fail('direct artifact contains an unsupported meta declaration');
+      }
     }
     for (const [attribute, value] of token.attributes) {
       if (attribute.startsWith('on') || NETWORK_ATTRIBUTES.has(attribute)) {
@@ -195,7 +214,7 @@ function assertHtmlPolicy(bytes) {
       if (token.name === 'style') styleDepth += 1;
     }
   }
-  if (!htmlOpened || !htmlClosed || stack.length !== 0 || styleDepth !== 0 || cspCount !== 1) fail('direct artifact must be a complete static HTML document');
+  if (!htmlOpened || !htmlClosed || stack.length !== 0 || styleDepth !== 0 || cspCount !== 1 || charsetCount > 1 || viewportCount > 1) fail('direct artifact must be a complete static HTML document');
   if (/(?:serviceWorker|XMLHttpRequest|\bfetch\s*\(|WebSocket|EventSource|sendBeacon|javascript\s*:)/i.test(text)) fail('direct artifact contains a JavaScript or network API marker');
   assertNoSecretShape(text);
   return text;
@@ -249,19 +268,20 @@ function validateEvidencePart(value, label, expectedHash, expectedSize) {
   if (!isPlainObject(value) || !Number.isInteger(value.status) || typeof value.bodySha256 !== 'string' || !SHA256.test(value.bodySha256) || !Array.isArray(value.requestUrls) || value.requestUrls.some((url) => typeof url !== 'string')) fail(`${label} verification evidence is malformed`);
   if (label === 'authenticated') {
     if (value.status !== 200 || value.bodySha256 !== expectedHash || value.bodySize !== expectedSize || value.xRobotsTag !== 'noindex, nofollow, noarchive' || value.requestUrls.length !== 1 || value.requestUrls[0] !== DIRECT_FILE_URL) fail('authenticated verification evidence does not prove the exact private artifact');
-  } else if (![302, 303, 307, 308].includes(value.status) || value.bodySha256 === expectedHash || value.artifactLeaked !== false || value.requestUrls.length !== 1 || value.requestUrls[0] !== DIRECT_FILE_URL || typeof value.location !== 'string' || value.location === DIRECT_FILE_URL) {
+  } else if (![302, 303, 307, 308].includes(value.status) || value.bodySha256 === expectedHash || value.artifactLeaked !== false || value.requestUrls.length !== 1 || value.requestUrls[0] !== DIRECT_FILE_URL || value.location !== DIRECT_FILE_OAUTH_GATE_URL) {
     fail('unauthenticated verification evidence does not prove redirect and no leak');
   }
 }
 
-export function validateVerificationEvidence(evidence, prepared, now = () => new Date()) {
-  if (!isPlainObject(evidence) || Object.keys(evidence).length !== EVIDENCE_KEYS.size || Object.keys(evidence).some((key) => !EVIDENCE_KEYS.has(key))) fail('verification evidence must contain exactly the direct-file schema fields');
-  if (evidence.schemaVersion !== 1 || evidence.kind !== 'direct-file-verification' || evidence.url !== DIRECT_FILE_URL || evidence.artifactSha256 !== prepared.artifactSha256 || evidence.artifactSize !== prepared.artifactSize) fail('verification evidence is not bound to the exact direct artifact');
+export function validateFinalizationEvidence(evidence, journal, now = () => new Date()) {
+  if (!isPlainObject(evidence) || Object.keys(evidence).length !== FINALIZATION_EVIDENCE_KEYS.size || Object.keys(evidence).some((key) => !FINALIZATION_EVIDENCE_KEYS.has(key))) fail('finalization evidence must contain exactly the direct-file schema fields');
+  if (evidence.schemaVersion !== 1 || evidence.kind !== 'direct-file-finalization' || evidence.transactionId !== journal.transactionId || evidence.verificationNonce !== journal.verificationNonce || evidence.promotedAt !== journal.promotedAt || evidence.url !== DIRECT_FILE_URL || evidence.artifactSha256 !== journal.artifactSha256 || evidence.artifactSize !== journal.artifactSize) fail('finalization evidence is not bound to the promoted direct artifact');
   const capturedAt = assertCanonicalTime(evidence.capturedAt, 'verification evidence capturedAt');
+  const promotedAt = assertCanonicalTime(journal.promotedAt, 'journal promotedAt');
   const current = now();
-  if (!(current instanceof Date) || Number.isNaN(current.valueOf()) || capturedAt > current || current - capturedAt > 30 * 60 * 1000) fail('verification evidence timestamp is not current');
-  validateEvidencePart(evidence.authenticated, 'authenticated', prepared.artifactSha256, prepared.artifactSize);
-  validateEvidencePart(evidence.unauthenticated, 'unauthenticated', prepared.artifactSha256, prepared.artifactSize);
+  if (!(current instanceof Date) || Number.isNaN(current.valueOf()) || capturedAt < promotedAt || capturedAt > current || current - capturedAt > 30 * 60 * 1000) fail('finalization evidence timestamp is not current and post-promotion');
+  validateEvidencePart(evidence.authenticated, 'authenticated', journal.artifactSha256, journal.artifactSize);
+  validateEvidencePart(evidence.unauthenticated, 'unauthenticated', journal.artifactSha256, journal.artifactSize);
   return JSON.parse(JSON.stringify(evidence));
 }
 
@@ -307,7 +327,12 @@ function validateJournal(journal, transactionId, security) {
   if (journal.stagedIdentity !== undefined) validateIdentity(journal.stagedIdentity, 'staged identity');
   if (journal.promotedIdentity !== undefined) validateIdentity(journal.promotedIdentity, 'promoted identity');
   if (['uploaded', 'promoting'].includes(journal.phase) && journal.stagedIdentity === undefined) fail('transaction journal is missing its staged identity');
-  if (['promoted', 'published', 'artifact-quarantining', 'artifact-quarantined', 'artifact-removing'].includes(journal.phase) && journal.promotedIdentity === undefined) fail('transaction journal is missing its promoted identity');
+  const promotedPhases = ['promoted-awaiting-verification', 'published', 'artifact-quarantining', 'artifact-quarantined', 'artifact-removing'];
+  if (promotedPhases.includes(journal.phase) && journal.promotedIdentity === undefined) fail('transaction journal is missing its promoted identity');
+  if (['promoted-awaiting-verification', 'published'].includes(journal.phase)) {
+    if (typeof journal.verificationNonce !== 'string' || !NONCE.test(journal.verificationNonce)) fail('transaction journal is missing its finalization nonce');
+    assertCanonicalTime(journal.promotedAt, 'journal promotedAt');
+  }
   return journal;
 }
 
@@ -341,7 +366,12 @@ async function guardPaths(fs, roots, transactionId, security, options = {}) {
   return assertTransactionPaths({ fs, roots, transactionId, security, ...options });
 }
 
-export async function publishDirectFile({ prepared, galleryRoot = constants.galleryRoot, stateRoot = constants.stateRoot, transactionId, security, verificationEvidence, fs = createNodeFilesystem(), executor = createLocalExecutor(fs), now = () => new Date(), phaseHook }) {
+function createVerificationNonce(bytes = randomBytes(32)) {
+  if (!Buffer.isBuffer(bytes) || bytes.length !== 32) fail('verification nonce source returned invalid bytes');
+  return bytes.toString('hex');
+}
+
+export async function publishDirectFile({ prepared, galleryRoot = constants.galleryRoot, stateRoot = constants.stateRoot, transactionId, security, fs = createNodeFilesystem(), executor = createLocalExecutor(fs), now = () => new Date(), nonceBytes = () => randomBytes(32), phaseHook }) {
   const reviewed = assertPreparedDirectFile(prepared);
   const artifactBytes = preparedBytes(reviewed);
   const validFs = assertFilesystem(fs); const validExecutor = assertExecutor(executor); const validSecurity = normalizeSecurity(security);
@@ -379,15 +409,50 @@ export async function publishDirectFile({ prepared, galleryRoot = constants.gall
     const promoted = await targetIdentity(validFs, paths.target, journal);
     if (promoted?.state !== 'candidate' || !sameFileIdentity(journal.stagedIdentity, promoted.identity)) fail('promoted direct-file identity failed validation');
     journal.promotedIdentity = promoted.identity;
-    await setJournalPhase(validFs, paths.journalPath, journal, 'promoted', validSecurity.state, now, roots.device, phaseHook);
-    journal.publicationVerification = { status: 'verified', evidence: validateVerificationEvidence(verificationEvidence, reviewed, now) };
-    await syncJournal(validFs, paths.journalPath, journal, validSecurity.state, now, roots.device);
-    await setJournalPhase(validFs, paths.journalPath, journal, 'published', validSecurity.state, now, roots.device, phaseHook);
+    const promotedAt = now();
+    if (!(promotedAt instanceof Date) || Number.isNaN(promotedAt.valueOf())) fail('clock must return a valid date');
+    journal.promotedAt = promotedAt.toISOString();
+    journal.verificationNonce = createVerificationNonce(nonceBytes());
+    await setJournalPhase(validFs, paths.journalPath, journal, 'promoted-awaiting-verification', validSecurity.state, now, roots.device, phaseHook);
     return { transactionId, transactionRoot: paths.transactionRoot, journal: { ...journal }, prepared: serializableDirectFile(reviewed) };
   } catch (error) {
     try { await rollbackDirectFile({ transactionId, security: validSecurity, fs: validFs, executor: validExecutor, now, phaseHook }); } catch (recoveryError) { throw new DirectFileValidationError(`direct-file publication recovery failed: ${recoveryError.message}`, { cause: error }); }
     throw error;
   }
+}
+
+function assertVerifier(verifier) {
+  if (!verifier || typeof verifier.verify !== 'function') fail('direct-file finalizer requires the fixed verifier');
+  return verifier;
+}
+
+export async function finalizeDirectFile({ galleryRoot = constants.galleryRoot, stateRoot = constants.stateRoot, transactionId, security, verifier, fs = createNodeFilesystem(), executor = createLocalExecutor(fs), now = () => new Date(), phaseHook }) {
+  const validFs = assertFilesystem(fs); const validExecutor = assertExecutor(executor); const validSecurity = normalizeSecurity(security); const validVerifier = assertVerifier(verifier);
+  const fixedRoots = assertFixedRemoteRoots(galleryRoot, stateRoot);
+  const roots = await preflightFixedRoots({ fs: validFs, ...fixedRoots, security: validSecurity, requiredBytes: validSecurity.minFreeBytes });
+  let paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireTarget: true });
+  const journal = validateJournal(await readJsonFile(validFs, paths.journalPath, validSecurity.state, roots.device, 'direct-file transaction journal'), transactionId, validSecurity);
+  if (journal.phase !== 'promoted-awaiting-verification') fail('direct-file transaction is not awaiting finalization');
+  const liveBeforeVerification = await targetIdentity(validFs, paths.target, journal);
+  if (liveBeforeVerification?.state !== 'candidate' || !sameFileIdentity(journal.promotedIdentity, liveBeforeVerification.identity)) fail('promoted direct-file identity drift refuses finalization');
+  const evidence = validateFinalizationEvidence(await validVerifier.verify({
+    transactionId: journal.transactionId,
+    verificationNonce: journal.verificationNonce,
+    promotedAt: journal.promotedAt,
+    url: journal.url,
+    artifactSha256: journal.artifactSha256,
+    artifactSize: journal.artifactSize,
+    forbiddenStrings: journal.forbiddenStrings,
+  }), journal, now);
+  paths = await guardPaths(validFs, roots, transactionId, validSecurity, { requireTransaction: true, requireJournal: true, requireTarget: true });
+  const currentJournal = validateJournal(await readJsonFile(validFs, paths.journalPath, validSecurity.state, roots.device, 'direct-file transaction journal'), transactionId, validSecurity);
+  if (currentJournal.phase !== 'promoted-awaiting-verification' || currentJournal.verificationNonce !== journal.verificationNonce || currentJournal.promotedAt !== journal.promotedAt || !sameFileIdentity(currentJournal.promotedIdentity, journal.promotedIdentity)) fail('direct-file transaction changed during finalization');
+  const liveAfterVerification = await targetIdentity(validFs, paths.target, currentJournal);
+  if (liveAfterVerification?.state !== 'candidate' || !sameFileIdentity(currentJournal.promotedIdentity, liveAfterVerification.identity)) fail('promoted direct-file identity drift refuses finalization');
+  currentJournal.publicationVerification = { status: 'verified', evidence };
+  await syncJournal(validFs, paths.journalPath, currentJournal, validSecurity.state, now, roots.device);
+  await setJournalPhase(validFs, paths.journalPath, currentJournal, 'published', validSecurity.state, now, roots.device, phaseHook);
+  return { transactionId, transactionRoot: paths.transactionRoot, journal: { ...currentJournal } };
 }
 
 export async function rollbackDirectFile({ galleryRoot = constants.galleryRoot, stateRoot = constants.stateRoot, transactionId, security, verifyOnly = false, fs = createNodeFilesystem(), executor = createLocalExecutor(fs), now = () => new Date(), phaseHook }) {
@@ -477,13 +542,15 @@ export async function runCli(argv, { stdout = process.stdout } = {}) {
     await nodeWriteFile(options['--output'], `${JSON.stringify(serializableDirectFile(prepared), null, 2)}\n`, { mode: 0o600, flag: 'wx' });
     stdout.write(`${options['--output']}\n`); return prepared;
   }
-  if (command !== 'publish-file' && command !== 'rollback-file') fail('usage: direct-file.mjs <prepare-file|publish-file|rollback-file> --name value ...');
-  const publishOptions = ['--prepared', '--verification-evidence', '--key-file', '--transaction', '--security', '--ssh-host', '--ssh-user'];
+  if (command !== 'publish-file' && command !== 'finalize-file' && command !== 'rollback-file') fail('usage: direct-file.mjs <prepare-file|publish-file|finalize-file|rollback-file> --name value ...');
+  const publishOptions = ['--prepared', '--promote-only', '--key-file', '--transaction', '--security', '--ssh-host', '--ssh-user'];
+  const finalizeOptions = ['--cookie-jar', '--key-file', '--transaction', '--security', '--ssh-host', '--ssh-user'];
   const rollbackOptions = ['--key-file', '--transaction', '--security', '--ssh-host', '--ssh-user', '--verify-only'];
-  assertOptionSet(options, command === 'publish-file' ? publishOptions : rollbackOptions);
-  const absolute = command === 'publish-file' ? ['--prepared', '--verification-evidence', '--key-file', '--security'] : ['--key-file', '--security'];
+  assertOptionSet(options, command === 'publish-file' ? publishOptions : command === 'finalize-file' ? finalizeOptions : rollbackOptions);
+  const absolute = command === 'publish-file' ? ['--prepared', '--key-file', '--security'] : command === 'finalize-file' ? ['--cookie-jar', '--key-file', '--security'] : ['--key-file', '--security'];
   requireAbsoluteOptions(options, absolute, command);
   if (!options['--transaction']) fail(`${command} requires --transaction`);
+  if (command === 'publish-file' && options['--promote-only'] !== undefined && options['--promote-only'] !== 'true') fail('--promote-only must be true');
   if (command === 'rollback-file' && options['--verify-only'] !== undefined && options['--verify-only'] !== 'true') fail('--verify-only must be true');
   const ssh = assertSshTarget({ host: options['--ssh-host'], user: options['--ssh-user'] });
   const stagedKey = await stageCliKeyFile(options['--key-file']);
@@ -491,9 +558,9 @@ export async function runCli(argv, { stdout = process.stdout } = {}) {
     const security = JSON.parse((await nodeReadFile(options['--security'])).toString('utf8'));
     const seams = createFixedSshSeams({ keyFile: stagedKey.keyFile, ...ssh });
     if (command === 'rollback-file') return rollbackDirectFile({ transactionId: options['--transaction'], security, verifyOnly: options['--verify-only'] === 'true', fs: seams.fs, executor: seams.executor });
+    if (command === 'finalize-file') return finalizeDirectFile({ transactionId: options['--transaction'], security, verifier: createFixedDirectFileVerifier({ cookieJar: options['--cookie-jar'] }), fs: seams.fs, executor: seams.executor });
     const prepared = deserializeDirectFile(JSON.parse((await nodeReadFile(options['--prepared'])).toString('utf8')));
-    const verificationEvidence = JSON.parse((await nodeReadFile(options['--verification-evidence'])).toString('utf8'));
-    return publishDirectFile({ prepared, transactionId: options['--transaction'], security, verificationEvidence, fs: seams.fs, executor: seams.executor });
+    return publishDirectFile({ prepared, transactionId: options['--transaction'], security, fs: seams.fs, executor: seams.executor });
   } finally { await stagedKey.cleanup(); }
 }
 

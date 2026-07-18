@@ -45,20 +45,42 @@ upload, `lstat`/absence probes, metadata, fsync, `RENAME_NOREPLACE`, and exact
 quarantine/removal. It never enumerates a directory or accepts a glob,
 recursive operation, shell path, or unrelated child.
 
-Before publication, create current JSON verification evidence bound to the
-fixed URL and prepared artifact hash/size. It must record an authenticated
-`200` response with the exact body hash and size,
-`X-Robots-Tag: noindex, nofollow, noarchive`, and exactly the document request;
-and an unauthenticated `302`, `303`, `307`, or `308` redirect with no artifact
-body leak and exactly the document request. The timestamp must be canonical UTC
-and no older than 30 minutes. Missing or invalid evidence immediately triggers
-journal-authorized exact rollback; evidence availability never blocks a later
+Publication is deliberately two-phase. `publish-file` performs only the
+fixed-target upload and no-replace promotion, then records a random 32-byte
+transaction nonce and `promotedAt` in a synced
+`promoted-awaiting-verification` journal. It never marks the transaction
+`published` and accepts no caller-authored verification JSON. `--promote-only
+true` is explicit but optional because promotion-only is the only publish
+behavior.
+
+`finalize-file` invokes the internal fixed curl verifier after promotion. It
+uses only the fixed HTTPS URL, never follows redirects, records exactly that
+single request, and requires unauthenticated access to return `302`, `303`,
+`307`, or `308` to the exact HeyDex OAuth gate
+`https://heydex.ai/oauth2/sign_in` without an artifact hash or private marker.
+It uses a supplied current-user-owned `0600` regular Netscape cookie-jar file
+for the authenticated request, which must return the exact artifact hash/size
+with `X-Robots-Tag: noindex, nofollow, noarchive`. The verifier itself binds the
+fresh result to the transaction ID, nonce, `promotedAt`, URL, and hash/size;
+finalization rechecks the sealed remote target identity after the network checks
+before it can set the journal to `published`. Do not store cookie jars or
+verification output in Git. If finalization fails, run exact
+journal-authorized rollback; the transaction remains unpublished until that
+separate recovery succeeds. Evidence availability never blocks a later
 identity-authorized rollback:
 
 ```bash
 node scripts/explainers/direct-file.mjs publish-file \
   --prepared /protected/prepared-direct-file.json \
-  --verification-evidence /protected/verification-evidence.json \
+  --promote-only true \
+  --transaction <id> \
+  --security /protected/publisher-security.json \
+  --key-file /protected/key \
+  --ssh-host publisher.example.internal \
+  --ssh-user publisher
+
+node scripts/explainers/direct-file.mjs finalize-file \
+  --cookie-jar /protected/heydex-cookies.txt \
   --transaction <id> \
   --security /protected/publisher-security.json \
   --key-file /protected/key \
