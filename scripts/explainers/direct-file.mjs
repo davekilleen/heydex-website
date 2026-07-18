@@ -38,6 +38,7 @@ const METADATA_KEYS = new Set(['schemaVersion', 'slug', 'title', 'summary', 'cre
 const FINALIZATION_EVIDENCE_KEYS = new Set(['schemaVersion', 'kind', 'transactionId', 'verificationNonce', 'promotedAt', 'url', 'artifactSha256', 'artifactSize', 'capturedAt', 'authenticated', 'unauthenticated']);
 const BLOCKED_TAGS = new Set(['a', 'area', 'applet', 'base', 'embed', 'form', 'frame', 'frameset', 'iframe', 'link', 'object', 'portal', 'script']);
 const NETWORK_ATTRIBUTES = new Set(['action', 'data', 'formaction', 'href', 'ping', 'poster', 'src', 'srcset', 'xlink:href']);
+const SAFE_BOOLEAN_ATTRIBUTES = new Map([['details', new Set(['open'])]]);
 const JOURNAL_PHASES = new Set(['prepared', 'uploading', 'uploaded', 'promoting', 'promoted-awaiting-verification', 'published', 'artifact-quarantining', 'artifact-quarantined', 'staged-removing', 'artifact-removing', 'rolled-back']);
 
 export class DirectFileValidationError extends Error {
@@ -132,7 +133,10 @@ function tokenizeHtml(text) {
       const attribute = text.slice(attributeStart, cursor).toLowerCase();
       if (attributes.has(attribute)) fail('direct artifact contains duplicate attributes');
       cursor = skipWhitespace(text, cursor);
-      if (text[cursor] !== '=') fail('direct artifact contains an unquoted or boolean attribute');
+      if (text[cursor] !== '=') {
+        if (!SAFE_BOOLEAN_ATTRIBUTES.get(name)?.has(attribute)) fail('direct artifact contains an unsupported boolean attribute');
+        attributes.set(attribute, null); continue;
+      }
       cursor = skipWhitespace(text, cursor + 1);
       const quote = text[cursor];
       if (quote !== '"' && quote !== "'") fail('direct artifact contains an unquoted attribute');
@@ -201,6 +205,7 @@ function assertHtmlPolicy(bytes) {
       }
     }
     for (const [attribute, value] of token.attributes) {
+      if (value === null && !SAFE_BOOLEAN_ATTRIBUTES.get(token.name)?.has(attribute)) fail('direct artifact contains an unsupported boolean attribute');
       if (attribute.startsWith('on') || NETWORK_ATTRIBUTES.has(attribute)) {
         const allowedDataImage = token.name === 'img' && attribute === 'src' && /^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+$/i.test(value);
         if (!allowedDataImage) fail('direct artifact contains a script, network surface, or navigation attribute');

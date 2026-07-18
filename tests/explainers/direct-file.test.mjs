@@ -153,7 +153,7 @@ async function publish(value, transactionId, options = {}) {
   });
 }
 
-test('receipt accepts the fixed full URL, safe charset and viewport declarations, and data images while rejecting malformed, executable, navigation, and unsupported meta markup', () => {
+test('receipt accepts the fixed full URL, safe charset/viewport metadata, data images, and bare details open while rejecting malformed, executable, navigation, and unsupported attributes', () => {
   const valid = artifact({ body: '<main><img alt="neutral" src="data:image/png;base64,AA=="><p>Neutral local proof.</p></main>' });
   const prepared = prepareDirectFile({ artifactBytes: valid, metadata: metadata(valid), artifactBodyMarker: 'Neutral local proof.' });
   assert.equal(prepared.filename, constants.directFilename);
@@ -170,6 +170,11 @@ test('receipt accepts the fixed full URL, safe charset and viewport declarations
     artifact({ body: '<iframe src="https://example.test"></iframe>' }),
     artifact({ body: '<img srcset="https://example.test/a.png 1x">' }),
     artifact({ body: '<script>fetch("https://example.test")</script>' }),
+    artifact({ body: '<main open><p>Neutral local proof.</p></main>' }),
+    artifact({ body: '<details hidden><summary>Neutral detail</summary><p>Neutral local proof.</p></details>' }),
+    artifact({ body: '<details onclick><summary>Neutral detail</summary><p>Neutral local proof.</p></details>' }),
+    artifact({ body: '<details open=enabled><summary>Neutral detail</summary><p>Neutral local proof.</p></details>' }),
+    artifact({ body: '<main class=neutral><p>Neutral local proof.</p></main>' }),
     artifact({ head: '<meta name="description" content="not allowed">' }),
     artifact({ head: '<meta charset="iso-8859-1">' }),
     artifact({ head: '<meta name="viewport" content="width=device-width, initial-scale=2">' }),
@@ -182,6 +187,13 @@ test('receipt accepts the fixed full URL, safe charset and viewport declarations
   const secret = artifact({ body: '<main>api_key=not-for-publication</main>' });
   assert.throws(() => prepareDirectFile({ artifactBytes: secret, metadata: metadata(secret) }), /secret-shaped/);
   assert.throws(() => assertPreparedDirectFile({ ...prepared, filename: 'index.html' }), /fixed identity/);
+});
+
+test('neutral structural fixture with the exact safe details open form prepares successfully', () => {
+  const bytes = artifact({ body: '<main><h1>Neutral direct artifact</h1><details open><summary>Architecture summary</summary><p>Neutral local proof.</p></details><details><summary>Further detail</summary><p>Static disclosure.</p></details></main>' });
+  const prepared = prepareDirectFile({ artifactBytes: bytes, metadata: metadata(bytes), artifactBodyMarker: 'Neutral local proof.' });
+  assert.equal(prepared.artifactSha256, sha256(bytes));
+  assert.equal(prepared.artifactSize, bytes.length);
 });
 
 test('accepted parser policy plus a loopback request proof permits only the document request', async () => {
