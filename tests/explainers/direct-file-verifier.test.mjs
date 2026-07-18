@@ -30,7 +30,7 @@ function promoted(body) {
   };
 }
 
-function curlRunner({ privateBody, location = DIRECT_FILE_OAUTH_GATE_URL, calls }) {
+function curlRunner({ privateBody, unauthenticatedBody = Buffer.alloc(0), location = DIRECT_FILE_OAUTH_GATE_URL, calls }) {
   return async (command, args, options = {}) => {
     calls.push({ command, args, options });
     const headerPath = args[args.indexOf('--dump-header') + 1];
@@ -41,7 +41,7 @@ function curlRunner({ privateBody, location = DIRECT_FILE_OAUTH_GATE_URL, calls 
       ? 'HTTP/2 200 OK\r\nx-robots-tag: noindex, nofollow, noarchive\r\n\r\n'
       : `HTTP/2 302 Found\r\nlocation: ${location}\r\n\r\n`;
     await writeFile(headerPath, headers);
-    await writeFile(bodyPath, authenticated ? privateBody : 'oauth gate body');
+    await writeFile(bodyPath, authenticated ? privateBody : unauthenticatedBody);
     return { stdout: String(status), stderr: '' };
   };
 }
@@ -99,6 +99,39 @@ test('fixed verifier rejects sign-in, wrong rd, and extra-query OAuth redirects 
     });
     await assert.rejects(() => verifier.verify(promoted(body)), /expected gate/);
   }
+});
+
+async function assertUnauthenticatedBodyRejected(jar, privateBody, unauthenticatedBody) {
+  const input = { ...promoted(privateBody), forbiddenStrings: [] };
+  assert.ok(unauthenticatedBody.length > 0);
+  assert.notEqual(sha256(unauthenticatedBody), input.artifactSha256);
+  const verifier = createFixedDirectFileVerifier({
+    cookieJar: jar.file,
+    now: () => new Date(NOW),
+    run: curlRunner({ privateBody, unauthenticatedBody, calls: [] }),
+  });
+  await assert.rejects(() => verifier.verify(input), /expected gate and no private body/);
+}
+
+test('fixed verifier rejects an exact OAuth-gate redirect with a partial artifact fragment', async (t) => {
+  const jar = await cookieJar();
+  t.after(() => rm(jar.root, { recursive: true, force: true }));
+  const privateBody = Buffer.from('<!doctype html><main>private artifact content that must remain unavailable</main>');
+  await assertUnauthenticatedBodyRejected(jar, privateBody, privateBody.subarray(12, -12));
+});
+
+test('fixed verifier rejects an exact OAuth-gate redirect with textual artifact SHA-256', async (t) => {
+  const jar = await cookieJar();
+  t.after(() => rm(jar.root, { recursive: true, force: true }));
+  const privateBody = Buffer.from('<!doctype html><main>private artifact content that must remain unavailable</main>');
+  await assertUnauthenticatedBodyRejected(jar, privateBody, Buffer.from(`artifact-sha256=${sha256(privateBody)}`));
+});
+
+test('fixed verifier rejects an exact OAuth-gate redirect with a modified near-complete artifact', async (t) => {
+  const jar = await cookieJar();
+  t.after(() => rm(jar.root, { recursive: true, force: true }));
+  const privateBody = Buffer.from('<!doctype html><main>private artifact content that must remain unavailable</main>');
+  await assertUnauthenticatedBodyRejected(jar, privateBody, Buffer.concat([privateBody.subarray(0, -1), Buffer.from('!')]));
 });
 
 test('fixed verifier disables hostile curl config and clears every proxy variable while retaining only the fixed URL', async (t) => {

@@ -115,7 +115,8 @@ function responseEvidence(response, { authenticated, artifactSha256, artifactSiz
     if (response.status !== 200 || response.body.length !== artifactSize || bodySha256 !== artifactSha256 || header(response, 'x-robots-tag') !== 'noindex, nofollow, noarchive') fail('authenticated fixed verifier response does not match the exact private artifact');
     return { status: response.status, bodySha256, bodySize: response.body.length, xRobotsTag: 'noindex, nofollow, noarchive', requestUrls: [constants.directUrl] };
   }
-  if (![302, 303, 307, 308].includes(response.status) || !isFixedDirectFileOauthGateUrl(header(response, 'location')) || bodySha256 === artifactSha256 || forbiddenStrings.some((marker) => response.body.toString('utf8').includes(marker))) fail('unauthenticated fixed verifier response does not prove the expected gate and no private body');
+  const bodyText = response.body.toString('utf8');
+  if (![302, 303, 307, 308].includes(response.status) || !isFixedDirectFileOauthGateUrl(header(response, 'location')) || response.body.length !== 0 || bodySha256 === artifactSha256 || bodyText.includes(artifactSha256) || forbiddenStrings.some((marker) => bodyText.includes(marker))) fail('unauthenticated fixed verifier response does not prove the expected gate and no private body');
   return { status: response.status, bodySha256, artifactLeaked: false, requestUrls: [constants.directUrl], location: DIRECT_FILE_OAUTH_GATE_URL };
 }
 
