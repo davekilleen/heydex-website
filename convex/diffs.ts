@@ -1,8 +1,9 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import { sanitizeContent } from "./sanitization";
 import { getViewerOrNull, requireViewerForMutation } from "./viewer";
+import { requireBetaUser, requireBetaViewer } from "./lib/beta";
 
 const LIST_FETCH_BUFFER_MULTIPLIER = 3;
 const LIST_FETCH_BUFFER_CAP = 200;
@@ -39,6 +40,7 @@ export const get = query({
     diffId: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const author = await getPublicAuthorByHandle(ctx, args.authorHandle);
     if (!author) {
       return null;
@@ -78,6 +80,7 @@ export const list = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const limit = args.limit ?? 50;
     const fetchLimit = Math.min(
       Math.max(limit * LIST_FETCH_BUFFER_MULTIPLIER, limit),
@@ -118,6 +121,7 @@ export const list = query({
 export const listByAuthor = query({
   args: { authorHandle: v.string() },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const author = await ctx.db
       .query("users")
       .withIndex("by_handle", (q) => q.eq("handle", args.authorHandle))
@@ -151,11 +155,88 @@ export const listByAuthor = query({
   },
 });
 
-// Publish a diff via connection code (used by CLI /diff-push)
-// The HTTP endpoint validates the code and passes the user handle.
-export const publishViaCode = mutation({
+export const getForBetaUser = internalQuery({
   args: {
-    userHandle: v.string(),
+    betaUserId: v.id("users"),
+    authorHandle: v.string(),
+    diffId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireBetaUser(ctx, args.betaUserId);
+    const author = await getPublicAuthorByHandle(ctx, args.authorHandle);
+    if (!author) return null;
+
+    const diff = await ctx.db
+      .query("diffs")
+      .withIndex("by_authorHandle_and_diffId", (q) =>
+        q.eq("authorHandle", args.authorHandle).eq("diffId", args.diffId)
+      )
+      .unique();
+    if (!diff || diff.status !== "published" || diff.authorId !== author._id) {
+      return null;
+    }
+    return {
+      diffId: diff.diffId,
+      authorHandle: diff.authorHandle,
+      name: diff.name,
+      description: diff.description,
+      methodology: diff.methodology,
+      tags: diff.tags,
+      roles: diff.roles,
+      integrations: diff.integrations,
+      adoptionCount: diff.adoptionCount,
+      activeUserCount: diff.activeUserCount,
+      publishedAt: diff.publishedAt,
+    };
+  },
+});
+
+export const listForBetaUser = internalQuery({
+  args: {
+    betaUserId: v.id("users"),
+    role: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireBetaUser(ctx, args.betaUserId);
+    const limit = args.limit ?? 50;
+    const fetchLimit = Math.min(
+      Math.max(limit * LIST_FETCH_BUFFER_MULTIPLIER, limit),
+      LIST_FETCH_BUFFER_CAP
+    );
+    const diffs = await ctx.db
+      .query("diffs")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .order("desc")
+      .take(fetchLimit);
+    const roleFiltered = args.role
+      ? diffs.filter((diff) => diff.roles.includes(args.role!))
+      : diffs;
+    const publicAuthorHandles = await getPublicAuthorHandles(
+      ctx,
+      roleFiltered.map((diff) => diff.authorHandle)
+    );
+    return roleFiltered
+      .filter((diff) => publicAuthorHandles.has(diff.authorHandle))
+      .slice(0, limit)
+      .map((diff) => ({
+        diffId: diff.diffId,
+        authorHandle: diff.authorHandle,
+        name: diff.name,
+        description: diff.description,
+        tags: diff.tags,
+        roles: diff.roles,
+        adoptionCount: diff.adoptionCount,
+        publishedAt: diff.publishedAt,
+      }));
+  },
+});
+
+// Publish a diff via connection code (used by CLI /diff-push)
+// The HTTP endpoint validates the code and passes its immutable owner ID.
+export const publishViaCode = internalMutation({
+  args: {
+    userId: v.id("users"),
     diffId: v.string(),
     name: v.string(),
     description: v.string(),
@@ -165,20 +246,17 @@ export const publishViaCode = mutation({
     integrations: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_handle", (q) => q.eq("handle", args.userHandle))
-      .unique();
-
-    if (!user) {
-      return { error: "User not found for handle: " + args.userHandle };
+    const user = await requireBetaUser(ctx, args.userId);
+    if (!user.handle) {
+      return { error: "Complete registration first" };
     }
+    const authorHandle = user.handle;
 
     // Check for existing diff with same ID by this author
     const existing = await ctx.db
       .query("diffs")
-      .withIndex("by_authorHandle_and_diffId", (q) =>
-        q.eq("authorHandle", args.userHandle).eq("diffId", args.diffId)
+      .withIndex("by_authorId_and_diffId", (q) =>
+        q.eq("authorId", user._id).eq("diffId", args.diffId)
       )
       .unique();
 
@@ -193,13 +271,13 @@ export const publishViaCode = mutation({
         status: "published" as const,
         publishedAt: Date.now(),
       });
-      return { id: existing._id, updated: true, diffId: args.diffId, authorHandle: args.userHandle };
+      return { id: existing._id, updated: true, diffId: args.diffId, authorHandle };
     }
 
     const diffDocId = await ctx.db.insert("diffs", {
       diffId: args.diffId,
       authorId: user._id,
-      authorHandle: args.userHandle,
+      authorHandle,
       name: sanitizeContent(args.name),
       description: sanitizeContent(args.description),
       methodology: sanitizeContent(args.methodology),
@@ -212,7 +290,7 @@ export const publishViaCode = mutation({
       publishedAt: Date.now(),
     });
 
-    return { id: diffDocId, updated: false, diffId: args.diffId, authorHandle: args.userHandle };
+    return { id: diffDocId, updated: false, diffId: args.diffId, authorHandle };
   },
 });
 
@@ -229,6 +307,7 @@ export const publish = mutation({
     basedOn: v.optional(v.id("diffs")),
   },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const { user } = await requireViewerForMutation(ctx);
     if (!user.handle) {
       throw new Error("Complete registration first");

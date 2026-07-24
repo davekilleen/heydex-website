@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { Doc } from "./_generated/dataModel";
 import { QueryCtx, internalQuery, query } from "./_generated/server";
 import { getViewerOrNull } from "./viewer";
+import { requireBetaUser, requireBetaViewer } from "./lib/beta";
 
 const PROFILE_BUNDLE_CONTRACT_VERSION = "2026-04-10";
 
@@ -170,6 +171,7 @@ async function getPublishedProfileContent(ctx: QueryCtx, userId: Doc<"users">["_
 export const get = query({
   args: { handle: v.string() },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const accessible = await getAccessibleProfileUser(ctx, args.handle);
     if (!accessible) {
       return null;
@@ -208,6 +210,7 @@ export const get = query({
 export const getBundle = query({
   args: { handle: v.string() },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const accessible = await getAccessibleProfileUser(ctx, args.handle);
     if (!accessible) {
       return null;
@@ -215,6 +218,69 @@ export const getBundle = query({
 
     const { user, visibility } = accessible;
     return await buildProfileBundle(ctx, user, visibility);
+  },
+});
+
+export const getForBetaUser = internalQuery({
+  args: {
+    betaUserId: v.id("users"),
+    handle: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireBetaUser(ctx, args.betaUserId);
+    const accessible = await getAccessibleProfileUser(ctx, args.handle);
+    if (!accessible) return null;
+
+    const { user, visibility } = accessible;
+    const { publishedDiffs } = await getPublishedProfileContent(
+      ctx,
+      user._id,
+      user.handle!,
+    );
+    const canonicalDisplayName = getProfileDisplayName(user);
+    const canonicalTitle = getProfileTitle(user);
+    return {
+      handle: user.handle,
+      displayName: canonicalDisplayName,
+      role: canonicalTitle,
+      title: canonicalTitle,
+      company: user.company,
+      function_: user.function_,
+      seniority: user.seniority,
+      summary: user.summary,
+      photoUrl: getProfilePhotoUrl(user),
+      linkedinUrl: user.linkedinUrl,
+      visibility,
+      diffs: publishedDiffs.map((diff) => ({
+        diffId: diff.diffId,
+        name: diff.name,
+        description: diff.description,
+        tags: diff.tags,
+        roles: diff.roles,
+        adoptionCount: diff.adoptionCount,
+      })),
+      totalAdoptions: publishedDiffs.reduce(
+        (sum, diff) => sum + diff.adoptionCount,
+        0,
+      ),
+    };
+  },
+});
+
+export const getBundleForBetaUser = internalQuery({
+  args: {
+    betaUserId: v.id("users"),
+    handle: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireBetaUser(ctx, args.betaUserId);
+    const accessible = await getAccessibleProfileUser(ctx, args.handle);
+    if (!accessible) return null;
+    return await buildProfileBundle(
+      ctx,
+      accessible.user,
+      accessible.visibility,
+    );
   },
 });
 

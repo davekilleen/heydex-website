@@ -1,6 +1,6 @@
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 
-export const cleanupGhostAuth = mutation({
+export const cleanupGhostAuth = internalMutation({
   async handler(ctx) {
     // Find auth accounts where userId doesn't exist in users table
     const accounts = await ctx.db.query("authAccounts").collect();

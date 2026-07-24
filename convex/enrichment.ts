@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 // ── URL helpers ──────────────────────────────────────────────────────
 
@@ -215,7 +216,8 @@ interface EnrichmentResult {
 
 export const enrichProfile = action({
   args: { linkedinUrl: v.string() },
-  handler: async (_ctx, args): Promise<EnrichmentResult> => {
+  handler: async (ctx, args): Promise<EnrichmentResult> => {
+    await ctx.runQuery(internal.beta.assertViewerAccess, {});
     const { url: normalizedUrl, username } = normalizeLinkedInUrl(
       args.linkedinUrl
     );

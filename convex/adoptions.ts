@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getViewerOrNull, requireViewerForMutation } from "./viewer";
+import { requireViewerForMutation } from "./viewer";
+import { requireBetaViewer } from "./lib/beta";
 
 // Record an adoption (requires auth)
 export const record = mutation({
@@ -9,6 +10,7 @@ export const record = mutation({
     diffSlug: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const { user } = await requireViewerForMutation(ctx);
 
     // Find the diff
@@ -82,6 +84,7 @@ export const remove = mutation({
     diffSlug: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const { user } = await requireViewerForMutation(ctx);
 
     const diff = await ctx.db
@@ -118,7 +121,7 @@ export const remove = mutation({
 export const mine = query({
   args: {},
   handler: async (ctx) => {
-    const viewer = await getViewerOrNull(ctx);
+    const viewer = await requireBetaViewer(ctx);
     if (!viewer) return [];
 
     const adoptions = await ctx.db

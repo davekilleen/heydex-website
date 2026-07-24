@@ -3,6 +3,7 @@ import { internalMutation, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireViewerForMutation } from "./viewer";
 import { viewerCanAccessProfile } from "./profiles";
+import { requireBetaUser, requireBetaViewer } from "./lib/beta";
 
 const ADOPT_GRANT_TTL_MS = 10 * 60 * 1000;
 const GRANT_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -32,6 +33,7 @@ export const generateGrant = mutation({
     targetHandle: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const viewer = await requireViewerForMutation(ctx);
     const targetHandle = normalizeHandle(args.targetHandle);
     const targetUser = await ctx.db
@@ -98,6 +100,7 @@ export const redeemGrant = internalMutation({
       return { ok: false } as const;
     }
 
+    await requireBetaUser(ctx, grant.granterUserId);
     await ctx.db.patch(grant._id, { redeemed: true });
 
     const bundle = await ctx.runQuery(internal.profiles.getBundleUnchecked, {

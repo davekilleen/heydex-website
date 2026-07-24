@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { internalQuery, query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { sanitizeContent } from "./sanitization";
 import {
@@ -7,6 +7,7 @@ import {
   canUseColleaguesVisibility,
 } from "./users";
 import { requireViewerForMutation } from "./viewer";
+import { requireBetaUser, requireBetaViewer } from "./lib/beta";
 
 const REVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const DEFAULT_LOVE_LETTER_DRAFT =
@@ -69,6 +70,18 @@ async function getReviewSessionByCode(ctx: any, sessionCode: string) {
     .unique();
 }
 
+async function requireOwnedBetaReviewSession(ctx: any, sessionCode: string) {
+  const viewer = await requireBetaViewer(ctx);
+  const session = await getReviewSessionByCode(ctx, sessionCode);
+  if (session) {
+    await requireBetaUser(ctx, session.userId);
+    if (viewer && viewer.userId !== session.userId) {
+      throw new Error("Not authorized");
+    }
+  }
+  return session;
+}
+
 function assertSessionEditable(session: any) {
   if (!session) {
     throw new Error("Session not found");
@@ -127,6 +140,7 @@ export const createSession = mutation({
     if (!user) {
       throw new Error("User not found");
     }
+    await requireBetaUser(ctx, user._id);
 
     const existingLoveLetter = await ctx.db
       .query("loveLetters")
@@ -160,6 +174,7 @@ export const createLoveLetterSession = mutation({
     initialText: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const { user } = await requireViewerForMutation(ctx);
     if (!user.handle) {
       throw new Error("Complete registration first");
@@ -196,7 +211,7 @@ export const createLoveLetterSession = mutation({
 export const getSession = query({
   args: { sessionCode: v.string() },
   handler: async (ctx, args) => {
-    const session = await getReviewSessionByCode(ctx, args.sessionCode);
+    const session = await requireOwnedBetaReviewSession(ctx, args.sessionCode);
 
     if (!session) {
       return buildSessionError("NOT_FOUND", "Review link not found");
@@ -262,7 +277,7 @@ export const updateVisibility = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const session = await getReviewSessionByCode(ctx, args.sessionCode);
+    const session = await requireOwnedBetaReviewSession(ctx, args.sessionCode);
     assertSessionEditable(session);
 
     if (args.visibility === "colleagues") {
@@ -289,7 +304,7 @@ export const updatePrivacy = mutation({
   },
   handler: async (ctx, args) => {
     const visibility = args.makePublic ? "public" : "private";
-    const session = await getReviewSessionByCode(ctx, args.sessionCode);
+    const session = await requireOwnedBetaReviewSession(ctx, args.sessionCode);
     assertSessionEditable(session);
 
     await ctx.db.patch(session._id, {
@@ -310,7 +325,7 @@ export const updateDraftDiff = mutation({
     tags: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const session = await getReviewSessionByCode(ctx, args.sessionCode);
+    const session = await requireOwnedBetaReviewSession(ctx, args.sessionCode);
     assertSessionEditable(session);
 
     if (args.index < 0 || args.index >= session.diffsData.length) {
@@ -344,7 +359,7 @@ export const updateProfileDraft = mutation({
     summary: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const session = await getReviewSessionByCode(ctx, args.sessionCode);
+    const session = await requireOwnedBetaReviewSession(ctx, args.sessionCode);
     assertSessionEditable(session);
 
     const updates: Record<string, string> = {};
@@ -370,7 +385,7 @@ export const updateLoveLetterDraft = mutation({
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    const session = await getReviewSessionByCode(ctx, args.sessionCode);
+    const session = await requireOwnedBetaReviewSession(ctx, args.sessionCode);
     assertSessionEditable(session);
 
     await ctx.db.patch(session._id, {
@@ -385,13 +400,10 @@ export const updateLoveLetterDraft = mutation({
 export const publishFromSession = mutation({
   args: { sessionCode: v.string() },
   handler: async (ctx, args) => {
-    const session = await getReviewSessionByCode(ctx, args.sessionCode);
+    const session = await requireOwnedBetaReviewSession(ctx, args.sessionCode);
     assertSessionEditable(session);
 
-    const user = await ctx.db.get(session.userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const user = await requireBetaUser(ctx, session.userId);
 
     if (!user.handle) {
       throw new Error("Complete registration first");
@@ -517,12 +529,7 @@ export const publishFromSession = mutation({
 export const checkPublished = query({
   args: { sessionCode: v.string() },
   handler: async (ctx, args) => {
-    const session = await ctx.db
-      .query("reviewSessions")
-      .withIndex("by_sessionCode", (q) =>
-        q.eq("sessionCode", args.sessionCode.toUpperCase())
-      )
-      .unique();
+    const session = await requireOwnedBetaReviewSession(ctx, args.sessionCode);
 
     if (!session) {
       return { published: false, error: "Session not found" };
@@ -530,6 +537,26 @@ export const checkPublished = query({
 
     const user = await ctx.db.get(session.userId);
 
+    return {
+      published: session.published,
+      handle: user?.handle ?? session.userHandle,
+    };
+  },
+});
+
+export const checkPublishedForUser = internalQuery({
+  args: {
+    sessionCode: v.string(),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireBetaUser(ctx, args.userId);
+    const session = await getReviewSessionByCode(ctx, args.sessionCode);
+    if (!session || session.userId !== args.userId) {
+      return { published: false, error: "Session not found" };
+    }
+
+    const user = await ctx.db.get(session.userId);
     return {
       published: session.published,
       handle: user?.handle ?? session.userHandle,

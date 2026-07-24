@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
+import { isBetaGateDisabled, requireBetaUser } from "./lib/beta";
 import type { MutationCtx } from "./_generated/server";
 
 const ADOPTION_CONTRACT_VERSION = "2026-04-10";
@@ -99,12 +100,19 @@ async function recentAuthorEventCount(ctx: MutationCtx, authorHandle: string, si
 
 export const recordFromDesktop = internalMutation({
   args: {
+    betaUserId: v.optional(v.id("users")),
     authorHandle: v.string(),
     diffIds: v.array(v.string()),
     source: v.string(),
     contractVersion: v.string(),
   },
   handler: async (ctx, args) => {
+    if (!isBetaGateDisabled()) {
+      if (!args.betaUserId) {
+        throw new Error("Not authenticated");
+      }
+      await requireBetaUser(ctx, args.betaUserId);
+    }
     const authorHandle = normalizeHandle(args.authorHandle);
     const source = args.source.trim();
 

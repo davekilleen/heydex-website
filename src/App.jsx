@@ -19,7 +19,11 @@ function withAuthGate(element) {
 
 function usePendoIdentity() {
   const { isAuthenticated } = useConvexAuth();
-  const currentUser = useQuery(api.users.me, isAuthenticated ? {} : 'skip');
+  const betaAccess = useQuery(api.beta.viewerAccess);
+  const currentUser = useQuery(
+    api.users.me,
+    isAuthenticated && betaAccess?.allowed ? {} : 'skip',
+  );
 
   useEffect(() => {
     return identifyPendoVisitorAfterInitialization(currentUser?.email);

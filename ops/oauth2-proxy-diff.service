@@ -1,0 +1,13 @@
+[Unit]
+Description=oauth2-proxy for DexDiff private beta
+After=network-online.target
+
+[Service]
+User=oauth2proxy
+Group=oauth2proxy
+ExecStart=/usr/local/bin/oauth2-proxy --config=/etc/oauth2-proxy/oauth2-proxy-diff.cfg
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

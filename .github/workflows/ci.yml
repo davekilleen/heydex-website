@@ -51,8 +51,16 @@ jobs:
       - name: Build (wrong-deployment tripwire value baked here is the TEST one — CI only)
         run: npm run build
 
+      - name: Run source security contract
+        run: node --test tests/beta-gate-contract.test.mjs
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
+
+      - name: Put dedicated test deployment in legacy mode for the existing suite
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_TEST }}
+        run: npx convex env set BETA_GATE off
 
       - name: Run e2e suite
         run: npx playwright test
@@ -65,6 +73,22 @@ jobs:
           E2E_WEB_SERVER_COMMAND: npm run dev -- --host 127.0.0.1 --port 3001
           E2E_REUSE_EXISTING_SERVER: "0"
         run: npx playwright test tests/e2e/auth-gate.spec.ts
+
+      - name: Enable private-beta enforcement on the dedicated test deployment
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_TEST }}
+        run: npx convex env set BETA_GATE on
+
+      - name: Run private-beta allowlist boundary
+        env:
+          E2E_BETA_GATE: "1"
+        run: npx playwright test tests/e2e/beta-gate.spec.ts
+
+      - name: Restore dedicated test deployment for the existing suite
+        if: always()
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_TEST }}
+        run: npx convex env set BETA_GATE off
 
       - name: Upload Playwright report
         if: failure()

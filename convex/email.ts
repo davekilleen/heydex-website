@@ -3,6 +3,7 @@ import { internalAction, internalMutation, internalQuery, mutation } from "./_ge
 import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 import { requireViewerForMutation } from "./viewer";
+import { requireBetaViewer } from "./lib/beta";
 
 export const getUser = internalQuery({
   args: { userId: v.id("users") },
@@ -141,6 +142,7 @@ export const sendWelcome = internalAction({
 export const requestWelcomeEmail = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireBetaViewer(ctx);
     const { user } = await requireViewerForMutation(ctx);
 
     await ctx.scheduler.runAfter(0, internal.email.sendWelcome, {

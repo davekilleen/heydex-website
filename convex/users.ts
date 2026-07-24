@@ -1,7 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { getViewerOrNull, requireViewerForMutation } from "./viewer";
+import { requireViewerForMutation } from "./viewer";
+import { requireBetaViewer } from "./lib/beta";
 
 const RESERVED_HANDLES = new Set([
   "admin",
@@ -154,6 +155,7 @@ export const register = mutation({
     marketingOptOut: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const { user, identity } = await requireViewerForMutation(ctx);
 
     const handle = normalizeHandle(args.handle);
@@ -254,6 +256,7 @@ export const getByHandle = internalQuery({
 export const checkHandle = query({
   args: { handle: v.string() },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const handle = normalizeHandle(args.handle);
     if (isReservedHandle(handle)) {
       return reservedHandleResult(handle);
@@ -271,6 +274,7 @@ export const checkHandle = query({
 export const checkHandles = query({
   args: { handles: v.array(v.string()) },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const uniqueHandles = [...new Set(args.handles.map((handle) => normalizeHandle(handle)))]
       .filter((handle) => handle.length >= 2);
 
@@ -299,7 +303,7 @@ export const checkHandles = query({
 export const me = query({
   args: {},
   handler: async (ctx) => {
-    const viewer = await getViewerOrNull(ctx);
+    const viewer = await requireBetaViewer(ctx);
     if (!viewer) return null;
 
     // Only return the user if they've completed profile setup (have a handle).
@@ -314,7 +318,7 @@ export const me = query({
 export const viewerState = query({
   args: {},
   handler: async (ctx) => {
-    const viewer = await getViewerOrNull(ctx);
+    const viewer = await requireBetaViewer(ctx);
 
     return {
       authenticated: viewer !== null,
@@ -328,6 +332,7 @@ export const viewerState = query({
 export const syncToken = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireBetaViewer(ctx);
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
@@ -449,6 +454,7 @@ export const updateProfile = mutation({
     integrations: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const { user } = await requireViewerForMutation(ctx);
 
     const updates: Record<string, unknown> = {};
@@ -476,6 +482,7 @@ export const updateProfile = mutation({
 export const deleteAccount = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireBetaViewer(ctx);
     const { user } = await requireViewerForMutation(ctx);
 
     // Delete all adoptions by this user
@@ -544,6 +551,7 @@ export const setVisibility = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const { user } = await requireViewerForMutation(ctx);
     assertVisibilityAllowedForUser(user, args.visibility);
 
@@ -560,6 +568,7 @@ export const setVisibility = mutation({
 export const togglePublic = mutation({
   args: { isPublic: v.boolean() },
   handler: async (ctx, args) => {
+    await requireBetaViewer(ctx);
     const { user } = await requireViewerForMutation(ctx);
 
     await ctx.db.patch(user._id, {

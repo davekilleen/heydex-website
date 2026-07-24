@@ -7,6 +7,7 @@ import {
   normalizeDomain,
 } from "./users";
 import { getCompanyViewForUser } from "./companies";
+import { normalizeBetaEmail } from "./lib/beta";
 
 const REVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const CLI_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -51,6 +52,7 @@ const companyMemberValidator = v.object({
   photoUrl: v.optional(v.string()),
   integrations: v.optional(v.array(v.string())),
   visibility: visibilityValidator,
+  betaAllowed: v.optional(v.boolean()),
   diffs: v.optional(v.array(companyDiffValidator)),
 });
 
@@ -77,6 +79,7 @@ type HarnessUserArgs = {
   photoUrl?: string;
   integrations?: string[];
   visibility: "private" | "colleagues" | "public";
+  betaAllowed?: boolean;
 };
 
 type HarnessDiff = ReviewDiff & {
@@ -213,6 +216,21 @@ async function upsertHarnessUser(
       ? `${args.handle}@${normalizeDomain(args.domain)}`
       : defaults.email
   );
+  const normalizedEmail = normalizeBetaEmail(email);
+  const allowlistEntry = await ctx.db
+    .query("betaAllowlist")
+    .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+    .unique();
+  if (args.betaAllowed === false) {
+    if (allowlistEntry) await ctx.db.delete(allowlistEntry._id);
+  } else if (!allowlistEntry) {
+    await ctx.db.insert("betaAllowlist", {
+      email: normalizedEmail,
+      addedBy: "e2e-test-harness",
+      addedAt: Date.now(),
+      note: "Ephemeral E2E identity",
+    });
+  }
   const domain = args.domain
     ? normalizeDomain(args.domain)
     : getDomainForEmail(email);
@@ -247,6 +265,8 @@ async function upsertHarnessUser(
     return {
       _id: existingUser._id,
       handle: args.handle,
+      email,
+      domain,
     };
   }
 
@@ -318,6 +338,7 @@ export const createCliSession = internalMutation({
     photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
+    betaAllowed: v.optional(v.boolean()),
     expired: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -336,6 +357,7 @@ export const createCliSession = internalMutation({
       photoUrl: args.photoUrl,
       integrations: args.integrations,
       visibility,
+      betaAllowed: args.betaAllowed,
     });
 
     const sessionToken = crypto.randomUUID().replace(/-/g, "");
@@ -368,6 +390,7 @@ export const createConnectionCode = internalMutation({
     photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
+    betaAllowed: v.optional(v.boolean()),
     expired: v.optional(v.boolean()),
     redeemed: v.optional(v.boolean()),
   },
@@ -387,6 +410,7 @@ export const createConnectionCode = internalMutation({
       photoUrl: args.photoUrl,
       integrations: args.integrations,
       visibility,
+      betaAllowed: args.betaAllowed,
     });
 
     const code = generateSessionCode(6);
@@ -419,6 +443,7 @@ export const createReviewSession = internalMutation({
     photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
+    betaAllowed: v.optional(v.boolean()),
     diffs: v.optional(v.array(reviewDiffValidator)),
     expired: v.optional(v.boolean()),
   },
@@ -438,6 +463,7 @@ export const createReviewSession = internalMutation({
       photoUrl: args.photoUrl,
       integrations: args.integrations,
       visibility,
+      betaAllowed: args.betaAllowed,
     });
 
     const sessionCode = generateSessionCode(8);
@@ -475,6 +501,7 @@ export const createPublicProfileBundle = internalMutation({
     photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
+    betaAllowed: v.optional(v.boolean()),
     loveLetter: v.optional(v.string()),
     diffs: v.optional(v.array(reviewDiffValidator)),
   },
@@ -494,6 +521,7 @@ export const createPublicProfileBundle = internalMutation({
       photoUrl: args.photoUrl,
       integrations: args.integrations,
       visibility,
+      betaAllowed: args.betaAllowed,
     });
 
     const diffs = args.diffs && args.diffs.length > 0 ? args.diffs : DEFAULT_DIFFS;
@@ -685,6 +713,7 @@ export const createAuthUser = internalMutation({
     photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
+    betaAllowed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const handle = args.handle ?? `auth-${Date.now()}`;
@@ -702,6 +731,7 @@ export const createAuthUser = internalMutation({
       photoUrl: args.photoUrl,
       integrations: args.integrations,
       visibility,
+      betaAllowed: args.betaAllowed,
     });
 
     return {
@@ -737,6 +767,7 @@ export const createCompanyDomain = internalMutation({
         photoUrl: member.photoUrl,
         integrations: member.integrations,
         visibility: member.visibility,
+        betaAllowed: member.betaAllowed,
       });
 
       if (member.diffs && member.diffs.length > 0) {

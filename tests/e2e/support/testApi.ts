@@ -28,6 +28,7 @@ export type ReviewSeedOptions = {
   photoUrl?: string;
   integrations?: string[];
   visibility?: Visibility;
+  betaAllowed?: boolean;
   expired?: boolean;
   redeemed?: boolean;
 };
@@ -329,13 +330,41 @@ export async function redeemConnectionCodeExpectError(
 
 export async function getReviewStatus(
   request: APIRequestContext,
-  sessionCode: string
+  sessionCode: string,
+  sessionToken?: string,
 ) {
   const response = await request.get(
-    `${getApiBaseUrl()}/review/status?session=${encodeURIComponent(sessionCode)}`
+    `${getApiBaseUrl()}/review/status?session=${encodeURIComponent(sessionCode)}`,
+    sessionToken
+      ? { headers: { authorization: `Bearer ${sessionToken}` } }
+      : undefined,
   );
   await expect(response).toBeOK();
   return await response.json();
+}
+
+export function getAuthenticatedConvexClient(authState: BrowserAuthState) {
+  return new ConvexHttpClient(getConvexUrl(), { auth: authState.token });
+}
+
+export function getAnonymousConvexClient() {
+  return new ConvexHttpClient(getConvexUrl());
+}
+
+export async function removeBetaEmail(
+  request: APIRequestContext,
+  email: string,
+) {
+  const response = await request.post(`${getApiBaseUrl()}/test/remove-beta-email`, {
+    headers: getTestSecretHeader(),
+    data: { email },
+  });
+  await expect(response).toBeOK();
+  return await response.json();
+}
+
+export function apiUrl(path: string) {
+  return `${getApiBaseUrl()}${path}`;
 }
 
 export async function getReviewSession(sessionCode: string) {
