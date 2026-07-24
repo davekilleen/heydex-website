@@ -96,8 +96,8 @@ function SignedOut({ onSignIn, busy, error }) {
       <div className={styles.meta}>Dex beta</div>
       <h1>Shape what comes next</h1>
       <p className={styles.intro}>
-        Dex beta — sign up for early access to the Dex Desktop app and
-        DexDiff. Sign in with Google so we know where to reach you.
+        Early access to the Dex Desktop app and DexDiff is opening soon.
+        Sign in with Google so we know where to reach you.
       </p>
       <button
         className={styles.oauthButton}
