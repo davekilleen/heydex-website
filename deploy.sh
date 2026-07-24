@@ -15,10 +15,12 @@ VPS="ubuntu@57.129.134.24"
 SSH_KEY="~/.ssh/acfs_ed25519"
 TMP_DIFF="$(mktemp -d /tmp/heydex-diff.XXXXXX)"
 TMP_CONNECT="$(mktemp -d /tmp/heydex-connect.XXXXXX)"
+TMP_BETA="$(mktemp -d /tmp/heydex-beta.XXXXXX)"
 TMP_DESKTOP="$(mktemp -d /tmp/heydex-desktop.XXXXXX)"
 STAGING="/tmp/heydex-deploy/"
 LIVE_DIFF="/var/www/heydex/diff/"
 LIVE_CONNECT="/var/www/heydex/connect/"
+LIVE_BETA="/var/www/heydex/beta/"
 LIVE_DESKTOP="/var/www/heydex/desktop/"
 DESKTOP_HELP_SITE="${DESKTOP_HELP_SITE:-$(dirname "$0")/../dex-desktop-concierge/help/site/}"
 DESKTOP_HELP_SITE="${DESKTOP_HELP_SITE%/}/"
@@ -37,16 +39,16 @@ DIFF_AUTH_PROVIDERS="${DIFF_AUTH_PROVIDERS:-google}"
 # drift check fires, reconcile manually on the host before treating the Caddy
 # contract as accurate.
 #
-# The React app is deployed as three route-scoped copies, but those copies do
+# The React app is deployed as four route-scoped copies, but those copies do
 # not all talk to the same Convex deployment. DexDiff routes (/diff and
-# /connect) use gallant-reindeer-229 (project heydex-web, PROD; dev is
+# /connect and /beta) use gallant-reindeer-229 (project heydex-web, PROD; dev is
 # bright-sandpiper-976). The desktop beta portal (/desktop) uses focused-mouse-723.
 # Build each backend target independently so Vite bakes the right Convex URL
 # into each bundle. The DexDiff build also carries the temporary auth gate
 # flag and the Google-only sign-in flag; the desktop build does not.
 
 cleanup() {
-  rm -rf "$TMP_DIFF" "$TMP_CONNECT" "$TMP_DESKTOP"
+  rm -rf "$TMP_DIFF" "$TMP_CONNECT" "$TMP_BETA" "$TMP_DESKTOP"
 }
 trap cleanup EXIT
 
@@ -59,6 +61,7 @@ echo "🏗️ Building DexDiff React app..."
 )
 cp -R dist/. "$TMP_DIFF/"
 cp -R dist/. "$TMP_CONNECT/"
+cp -R dist/. "$TMP_BETA/"
 echo ""
 
 echo "🏗️ Building desktop React app..."
@@ -70,14 +73,14 @@ echo "🏗️ Building desktop React app..."
 cp -R dist/. "$TMP_DESKTOP/"
 echo ""
 
-python3 - <<'PY' "$TMP_DIFF/index.html" "/diff/" "$TMP_CONNECT/index.html" "/connect/" "$TMP_DESKTOP/index.html" "/desktop/"
+python3 - <<'PY' "$TMP_DIFF/index.html" "/diff/" "$TMP_CONNECT/index.html" "/connect/" "$TMP_BETA/index.html" "/beta/" "$TMP_DESKTOP/index.html" "/desktop/"
 from pathlib import Path
 import sys
 
 def inject_base(index_path: str, base_href: str) -> None:
     path = Path(index_path)
     html = path.read_text()
-    for existing in ("/diff/", "/connect/", "/desktop/"):
+    for existing in ("/diff/", "/connect/", "/beta/", "/desktop/"):
         html = html.replace(f'<base href="{existing}">', '')
     html = html.replace("<head>", f"<head>\n  <base href=\"{base_href}\">", 1)
     path.write_text(html)
@@ -97,6 +100,10 @@ for wrong in focused-mouse-723 brave-ibex-877 bright-sandpiper-976; do
     echo "ABORT: connect copy references the wrong Convex deployment ($wrong)." >&2
     exit 1
   fi
+  if grep -rqs "$wrong" "$TMP_BETA"; then
+    echo "ABORT: beta copy references the wrong Convex deployment ($wrong)." >&2
+    exit 1
+  fi
 done
 
 if ! grep -rqs "gallant-reindeer-229" "$TMP_DIFF"; then
@@ -106,6 +113,11 @@ fi
 
 if ! grep -rqs "gallant-reindeer-229" "$TMP_CONNECT"; then
   echo "ABORT: connect copy does not reference the DexDiff prod deployment (gallant-reindeer-229)." >&2
+  exit 1
+fi
+
+if ! grep -rqs "gallant-reindeer-229" "$TMP_BETA"; then
+  echo "ABORT: beta copy does not reference the DexDiff prod deployment (gallant-reindeer-229)." >&2
   exit 1
 fi
 
@@ -120,6 +132,7 @@ if [ "$1" = "--dry-run" ]; then
   echo "=== DRY RUN ==="
   rsync -avzn --delete -e "ssh -i $SSH_KEY" "$TMP_DIFF/" "$VPS:$STAGING/diff/"
   rsync -avzn --delete -e "ssh -i $SSH_KEY" "$TMP_CONNECT/" "$VPS:$STAGING/connect/"
+  rsync -avzn --delete -e "ssh -i $SSH_KEY" "$TMP_BETA/" "$VPS:$STAGING/beta/"
   rsync -avzn --delete -e "ssh -i $SSH_KEY" "$TMP_DESKTOP/" "$VPS:$STAGING/desktop/"
   exit 0
 fi
@@ -131,14 +144,15 @@ if [ ! -d "$DESKTOP_HELP_SITE" ]; then
 fi
 
 echo "→ Syncing to staging..."
-ssh -i "$SSH_KEY" "$VPS" "mkdir -p \"$STAGING/diff\" \"$STAGING/connect\" \"$STAGING/desktop/help\""   # ensure staging dirs exist (rsync won't create missing parents)
+ssh -i "$SSH_KEY" "$VPS" "mkdir -p \"$STAGING/diff\" \"$STAGING/connect\" \"$STAGING/beta\" \"$STAGING/desktop/help\""   # ensure staging dirs exist (rsync won't create missing parents)
 rsync -avz --delete -e "ssh -i $SSH_KEY" "$TMP_DIFF/" "$VPS:$STAGING/diff/"
 rsync -avz --delete -e "ssh -i $SSH_KEY" "$TMP_CONNECT/" "$VPS:$STAGING/connect/"
+rsync -avz --delete -e "ssh -i $SSH_KEY" "$TMP_BETA/" "$VPS:$STAGING/beta/"
 rsync -avz --delete --chmod=u=rwX,go=rX -e "ssh -i $SSH_KEY" "$TMP_DESKTOP/" "$VPS:$STAGING/desktop/"
 rsync -avz --delete --chmod=u=rwX,go=rX -e "ssh -i $SSH_KEY" "$DESKTOP_HELP_SITE" "$VPS:$STAGING/desktop/help/"
 
 echo "→ Promoting to live..."
-ssh -i "$SSH_KEY" "$VPS" "sudo rm -rf ${LIVE_DIFF}* ${LIVE_CONNECT}* && sudo cp -r $STAGING/diff/* $LIVE_DIFF && sudo cp -r $STAGING/connect/* $LIVE_CONNECT && sudo chown -R dex:dex $LIVE_DIFF $LIVE_CONNECT"
+ssh -i "$SSH_KEY" "$VPS" "sudo mkdir -p $LIVE_BETA && sudo rm -rf ${LIVE_DIFF}* ${LIVE_CONNECT}* ${LIVE_BETA}* && sudo cp -r $STAGING/diff/* $LIVE_DIFF && sudo cp -r $STAGING/connect/* $LIVE_CONNECT && sudo cp -r $STAGING/beta/* $LIVE_BETA && sudo chown -R dex:dex $LIVE_DIFF $LIVE_CONNECT $LIVE_BETA"
 # The desktop promote uses --delete, so every durable directory that lives under
 # /desktop but is NOT part of this build must be excluded or it gets wiped:
 #   downloads/  beta DMG installers (shipped separately, DESKTOP_DMG=...)
@@ -179,6 +193,7 @@ echo ""
 echo "✓ Deployed React app to:"
 echo "  - heydex.ai/diff/"
 echo "  - heydex.ai/connect/"
+echo "  - heydex.ai/beta/"
 echo "  - heydex.ai/desktop/"
 echo "  - heydex.ai/ (marketing homepage + root images)"
 

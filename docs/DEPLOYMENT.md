@@ -24,7 +24,7 @@ and the desktop app backend are intentionally separate.
 | Legacy dev/test deployment (e2e suites, CI target) | `dex` | `brave-ibex-877` | `https://brave-ibex-877.eu-west-1.convex.cloud` |
 | `/desktop` portal + desktop app backend | `dex` | `focused-mouse-723` | `https://focused-mouse-723.eu-west-1.convex.cloud` |
 
-`deploy.sh` bakes `gallant-reindeer-229` into the `/diff`+`/connect` bundles
+`deploy.sh` bakes `gallant-reindeer-229` into the `/diff`+`/connect`+`/beta` bundles
 (Google-only sign-in via `VITE_AUTH_PROVIDERS=google`) and aborts if a bundle
 references a known-wrong deployment.
 
@@ -33,7 +33,7 @@ references a known-wrong deployment.
 This repo deploys two different things:
 
 1. Convex backend
-2. Caddy-hosted web surfaces for `/diff/` and `/connect/`
+2. Caddy-hosted web surfaces for `/diff/`, `/connect/`, and `/beta/`
 
 The root marketing landing deploys via `deploy-root.sh`, which `deploy.sh`
 calls on every frontend deploy (they were separate historically; the homepage
@@ -82,9 +82,11 @@ later. All invalid requests intentionally return the same opaque 400 JSON body.
 4. Creates route-scoped copies of the built React app with:
    - `<base href="/diff/">` for the `/diff/` surface
    - `<base href="/connect/">` for the `/connect/` surface
+   - `<base href="/beta/">` for the `/beta/` surface
 5. Copies those route-scoped builds into:
    - `/var/www/heydex/diff/`
    - `/var/www/heydex/connect/`
+   - `/var/www/heydex/beta/`
 6. Overlays these static directories from `diff/`:
    - `community`
    - `love-letters`
@@ -142,7 +144,8 @@ Production routing currently works in this order:
    - if a real static subdirectory exists, Caddy serves that directory first
    - otherwise it falls back to `/var/www/heydex/diff/index.html`
 4. `/connect` and `/connect/*` use the same fallback pattern rooted at `/var/www/heydex/connect`
-5. everything else is served as plain static content from `/var/www/heydex`
+5. `/beta` and `/beta/*` use the same fallback pattern rooted at `/var/www/heydex/beta`
+6. everything else is served as plain static content from `/var/www/heydex`
 
 This explains the current live behavior:
 - `/diff/review/` cold-loads into React because no static `review/` directory exists

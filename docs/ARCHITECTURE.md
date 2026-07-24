@@ -39,6 +39,7 @@ That portable runtime should converge into `dex-core`.
 ## Route Model
 
 React:
+- `/beta/`
 - `/connect/`
 - `/diff/`
 - `/diff/profile/`
@@ -83,6 +84,13 @@ Current implementation rule:
 3. `users.register` completes the profile and handle claim
 4. User is redirected to `/diff/profile/`
 
+### Beta Signup
+1. User lands on `/beta/` and signs in with Google through Convex Auth
+2. The page loads any existing `betaSignups` row for that viewer
+3. The user submits or updates the questionnaire, with optional LinkedIn enrichment
+4. Convex stores one signup per user and schedules the confirmation email
+5. Returning users see their saved answers and can update them
+
 ### CLI Link
 1. CLI opens `/connect/?cli=true`
 2. Signed-in browser calls `connect.generateCode`
@@ -109,6 +117,8 @@ Current implementation rule:
 
 - `convex/viewer.ts`
   - canonical viewer resolution helpers
+- `convex/betaSignups.ts`
+  - authenticated beta questionnaire upsert + confirmation email
 - `convex/users.ts`
   - registration, profile edits, account deletion, visibility
 - `convex/connect.ts`
