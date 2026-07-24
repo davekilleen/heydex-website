@@ -26,6 +26,7 @@ const HTTP_ROUTE_POLICIES = new Map([
   ["GET /api/test/diffs", "test"],
   ["POST /api/test/bootstrap-adoption", "test"],
   ["POST /api/test/bootstrap-adopt-grant", "test"],
+  ["POST /api/test/set-beta-email", "test"],
   ["POST /api/test/remove-beta-email", "test"],
   ["POST /api/publish", "beta"],
   ["POST /api/love-letter", "beta"],
@@ -50,7 +51,7 @@ const HTTP_ROUTE_POLICIES = new Map([
 test("every explicit HTTP route is classified exhaustively", () => {
   const source = read("convex/http.ts");
   const routePattern =
-    /http\.route\(\{\s*path:\s*"([^"]+)",\s*method:\s*"([^"]+)"/g;
+    /(?:http\.route|registerTestRoute)\(\{\s*path:\s*"([^"]+)",\s*method:\s*"([^"]+)"/g;
   const actual = [...source.matchAll(routePattern)].map(
     ([, path, method]) => `${method} ${path}`,
   );
@@ -70,6 +71,98 @@ test("beta authorization has one normalized table-backed primitive and rollback 
   assert.match(helper, /toLowerCase\(\)/);
   assert.match(helper, /process\.env\.BETA_GATE/);
   assert.match(helper, /=== "off"/);
+  assert.match(helper, /console\.warn\([^)]*BETA_GATE=off/s);
+});
+
+test("test routes and harness functions are structurally disabled in production", () => {
+  const http = read("convex/http.ts");
+  const harness = read("convex/testHarness.ts");
+  const environment = read("convex/lib/environment.js");
+  const releaseGate = read("scripts/check-production-convex-env.sh");
+
+  assert.match(
+    environment,
+    /process\.env\.CONVEX_ENV\?\.trim\(\)\.toLowerCase\(\) === "prod"/,
+  );
+  assert.match(
+    environment,
+    /process\.env\.CONVEX_ENV\?\.trim\(\)\.toLowerCase\(\) === "test"/,
+  );
+  assert.match(http, /function registerTestRoute/);
+  assert.match(http, /if \(!isTestHarnessEnvironment\(\)\)/);
+  assert.match(http, /registerTestRoute\(\{\s*path:\s*"\/api\/test\//);
+  assert.doesNotMatch(http, /http\.route\(\{\s*path:\s*"\/api\/test\//);
+  assert.match(harness, /function assertTestHarnessAvailable/);
+
+  const harnessExports = [...harness.matchAll(
+    /export const \w+ = internal(?:Mutation|Query)\(\{([\s\S]*?)(?=\n\}\);\n)/g,
+  )];
+  assert.ok(harnessExports.length > 0, "expected internal test harness functions");
+  for (const [, block] of harnessExports) {
+    assert.match(block, /handler:\s*async[\s\S]*?assertTestHarnessAvailable\(\)/);
+  }
+
+  assert.doesNotMatch(harness, /betaAllowlist/);
+  assert.doesNotMatch(harness, /betaAllowed/);
+  assert.match(releaseGate, /CONVEX_ENV=prod/);
+  assert.match(releaseGate, /E2E_TEST_SECRET/);
+});
+
+test("connection code redemption is internal-only and codes are widened", () => {
+  const source = read("convex/connect.ts");
+  const http = read("convex/http.ts");
+
+  assert.match(source, /export const redeemCode = internalMutation/);
+  assert.doesNotMatch(source, /export const redeemCode = mutation/);
+  assert.doesNotMatch(source, /redeemCodeForHttp/);
+  assert.match(http, /internal\.connect\.redeemCode/);
+  assert.match(source, /generateSecureCode\([^,]+,\s*10\)/);
+
+  const helperStart = http.indexOf("async function redeemCodeForHttp");
+  const helperEnd = http.indexOf("function authorizeTestHarness", helperStart);
+  assert.match(http.slice(helperStart, helperEnd), /checkRateLimit\(ip\)/);
+  const redemptionCalls = [
+    ...http.matchAll(/redeemCodeForHttp\(ctx,\s*code,\s*ip\)/g),
+  ];
+  assert.equal(redemptionCalls.length, 3);
+});
+
+test("profile grant redemption requires and matches an allowlisted recipient", () => {
+  const schema = read("convex/schema.ts");
+  const adopt = read("convex/adopt.ts");
+  const http = read("convex/http.ts");
+  const profiles = read("convex/profiles.ts");
+
+  assert.match(
+    schema,
+    /adoptGrants:[\s\S]*recipientUserId:\s*v\.optional\(v\.id\("users"\)\)/,
+  );
+  assert.match(adopt, /recipientUserId:\s*viewer\.userId/);
+  assert.match(adopt, /recipientUserId:\s*v\.id\("users"\)/);
+  assert.match(adopt, /grant\.recipientUserId !== args\.recipientUserId/);
+  assert.match(adopt, /requireBetaUser\(ctx,\s*args\.recipientUserId\)/);
+  assert.match(adopt, /internal\.profiles\.getBundleForBetaUser/);
+  assert.doesNotMatch(adopt, /getBundleUnchecked/);
+  assert.doesNotMatch(profiles, /export const getBundleUnchecked/);
+
+  const routeStart = http.indexOf('path: "/api/profile-bundle/redeem"');
+  const routeEnd = http.indexOf("// GET /api/diffs", routeStart);
+  const route = http.slice(routeStart, routeEnd);
+  assert.match(route, /resolveRequiredHttpBetaUser\(ctx,\s*req\)/);
+  assert.match(route, /recipientUserId:\s*betaAccess\.user\._id/);
+});
+
+test("security-sensitive codes use crypto randomness at required lengths", () => {
+  const random = read("convex/lib/random.js");
+  const adopt = read("convex/adopt.ts");
+  const connect = read("convex/connect.ts");
+  const review = read("convex/review.ts");
+
+  assert.match(random, /crypto\.getRandomValues/);
+  assert.doesNotMatch(adopt + connect + review, /Math\.random/);
+  assert.match(adopt, /generateSecureCode\([^,]+,\s*16\)/);
+  assert.match(connect, /generateSecureCode\([^,]+,\s*10\)/);
+  assert.match(review, /generateSecureCode\([^,]+,\s*16\)/);
 });
 
 test("publishViaCode is internal and bound to immutable userId", () => {
@@ -154,6 +247,7 @@ test("production release gate rejects E2E_TEST_SECRET and E2E targets prod", () 
   assert.match(releaseGate, /E2E_TEST_SECRET/);
   assert.match(releaseGate, /gallant-reindeer-229/);
   assert.match(deploy, /check-production-convex-env\.sh/);
+  assert.match(ci, /convex env set CONVEX_ENV test/);
   assert.match(ci, /brave-ibex-877/);
   assert.doesNotMatch(ci, /CONVEX_DEPLOY_KEY_PROD/);
 });

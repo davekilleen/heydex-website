@@ -28,7 +28,7 @@ test("CLI review contract can mint a review session and report unpublished statu
     ],
   });
 
-  expect(created.sessionCode).toMatch(/^[A-Z2-9]{8}$/);
+  expect(created.sessionCode).toMatch(/^[A-Z2-9]{16}$/);
 
   const status = await getReviewStatus(request, created.sessionCode);
   expect(status.published).toBe(false);

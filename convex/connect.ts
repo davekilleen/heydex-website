@@ -3,9 +3,11 @@ import { mutation, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireViewerForMutation } from "./viewer";
 import { requireBetaUser, requireBetaViewer } from "./lib/beta";
+import { generateSecureCode } from "./lib/random";
 
 const CLI_CODE_TTL_MS = 30 * 60 * 1000;
 const CLI_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const CLI_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function generateCliSessionToken(): string {
   return crypto.randomUUID().replace(/-/g, "");
@@ -13,19 +15,14 @@ function generateCliSessionToken(): string {
 
 // Generate a one-time connection code for the CLI device flow.
 // Called from the web after the user logs in.
-// Returns a 6-character code the user pastes into their terminal.
+// Returns a 10-character code the user pastes into their terminal.
 export const generateCode = mutation({
   args: {},
   handler: async (ctx) => {
     await requireBetaViewer(ctx);
     const { user } = await requireViewerForMutation(ctx);
 
-    // Generate a random 6-character alphanumeric code
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I/O/0/1 to avoid confusion
-    let code = "";
-    for (let i = 0; i < 6; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
-    }
+    const code = generateSecureCode(CLI_CODE_ALPHABET, 10);
 
     // Store the code with 30-minute expiry
     await ctx.db.insert("connectionCodes", {
@@ -87,17 +84,7 @@ async function redeemConnectionCode(ctx: any, code: string) {
     };
 }
 
-export const redeemCode = mutation({
-  args: { code: v.string() },
-  handler: async (ctx, args) => {
-    const result = await redeemConnectionCode(ctx, args.code);
-    if ("error" in result) return result;
-    const { userId: _userId, ...publicResult } = result;
-    return publicResult;
-  },
-});
-
-export const redeemCodeForHttp = internalMutation({
+export const redeemCode = internalMutation({
   args: { code: v.string() },
   handler: async (ctx, args) => {
     return await redeemConnectionCode(ctx, args.code);

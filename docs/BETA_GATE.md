@@ -5,14 +5,16 @@ static HTML and is not trusted to protect DexDiff data or publishing.
 
 ## Rollout
 
-1. Deploy the Convex schema and functions to the dedicated test deployment.
+1. Set `CONVEX_ENV=test` on the dedicated test deployment, then deploy the
+   Convex schema and functions there.
 2. Set `BETA_GATE=on` there and run `npm run e2e:beta`.
-3. Deploy the same Convex functions to production.
-4. Run `npx convex run --prod beta:seedAllowlist` once, then regenerate the
+3. Set `CONVEX_ENV=prod` on production and verify
+   `scripts/check-production-convex-env.sh` reports both that value and that
+   `E2E_TEST_SECRET` is unset.
+4. Deploy the same Convex functions to production.
+5. Run `npx convex run --prod beta:seedAllowlist` once, then regenerate the
    cosmetic file from the table with
    `BETA_ALLOWLIST_PROD=1 scripts/export-beta-allowlist.sh`.
-5. Verify `scripts/check-production-convex-env.sh` reports that
-   `E2E_TEST_SECRET` is unset.
 6. Only after the server boundary is verified, Dave may run
    `ops/setup-diff-google-gate.sh`.
 
@@ -21,9 +23,10 @@ No production step is performed by CI. CI deploys and tests only
 
 ## Rollback
 
-- Convex: set `BETA_GATE=off` and deploy the functions. Every `requireBeta*`
-  call and HTTP bearer mirror returns to its pre-beta behavior without a schema
-  change.
+- Convex: set `BETA_GATE=off` and deploy the functions. General beta-gated
+  content returns to its pre-beta behavior without a schema change. Private
+  profile grant redemption remains bound to an authenticated CLI recipient;
+  the rollback flag does not reopen that content leak.
 - Caddy: restore `/etc/caddy/Caddyfile.dexdiff-pre-gate` (or remove the
   `import /etc/caddy/diff-gate.caddy` line), validate, and reload Caddy.
 - Do not delete `betaAllowlist` during rollback. It remains ready for re-enable.
@@ -44,7 +47,7 @@ operation.
 | `GET /api/diff` | Bearer CLI session → `requireBetaUser` before diff query |
 | `GET /api/profile` | Bearer CLI session → `requireBetaUser` before profile query |
 | `GET /api/profile-bundle` | Bearer CLI session → `requireBetaUser` before clone payload |
-| `POST /api/profile-bundle/redeem` | grant → granter user → `requireBetaUser` before bundle |
+| `POST /api/profile-bundle/redeem` | Bearer CLI session must match the grant recipient; recipient and granter are beta-checked before a visibility-respecting bundle read |
 | `GET /api/diffs` | Bearer CLI session → `requireBetaUser` before list |
 | `POST /api/adoptions` | Bearer CLI session → `requireBetaUser` before counter/event mutation |
 | `POST /api/connect/redeem` | code owner → `requireBetaUser` before code consumption/session mint |
@@ -56,9 +59,12 @@ operation.
 
 ### Test-only routes
 
-These routes return 404 when `E2E_TEST_SECRET` is unset and 403 without the
-matching header. The deploy release gate fails if that secret exists on the
-production deployment.
+These routes are registered only when `CONVEX_ENV=test`; production and an
+unset/mistyped environment both fail closed. Their backing fixture functions
+enforce the same exact test-only signal, independently of routing. In the test
+environment they return 404 when `E2E_TEST_SECRET` is unset and 403 without the
+matching header. The deploy release gate requires
+`CONVEX_ENV=prod` and separately fails if the test secret exists in production.
 
 | Route |
 | --- |
@@ -72,6 +78,7 @@ production deployment.
 | `GET /api/test/diffs` |
 | `POST /api/test/bootstrap-adoption` |
 | `POST /api/test/bootstrap-adopt-grant` |
+| `POST /api/test/set-beta-email` |
 | `POST /api/test/remove-beta-email` |
 
 ### Open routes with no DexDiff content

@@ -127,6 +127,9 @@ export default defineSchema({
     code: v.string(),
     targetHandle: v.string(),
     granterUserId: v.id("users"),
+    // Optional only for schema compatibility with unexpired grants created
+    // before recipient binding shipped. Redemption rejects a missing value.
+    recipientUserId: v.optional(v.id("users")),
     expiresAt: v.number(),
     redeemed: v.boolean(),
   })

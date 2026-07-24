@@ -156,12 +156,13 @@ test("direct Convex write chokepoints deny non-members and anonymous callers", a
     email: `beta-direct-code-denied-${stamp}@acme.test`,
     betaAllowed: false,
   });
+  expect(allowedCode.code).toMatch(/^[A-HJ-NP-Z2-9]{10}$/);
   await expect(
     anonymousClient.mutation("connect:redeemCode", { code: allowedCode.code }),
-  ).resolves.toMatchObject({ sessionToken: expect.any(String) });
-  await expectDenied(
+  ).rejects.toThrow(/public function|not found/i);
+  await expect(
     anonymousClient.mutation("connect:redeemCode", { code: deniedCode.code }),
-  );
+  ).rejects.toThrow(/public function|not found/i);
 
   const allowedCli = await bootstrapCliSession(request, {
     handle: `beta-direct-review-allowed-${stamp}`,
@@ -352,7 +353,24 @@ test("code, review, publish, and removal paths re-check membership at use time",
   const grant = await allowedClient.mutation("adopt:generateGrant", {
     targetHandle: grantTarget.handle,
   });
+  expect(grant.code).toMatch(/^[A-HJ-NP-Z2-9]{16}$/);
+  const anonymousGrantRedeem = await request.post(
+    apiUrl("/profile-bundle/redeem"),
+    {
+      data: { code: grant.code, handle: grantTarget.handle },
+    },
+  );
+  expect(anonymousGrantRedeem.status()).toBe(401);
+  const deniedGrantRedeem = await request.post(
+    apiUrl("/profile-bundle/redeem"),
+    {
+      headers: { authorization: `Bearer ${deniedCli.sessionToken}` },
+      data: { code: grant.code, handle: grantTarget.handle },
+    },
+  );
+  expect(deniedGrantRedeem.status()).toBe(403);
   const redeemedBundle = await request.post(apiUrl("/profile-bundle/redeem"), {
+    headers: { authorization: `Bearer ${allowedSession.sessionToken}` },
     data: { code: grant.code, handle: grantTarget.handle },
   });
   expect(redeemedBundle.ok()).toBe(true);

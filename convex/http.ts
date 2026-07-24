@@ -3,6 +3,7 @@ import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { auth } from "./auth";
 import { isBetaGateDisabled } from "./lib/beta";
+import { isTestHarnessEnvironment } from "./lib/environment";
 
 const http = httpRouter();
 
@@ -14,6 +15,13 @@ const INVALID_ADOPTION_REQUEST_BODY = {
   error: "invalid_request",
   code: "INVALID_REQUEST",
 };
+
+function registerTestRoute(route: any) {
+  if (!isTestHarnessEnvironment()) {
+    return;
+  }
+  http.route(route);
+}
 
 type AdoptionRequest = {
   authorHandle: string;
@@ -104,10 +112,40 @@ async function resolveHttpBetaUser(ctx: any, req: Request) {
   }
 }
 
-async function redeemCodeForHttp(ctx: any, code: string) {
+async function resolveRequiredHttpBetaUser(ctx: any, req: Request) {
+  const authorization = req.headers.get("authorization") ?? "";
+  const match = authorization.match(/^Bearer\s+(\S+)$/i);
+  if (!match) {
+    return { user: null, error: betaDeniedResponse(401) };
+  }
+
+  try {
+    const user = await ctx.runMutation(internal.connect.resolveCliSession, {
+      sessionToken: match[1],
+    });
+    if (!user) {
+      return { user: null, error: betaDeniedResponse(401) };
+    }
+    return { user, error: null };
+  } catch {
+    return { user: null, error: betaDeniedResponse() };
+  }
+}
+
+async function redeemCodeForHttp(ctx: any, code: string, ip: string) {
+  if (!checkRateLimit(ip)) {
+    return {
+      result: null,
+      error: jsonResponse(
+        { error: "Too many attempts. Try again in 1 minute." },
+        429,
+      ),
+    };
+  }
+
   try {
     return {
-      result: await ctx.runMutation(internal.connect.redeemCodeForHttp, { code }),
+      result: await ctx.runMutation(internal.connect.redeemCode, { code }),
       error: null,
     };
   } catch {
@@ -116,6 +154,9 @@ async function redeemCodeForHttp(ctx: any, code: string) {
 }
 
 function authorizeTestHarness(req: Request) {
+  if (!isTestHarnessEnvironment()) {
+    return jsonResponse({ error: "Not found" }, 404);
+  }
   const configuredSecret = getConfiguredTestSecret();
   if (!configuredSecret) {
     return jsonResponse({ error: "Not found" }, 404);
@@ -159,7 +200,14 @@ function parseHarnessUserFields(body: any) {
     photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
     integrations: Array.isArray(body?.integrations) ? body.integrations : undefined,
     visibility: parseVisibility(body?.visibility),
-    betaAllowed: body?.betaAllowed !== false,
+  };
+}
+
+function parseHarnessCompanyMember(body: any) {
+  return {
+    ...parseHarnessUserFields(body),
+    handle: typeof body?.handle === "string" ? body.handle : undefined,
+    diffs: Array.isArray(body?.diffs) ? body.diffs : undefined,
   };
 }
 
@@ -409,6 +457,9 @@ http.route({
   path: "/api/profile-bundle/redeem",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
+    const betaAccess = await resolveRequiredHttpBetaUser(ctx, req);
+    if (betaAccess.error) return betaAccess.error;
+
     const ip = req.headers.get("x-forwarded-for") || "unknown";
 
     if (!checkRateLimit(ip)) {
@@ -438,7 +489,10 @@ http.route({
 
     let result;
     try {
-      result = await ctx.runMutation(internal.adopt.redeemGrant, shaped.value);
+      result = await ctx.runMutation(internal.adopt.redeemGrant, {
+        ...shaped.value,
+        recipientUserId: betaAccess.user._id,
+      });
     } catch (error) {
       warnInvalidProfileBundleRedeemRequest(
         error instanceof Error
@@ -552,13 +606,6 @@ http.route({
   handler: httpAction(async (ctx, req) => {
     // Get IP from headers
     const ip = req.headers.get("x-forwarded-for") || "unknown";
-    
-    if (!checkRateLimit(ip)) {
-      return new Response(
-        JSON.stringify({ error: "Too many attempts. Try again in 1 minute." }),
-        { status: 429, headers: { "Content-Type": "application/json" } }
-      );
-    }
 
     const body = await req.json();
     const code = body?.code;
@@ -570,7 +617,7 @@ http.route({
       );
     }
 
-    const redemption = await redeemCodeForHttp(ctx, code);
+    const redemption = await redeemCodeForHttp(ctx, code, ip);
     if (redemption.error) return redemption.error;
     const result = redemption.result!;
 
@@ -660,7 +707,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-cli",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -679,7 +726,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-connect-code",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -699,7 +746,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-review",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -722,7 +769,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-public-profile",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -742,7 +789,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-auth",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -777,7 +824,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-company-domain",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -794,14 +841,14 @@ http.route({
     const result = await ctx.runMutation(internal.testHarness.createCompanyDomain, {
       domain: body.domain,
       company: typeof body?.company === "string" ? body.company : undefined,
-      members: body.members,
+      members: body.members.map(parseHarnessCompanyMember),
     });
 
     return jsonResponse(result);
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/company",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
@@ -823,7 +870,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/diffs",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
@@ -845,7 +892,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-adoption",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -880,7 +927,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-adopt-grant",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -908,7 +955,27 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
+  path: "/api/test/set-beta-email",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) return authError;
+
+    const body = await req.json();
+    if (typeof body?.email !== "string" || typeof body?.allowed !== "boolean") {
+      return jsonResponse({ error: "email and allowed are required" }, 400);
+    }
+    return jsonResponse(
+      await ctx.runMutation(internal.beta.setEmailForTest, {
+        email: body.email,
+        allowed: body.allowed,
+      }),
+    );
+  }),
+});
+
+registerTestRoute({
   path: "/api/test/remove-beta-email",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -951,7 +1018,8 @@ http.route({
     }
 
     // Redeem the connection code to authenticate the user
-    const redemption = await redeemCodeForHttp(ctx, code);
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const redemption = await redeemCodeForHttp(ctx, code, ip);
     if (redemption.error) return redemption.error;
     const authResult = redemption.result!;
 
@@ -1021,7 +1089,8 @@ http.route({
     }
 
     // Redeem the connection code to authenticate the user
-    const redemption = await redeemCodeForHttp(ctx, code);
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const redemption = await redeemCodeForHttp(ctx, code, ip);
     if (redemption.error) return redemption.error;
     const authResult = redemption.result!;
 
@@ -1171,7 +1240,7 @@ http.route({
   handler: corsPreflightHandler,
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-cli",
   method: "OPTIONS",
   handler: httpAction(async () => {
@@ -1186,7 +1255,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-connect-code",
   method: "OPTIONS",
   handler: httpAction(async () => {
@@ -1201,7 +1270,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-review",
   method: "OPTIONS",
   handler: httpAction(async () => {
@@ -1216,7 +1285,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-public-profile",
   method: "OPTIONS",
   handler: httpAction(async () => {
@@ -1231,7 +1300,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-adopt-grant",
   method: "OPTIONS",
   handler: httpAction(async () => {
@@ -1246,7 +1315,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/remove-beta-email",
   method: "OPTIONS",
   handler: httpAction(async () => {

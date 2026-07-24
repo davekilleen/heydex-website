@@ -73,8 +73,11 @@ function sortPublishedDiffs(diffs: Doc<"diffs">[]) {
     });
 }
 
-async function getAccessibleProfileUser(ctx: QueryCtx, handle: string) {
-  const viewer = await getViewerOrNull(ctx);
+async function getAccessibleProfileUserForViewer(
+  ctx: QueryCtx,
+  viewer: ProfileViewer,
+  handle: string,
+) {
   const user = await ctx.db
     .query("users")
     .withIndex("by_handle", (q) => q.eq("handle", handle))
@@ -93,6 +96,27 @@ async function getAccessibleProfileUser(ctx: QueryCtx, handle: string) {
     user,
     visibility,
   };
+}
+
+async function getAccessibleProfileUser(ctx: QueryCtx, handle: string) {
+  return await getAccessibleProfileUserForViewer(
+    ctx,
+    await getViewerOrNull(ctx),
+    handle,
+  );
+}
+
+async function getAccessibleProfileUserForBetaUser(
+  ctx: QueryCtx,
+  betaUserId: Doc<"users">["_id"],
+  handle: string,
+) {
+  const betaUser = await requireBetaUser(ctx, betaUserId);
+  return await getAccessibleProfileUserForViewer(
+    ctx,
+    { userId: betaUser._id, user: betaUser },
+    handle,
+  );
 }
 
 async function buildProfileBundle(
@@ -227,8 +251,11 @@ export const getForBetaUser = internalQuery({
     handle: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireBetaUser(ctx, args.betaUserId);
-    const accessible = await getAccessibleProfileUser(ctx, args.handle);
+    const accessible = await getAccessibleProfileUserForBetaUser(
+      ctx,
+      args.betaUserId,
+      args.handle,
+    );
     if (!accessible) return null;
 
     const { user, visibility } = accessible;
@@ -273,29 +300,16 @@ export const getBundleForBetaUser = internalQuery({
     handle: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireBetaUser(ctx, args.betaUserId);
-    const accessible = await getAccessibleProfileUser(ctx, args.handle);
+    const accessible = await getAccessibleProfileUserForBetaUser(
+      ctx,
+      args.betaUserId,
+      args.handle,
+    );
     if (!accessible) return null;
     return await buildProfileBundle(
       ctx,
       accessible.user,
       accessible.visibility,
     );
-  },
-});
-
-export const getBundleUnchecked = internalQuery({
-  args: { handle: v.string() },
-  handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_handle", (q) => q.eq("handle", args.handle))
-      .unique();
-
-    if (!user || !user.handle) {
-      return null;
-    }
-
-    return await buildProfileBundle(ctx, user, getEffectiveVisibility(user));
   },
 });

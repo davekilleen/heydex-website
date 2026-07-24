@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import { requireViewerForMutation } from "./viewer";
 import { viewerCanAccessProfile } from "./profiles";
 import { requireBetaUser, requireBetaViewer } from "./lib/beta";
+import { generateSecureCode } from "./lib/random";
 
 const ADOPT_GRANT_TTL_MS = 10 * 60 * 1000;
 const GRANT_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -17,11 +18,7 @@ function normalizeCode(code: string): string {
 }
 
 function generateGrantCode(): string {
-  let code = "";
-  for (let index = 0; index < 16; index += 1) {
-    code += GRANT_CODE_ALPHABET[Math.floor(Math.random() * GRANT_CODE_ALPHABET.length)];
-  }
-  return code;
+  return generateSecureCode(GRANT_CODE_ALPHABET, 16);
 }
 
 function warnInvalidGrant(reason: string) {
@@ -54,6 +51,7 @@ export const generateGrant = mutation({
       code,
       targetHandle,
       granterUserId: viewer.userId,
+      recipientUserId: viewer.userId,
       expiresAt: Date.now() + ADOPT_GRANT_TTL_MS,
       redeemed: false,
     });
@@ -71,6 +69,7 @@ export const redeemGrant = internalMutation({
   args: {
     code: v.string(),
     handle: v.string(),
+    recipientUserId: v.id("users"),
   },
   handler: async (ctx, args) => {
     const code = normalizeCode(args.code);
@@ -100,16 +99,24 @@ export const redeemGrant = internalMutation({
       return { ok: false } as const;
     }
 
-    await requireBetaUser(ctx, grant.granterUserId);
-    await ctx.db.patch(grant._id, { redeemed: true });
+    if (grant.recipientUserId !== args.recipientUserId) {
+      warnInvalidGrant("recipient_mismatch");
+      return { ok: false } as const;
+    }
 
-    const bundle = await ctx.runQuery(internal.profiles.getBundleUnchecked, {
+    await requireBetaUser(ctx, grant.granterUserId);
+    await requireBetaUser(ctx, args.recipientUserId);
+
+    const bundle = await ctx.runQuery(internal.profiles.getBundleForBetaUser, {
+      betaUserId: args.recipientUserId,
       handle: grant.targetHandle,
     });
     if (!bundle) {
       warnInvalidGrant("bundle_missing");
       return { ok: false } as const;
     }
+
+    await ctx.db.patch(grant._id, { redeemed: true });
 
     return {
       ok: true,

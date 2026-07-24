@@ -7,11 +7,19 @@ import {
   normalizeDomain,
 } from "./users";
 import { getCompanyViewForUser } from "./companies";
-import { normalizeBetaEmail } from "./lib/beta";
+import { isTestHarnessEnvironment } from "./lib/environment";
+import { generateSecureCode } from "./lib/random";
 
 const REVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const CLI_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const ADOPT_GRANT_TTL_MS = 10 * 60 * 1000;
+const TEST_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function assertTestHarnessAvailable() {
+  if (!isTestHarnessEnvironment()) {
+    throw new Error("Test harness is available only in the test environment");
+  }
+}
 
 const visibilityValidator = v.union(
   v.literal("private"),
@@ -52,7 +60,6 @@ const companyMemberValidator = v.object({
   photoUrl: v.optional(v.string()),
   integrations: v.optional(v.array(v.string())),
   visibility: visibilityValidator,
-  betaAllowed: v.optional(v.boolean()),
   diffs: v.optional(v.array(companyDiffValidator)),
 });
 
@@ -79,7 +86,6 @@ type HarnessUserArgs = {
   photoUrl?: string;
   integrations?: string[];
   visibility: "private" | "colleagues" | "public";
-  betaAllowed?: boolean;
 };
 
 type HarnessDiff = ReviewDiff & {
@@ -112,12 +118,7 @@ const DEFAULT_DIFFS: ReviewDiff[] = [
 ];
 
 function generateSessionCode(length: number): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < length; i += 1) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
+  return generateSecureCode(TEST_CODE_ALPHABET, length);
 }
 
 function buildDefaultProfile(handle: string) {
@@ -216,21 +217,6 @@ async function upsertHarnessUser(
       ? `${args.handle}@${normalizeDomain(args.domain)}`
       : defaults.email
   );
-  const normalizedEmail = normalizeBetaEmail(email);
-  const allowlistEntry = await ctx.db
-    .query("betaAllowlist")
-    .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
-    .unique();
-  if (args.betaAllowed === false) {
-    if (allowlistEntry) await ctx.db.delete(allowlistEntry._id);
-  } else if (!allowlistEntry) {
-    await ctx.db.insert("betaAllowlist", {
-      email: normalizedEmail,
-      addedBy: "e2e-test-harness",
-      addedAt: Date.now(),
-      note: "Ephemeral E2E identity",
-    });
-  }
   const domain = args.domain
     ? normalizeDomain(args.domain)
     : getDomainForEmail(email);
@@ -338,10 +324,10 @@ export const createCliSession = internalMutation({
     photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
-    betaAllowed: v.optional(v.boolean()),
     expired: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const handle = args.handle ?? "dexdiff-e2e";
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
@@ -357,7 +343,6 @@ export const createCliSession = internalMutation({
       photoUrl: args.photoUrl,
       integrations: args.integrations,
       visibility,
-      betaAllowed: args.betaAllowed,
     });
 
     const sessionToken = crypto.randomUUID().replace(/-/g, "");
@@ -390,11 +375,11 @@ export const createConnectionCode = internalMutation({
     photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
-    betaAllowed: v.optional(v.boolean()),
     expired: v.optional(v.boolean()),
     redeemed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const handle = args.handle ?? `dexdiff-code-${Date.now()}`;
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
@@ -410,10 +395,9 @@ export const createConnectionCode = internalMutation({
       photoUrl: args.photoUrl,
       integrations: args.integrations,
       visibility,
-      betaAllowed: args.betaAllowed,
     });
 
-    const code = generateSessionCode(6);
+    const code = generateSessionCode(10);
     await ctx.db.insert("connectionCodes", {
       code,
       userId: user._id,
@@ -443,11 +427,11 @@ export const createReviewSession = internalMutation({
     photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
-    betaAllowed: v.optional(v.boolean()),
     diffs: v.optional(v.array(reviewDiffValidator)),
     expired: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const handle = args.handle ?? "dexdiff-e2e";
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
@@ -463,10 +447,9 @@ export const createReviewSession = internalMutation({
       photoUrl: args.photoUrl,
       integrations: args.integrations,
       visibility,
-      betaAllowed: args.betaAllowed,
     });
 
-    const sessionCode = generateSessionCode(8);
+    const sessionCode = generateSessionCode(16);
     const now = Date.now();
     await ctx.db.insert("reviewSessions", {
       sessionCode,
@@ -501,11 +484,11 @@ export const createPublicProfileBundle = internalMutation({
     photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
-    betaAllowed: v.optional(v.boolean()),
     loveLetter: v.optional(v.string()),
     diffs: v.optional(v.array(reviewDiffValidator)),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const handle = args.handle ?? `dexdiff-public-${Date.now()}`;
     const visibility = args.visibility ?? "public";
     const user = await upsertHarnessUser(ctx, {
@@ -521,7 +504,6 @@ export const createPublicProfileBundle = internalMutation({
       photoUrl: args.photoUrl,
       integrations: args.integrations,
       visibility,
-      betaAllowed: args.betaAllowed,
     });
 
     const diffs = args.diffs && args.diffs.length > 0 ? args.diffs : DEFAULT_DIFFS;
@@ -577,6 +559,7 @@ export const createAdoptionForEmail = internalMutation({
     diffSlug: v.string(),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const user = await ctx.db
       .query("users")
       .withIndex("email", (q) => q.eq("email", args.email))
@@ -667,6 +650,7 @@ export const createAdoptGrant = internalMutation({
     redeemed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const target = await ctx.db
       .query("users")
       .withIndex("by_handle", (q) => q.eq("handle", args.targetHandle))
@@ -687,6 +671,7 @@ export const createAdoptGrant = internalMutation({
       code,
       targetHandle: args.targetHandle,
       granterUserId: granter._id,
+      recipientUserId: granter._id,
       expiresAt: args.expired ? now - 1000 : now + ADOPT_GRANT_TTL_MS,
       redeemed: args.redeemed === true,
     });
@@ -713,9 +698,9 @@ export const createAuthUser = internalMutation({
     photoUrl: v.optional(v.string()),
     integrations: v.optional(v.array(v.string())),
     visibility: v.optional(visibilityValidator),
-    betaAllowed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const handle = args.handle ?? `auth-${Date.now()}`;
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
@@ -731,7 +716,6 @@ export const createAuthUser = internalMutation({
       photoUrl: args.photoUrl,
       integrations: args.integrations,
       visibility,
-      betaAllowed: args.betaAllowed,
     });
 
     return {
@@ -750,6 +734,7 @@ export const createCompanyDomain = internalMutation({
     members: v.array(companyMemberValidator),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const domain = normalizeDomain(args.domain);
     const members = [];
 
@@ -767,7 +752,6 @@ export const createCompanyDomain = internalMutation({
         photoUrl: member.photoUrl,
         integrations: member.integrations,
         visibility: member.visibility,
-        betaAllowed: member.betaAllowed,
       });
 
       if (member.diffs && member.diffs.length > 0) {
@@ -796,6 +780,7 @@ export const getCompanyForHandle = internalQuery({
     handle: v.string(),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const user = await ctx.db
       .query("users")
       .withIndex("by_handle", (q) => q.eq("handle", args.handle))
@@ -811,6 +796,7 @@ export const getPublishedDiffsForHandle = internalQuery({
     handle: v.string(),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const user = await ctx.db
       .query("users")
       .withIndex("by_handle", (q) => q.eq("handle", args.handle))

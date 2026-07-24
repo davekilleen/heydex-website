@@ -43,6 +43,11 @@ jobs:
       # Push the current commit's Convex functions to the test deployment
       # BEFORE testing — otherwise the suite exercises stale functions and
       # green means nothing (doc-review finding on plan U9).
+      - name: Mark the dedicated deployment as test-only
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_TEST }}
+        run: npx convex env set CONVEX_ENV test
+
       - name: Deploy Convex functions to test deployment
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_TEST }}

@@ -65,6 +65,30 @@ function getTestSecretHeader() {
   };
 }
 
+function getFixtureEmail(options: ReviewSeedOptions) {
+  if (options.email) return options.email;
+  if (options.handle && options.domain) return `${options.handle}@${options.domain}`;
+  if (options.handle) return `${options.handle}@example.com`;
+  return null;
+}
+
+async function seedExplicitBetaAccess(
+  request: APIRequestContext,
+  options: ReviewSeedOptions,
+) {
+  const email = getFixtureEmail(options);
+  if (typeof options.betaAllowed !== "boolean" || !email) return;
+
+  const response = await request.post(`${getApiBaseUrl()}/test/set-beta-email`, {
+    headers: getTestSecretHeader(),
+    data: {
+      email,
+      allowed: options.betaAllowed,
+    },
+  });
+  await expect(response).toBeOK();
+}
+
 function getAuthStorageSuffix() {
   return getConvexUrl().replace(/[^a-zA-Z0-9]/g, "");
 }
@@ -73,6 +97,7 @@ export async function bootstrapReviewSession(
   request: APIRequestContext,
   options: ReviewSeedOptions = {}
 ) {
+  await seedExplicitBetaAccess(request, options);
   const response = await request.post(`${getApiBaseUrl()}/test/bootstrap-review`, {
     headers: getTestSecretHeader(),
     data: options,
@@ -85,6 +110,7 @@ export async function bootstrapCliSession(
   request: APIRequestContext,
   options: ReviewSeedOptions = {}
 ) {
+  await seedExplicitBetaAccess(request, options);
   const response = await request.post(`${getApiBaseUrl()}/test/bootstrap-cli`, {
     headers: getTestSecretHeader(),
     data: options,
@@ -97,6 +123,7 @@ export async function bootstrapConnectionCode(
   request: APIRequestContext,
   options: ReviewSeedOptions = {}
 ) {
+  await seedExplicitBetaAccess(request, options);
   const response = await request.post(`${getApiBaseUrl()}/test/bootstrap-connect-code`, {
     headers: getTestSecretHeader(),
     data: options,
@@ -112,6 +139,7 @@ export async function bootstrapPublicProfile(
     diffs?: DiffSeed[];
   } = {}
 ) {
+  await seedExplicitBetaAccess(request, options);
   const response = await request.post(`${getApiBaseUrl()}/test/bootstrap-public-profile`, {
     headers: getTestSecretHeader(),
     data: options,
@@ -124,6 +152,7 @@ export async function bootstrapAuthState(
   request: APIRequestContext,
   options: ReviewSeedOptions = {}
 ): Promise<BrowserAuthState> {
+  await seedExplicitBetaAccess(request, options);
   const response = await request.post(`${getApiBaseUrl()}/test/bootstrap-auth`, {
     headers: getTestSecretHeader(),
     data: options,
@@ -164,6 +193,12 @@ export async function bootstrapCompanyDomain(
     >;
   }
 ) {
+  for (const member of args.members) {
+    await seedExplicitBetaAccess(request, {
+      ...member,
+      email: member.email ?? `${member.handle}@${args.domain}`,
+    });
+  }
   const response = await request.post(`${getApiBaseUrl()}/test/bootstrap-company-domain`, {
     headers: getTestSecretHeader(),
     data: args,
@@ -230,11 +265,22 @@ export async function bootstrapAdoptGrant(
 }
 
 export async function generateAdoptGrantAsUser(
+  request: APIRequestContext,
   authState: BrowserAuthState,
   targetHandle: string
 ) {
   const client = new ConvexHttpClient(getConvexUrl(), { auth: authState.token });
-  return await client.mutation("adopt:generateGrant", { targetHandle });
+  const grant = await client.mutation("adopt:generateGrant", { targetHandle });
+  const cliSession = await bootstrapCliSession(request, {
+    handle: authState.handle,
+    email: authState.email,
+    domain: authState.domain,
+    betaAllowed: true,
+  });
+  return {
+    ...grant,
+    sessionToken: cliSession.sessionToken,
+  };
 }
 
 export async function redeemProfileBundleGrant(
@@ -242,13 +288,18 @@ export async function redeemProfileBundleGrant(
   args: {
     code: string;
     handle: string;
+    sessionToken: string;
   }
 ) {
   return await request.post(`${getApiBaseUrl()}/profile-bundle/redeem`, {
     headers: {
       "content-type": "application/json",
+      authorization: `Bearer ${args.sessionToken}`,
     },
-    data: args,
+    data: {
+      code: args.code,
+      handle: args.handle,
+    },
   });
 }
 

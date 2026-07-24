@@ -5,12 +5,21 @@ import { getViewerOrNull, requireViewer } from "../viewer";
 export const BETA_DENIED_MESSAGE =
   "You're not in the DexDiff beta yet. Join the waitlist and we'll let you know when a place opens.";
 
+let betaGateDisableWarningLogged = false;
+
 export function normalizeBetaEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
 export function isBetaGateDisabled(): boolean {
-  return process.env.BETA_GATE?.trim().toLowerCase() === "off";
+  const disabled = process.env.BETA_GATE?.trim().toLowerCase() === "off";
+  if (disabled && !betaGateDisableWarningLogged) {
+    console.warn(
+      "[SECURITY AUDIT] BETA_GATE=off: DexDiff private-beta authorization is DISABLED",
+    );
+    betaGateDisableWarningLogged = true;
+  }
+  return disabled;
 }
 
 async function isEmailAllowlisted(

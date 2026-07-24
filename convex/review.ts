@@ -8,6 +8,7 @@ import {
 } from "./users";
 import { requireViewerForMutation } from "./viewer";
 import { requireBetaUser, requireBetaViewer } from "./lib/beta";
+import { generateSecureCode } from "./lib/random";
 
 const REVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const DEFAULT_LOVE_LETTER_DRAFT =
@@ -96,14 +97,10 @@ function assertSessionEditable(session: any) {
   }
 }
 
-// Generate a random 8-character session code
+// Generate a random 16-character session code
 function generateSessionCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 8; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
+  return generateSecureCode(chars, 16);
 }
 
 // Create a review session (called by CLI after generating diffs)

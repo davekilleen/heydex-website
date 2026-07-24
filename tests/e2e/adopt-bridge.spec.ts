@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   bootstrapAdoptGrant,
   bootstrapAuthState,
+  bootstrapCliSession,
   bootstrapCompanyDomain,
   bootstrapPublicProfile,
   generateAdoptGrantAsUser,
@@ -76,7 +77,7 @@ test("authorized colleague grant redeems into a full profile bundle", async ({
     visibility: "colleagues",
   });
 
-  const grant = await generateAdoptGrantAsUser(viewerAuth, targetHandle);
+  const grant = await generateAdoptGrantAsUser(request, viewerAuth, targetHandle);
   expect(grant).toMatchObject({
     expiresInSeconds: 600,
   });
@@ -85,6 +86,7 @@ test("authorized colleague grant redeems into a full profile bundle", async ({
   const response = await redeemProfileBundleGrant(request, {
     code: grant.code,
     handle: targetHandle,
+    sessionToken: grant.sessionToken,
   });
   await expect(response).toBeOK();
 
@@ -129,7 +131,7 @@ test("non-colleague viewer cannot mint a colleagues-only grant", async ({
   });
 
   await expect(
-    generateAdoptGrantAsUser(outsiderAuth, targetHandle)
+    generateAdoptGrantAsUser(request, outsiderAuth, targetHandle)
   ).rejects.toThrow(/NOT_AUTHORIZED/);
 });
 
@@ -152,11 +154,12 @@ test("redeeming the same grant twice returns a uniform 400 on the second use", a
     visibility: "private",
   });
 
-  const grant = await generateAdoptGrantAsUser(viewerAuth, targetHandle);
+  const grant = await generateAdoptGrantAsUser(request, viewerAuth, targetHandle);
   await expect(
     await redeemProfileBundleGrant(request, {
       code: grant.code,
       handle: targetHandle,
+      sessionToken: grant.sessionToken,
     })
   ).toBeOK();
 
@@ -164,6 +167,7 @@ test("redeeming the same grant twice returns a uniform 400 on the second use", a
     await redeemProfileBundleGrant(request, {
       code: grant.code,
       handle: targetHandle,
+      sessionToken: grant.sessionToken,
     })
   );
 });
@@ -183,11 +187,16 @@ test("expired grants return the uniform 400 redeem response", async ({
     targetHandle,
     expired: true,
   });
+  const granterCli = await bootstrapCliSession(request, {
+    handle: grant.granterHandle,
+    betaAllowed: true,
+  });
 
   await expectUniformInvalidRequest(
     await redeemProfileBundleGrant(request, {
       code: grant.code,
       handle: targetHandle,
+      sessionToken: granterCli.sessionToken,
     })
   );
 });
@@ -216,12 +225,13 @@ test("grant for one handle cannot fetch another handle", async ({ request }) => 
     visibility: "private",
   });
 
-  const grant = await generateAdoptGrantAsUser(viewerAuth, handleA);
+  const grant = await generateAdoptGrantAsUser(request, viewerAuth, handleA);
 
   await expectUniformInvalidRequest(
     await redeemProfileBundleGrant(request, {
       code: grant.code,
       handle: handleB,
+      sessionToken: grant.sessionToken,
     })
   );
 });
@@ -260,9 +270,17 @@ test("owners can mint for themselves and any signed-in viewer can mint for publi
     visibility: "private",
   });
 
-  const ownerGrant = await generateAdoptGrantAsUser(ownerAuth, ownerHandle);
+  const ownerGrant = await generateAdoptGrantAsUser(
+    request,
+    ownerAuth,
+    ownerHandle
+  );
   expect(ownerGrant.code).toMatch(/^[A-HJ-NP-Z2-9]{16}$/);
 
-  const publicGrant = await generateAdoptGrantAsUser(anyViewerAuth, publicHandle);
+  const publicGrant = await generateAdoptGrantAsUser(
+    request,
+    anyViewerAuth,
+    publicHandle
+  );
   expect(publicGrant.code).toMatch(/^[A-HJ-NP-Z2-9]{16}$/);
 });

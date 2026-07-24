@@ -10,6 +10,7 @@ import {
   normalizeBetaEmail,
   requireBetaViewer,
 } from "./lib/beta";
+import { isTestHarnessEnvironment } from "./lib/environment";
 
 const BETA_ADMIN_EMAILS = new Set([
   "davekilleen@gmail.com",
@@ -24,6 +25,12 @@ const INITIAL_BETA_EMAILS = [
   "matt@mattlemay.com",
   "martin@martineriksson.com",
 ] as const;
+
+function assertBetaTestFixtureAvailable() {
+  if (!isTestHarnessEnvironment()) {
+    throw new Error("Beta test fixtures are available only in the test environment");
+  }
+}
 
 async function requireBetaAdmin(ctx: any) {
   const viewer = await requireBetaViewer(ctx);
@@ -168,7 +175,26 @@ export const removeEmail = mutation({
 export const removeEmailForTest = internalMutation({
   args: { email: v.string() },
   handler: async (ctx, args) => {
+    assertBetaTestFixtureAvailable();
     return await removeEmailAndInvalidate(ctx, args.email);
+  },
+});
+
+export const setEmailForTest = internalMutation({
+  args: {
+    email: v.string(),
+    allowed: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    assertBetaTestFixtureAvailable();
+    if (!args.allowed) {
+      return await removeEmailAndInvalidate(ctx, args.email);
+    }
+    return await upsertAllowlistEmail(ctx, {
+      email: args.email,
+      addedBy: "e2e-test-fixture",
+      note: "Explicit E2E beta access fixture",
+    });
   },
 });
 
