@@ -352,7 +352,7 @@ export const adminDeleteByEmail = internalMutation({
     }
 
     // Proceed with deletion
-    deleteUserData(ctx, user);
+    await deleteUserData(ctx, user);
     return { deleted: true };
   },
 });
@@ -371,10 +371,23 @@ export const adminDeleteByHandle = internalMutation({
     }
 
     // Proceed with deletion
-    deleteUserData(ctx, user);
+    await deleteUserData(ctx, user);
     return { deleted: true };
   },
 });
+
+async function deleteBetaSignupsForUser(
+  ctx: any,
+  userId: Id<"users">
+) {
+  const betaSignups = await ctx.db
+    .query("betaSignups")
+    .withIndex("by_userId", (q: any) => q.eq("userId", userId))
+    .collect();
+  for (const signup of betaSignups) {
+    await ctx.db.delete(signup._id);
+  }
+}
 
 // Helper: Delete all user data
 async function deleteUserData(ctx: any, user: any) {
@@ -386,6 +399,8 @@ async function deleteUserData(ctx: any, user: any) {
   for (const adoption of adoptions) {
     await ctx.db.delete(adoption._id);
   }
+
+  await deleteBetaSignupsForUser(ctx, user._id);
 
   // Delete diffs
   const diffs = await ctx.db
@@ -486,6 +501,8 @@ export const deleteAccount = mutation({
     for (const adoption of adoptions) {
       await ctx.db.delete(adoption._id);
     }
+
+    await deleteBetaSignupsForUser(ctx, user._id);
 
     // Delete all diffs authored by this user
     const diffs = await ctx.db

@@ -14,6 +14,7 @@ It does **not** own the long-term portable `/diff-*` command runtime. That belon
 ## Canonical Surfaces
 
 React-owned routes:
+- `/beta/`
 - `/connect/`
 - `/diff/`
 - `/diff/profile/`
@@ -115,9 +116,9 @@ Hosted frontend routes on the VPS:
 What `deploy.sh` actually does:
 1. Runs `./test-production.sh` unless skipped
 2. Builds the React app
-3. Creates separate `/diff/` and `/connect/` copies with route-scoped `<base href>` values
+3. Creates separate `/diff/`, `/connect/`, and `/beta/` copies with route-scoped `<base href>` values
 4. Rsyncs those builds to staging
-5. Promotes the built app into both `/diff/` and `/connect/`
+5. Promotes the built app into `/diff/`, `/connect/`, and `/beta/`
 6. Overlays the static editorial subdirectories listed in `deploy.sh`
 7. Runs `npm run db:ensure`
 

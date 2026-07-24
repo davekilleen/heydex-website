@@ -6,6 +6,7 @@
 | --- | --- | --- | --- |
 | `/` | static | marketing landing | canonical |
 | `/privacy/` | static | privacy policy | canonical |
+| `/beta/` | React | Google-authenticated beta signup | canonical |
 | `/connect/` | React | registration + CLI linking entry | canonical |
 | `/diff/` | React | main DexDiff browse surface | canonical |
 | `/diff/profile/` | React | signed-in user's own profile/settings page | canonical |
@@ -33,6 +34,7 @@ Current precedence:
 2. exact `/diff` -> React always
 3. generic `/diff/*` -> static subdir if present, else React fallback
 4. `/connect/*` -> static file if present, else React fallback
+5. `/beta/*` -> static file if present, else React fallback
 
 Consequence:
 - `/diff/review/` is React-owned on cold load

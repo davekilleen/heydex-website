@@ -175,6 +175,28 @@ export default defineSchema({
   })
     .index("by_email", ["email"]),
 
+  betaSignups: defineTable({
+    userId: v.id("users"),
+    email: v.string(),
+    name: v.optional(v.string()),
+    usageLevel: v.string(),
+    liked: v.optional(v.string()),
+    frustrations: v.optional(v.string()),
+    customization: v.string(),
+    linkedinUrl: v.optional(v.string()),
+    linkedinUsername: v.optional(v.string()),
+    enrichedTitle: v.optional(v.string()),
+    enrichedCompany: v.optional(v.string()),
+    enrichedIndustry: v.optional(v.string()),
+    enrichedPhotoUrl: v.optional(v.string()),
+    enrichedSummary: v.optional(v.string()),
+    source: v.optional(v.string()),
+    confirmationEmailSent: v.optional(v.boolean()),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_email", ["email"]),
+
   loveLetters: defineTable({
     userId: v.id("users"),
     handle: v.string(),

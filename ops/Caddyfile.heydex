@@ -5,6 +5,7 @@ heydex.ai, www.heydex.ai {
 	# Redirect slashless product roots so relative asset paths resolve correctly.
 	redir /diff /diff/ 308
 	redir /connect /connect/ 308
+	redir /beta /beta/ 308
 	redir /desktop /desktop/ 308
 	redir /dispatch /dispatch/ 308
 	redir /diff/profile /diff/profile/ 308
@@ -75,6 +76,16 @@ heydex.ai, www.heydex.ai {
 	handle @connect {
 		root * /var/www/heydex/connect
 		uri strip_prefix /connect
+		try_files {path}/index.html {path} /index.html
+		file_server
+	}
+
+	@beta {
+		path /beta /beta/*
+	}
+	handle @beta {
+		root * /var/www/heydex/beta
+		uri strip_prefix /beta
 		try_files {path}/index.html {path} /index.html
 		file_server
 	}
