@@ -639,9 +639,9 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, req) => {
     const body = await req.json();
-    const { sessionToken, tokenIdentifier, diffs } = body ?? {};
+    const { sessionToken, diffs } = body ?? {};
 
-    if ((!sessionToken && !tokenIdentifier) || !diffs) {
+    if (!sessionToken || !diffs) {
       return new Response(
         JSON.stringify({ error: "Missing sessionToken or diffs" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -652,7 +652,6 @@ http.route({
     try {
       result = await ctx.runMutation(api.review.createSession, {
         sessionToken,
-        tokenIdentifier,
         diffs,
       });
     } catch (error) {

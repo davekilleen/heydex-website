@@ -107,7 +107,6 @@ function generateSessionCode(): string {
 export const createSession = mutation({
   args: {
     sessionToken: v.optional(v.string()),
-    tokenIdentifier: v.optional(v.string()),
     diffs: v.array(v.object({
       diffId: v.string(),
       name: v.string(),
@@ -125,13 +124,9 @@ export const createSession = mutation({
       user = await ctx.runMutation(internal.connect.resolveCliSession, {
         sessionToken: args.sessionToken,
       });
-    } else if (args.tokenIdentifier) {
-      user = await ctx.db
-        .query("users")
-        .withIndex("by_tokenIdentifier", (q) =>
-          q.eq("tokenIdentifier", args.tokenIdentifier!)
-        )
-        .unique();
+    } else {
+      const viewer = await requireViewerForMutation(ctx);
+      user = viewer.user;
     }
 
     if (!user) {

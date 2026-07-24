@@ -127,6 +127,26 @@ test("connection code redemption is internal-only and codes are widened", () => 
   assert.equal(redemptionCalls.length, 3);
 });
 
+test("review sessions accept only a CLI session token or an authenticated viewer", () => {
+  const review = read("convex/review.ts");
+  const http = read("convex/http.ts");
+  const createSessionStart = review.indexOf("export const createSession");
+  const createSessionEnd = review.indexOf(
+    "export const createLoveLetterSession",
+    createSessionStart,
+  );
+  const createSession = review.slice(createSessionStart, createSessionEnd);
+  const routeStart = http.indexOf('path: "/api/review/create"');
+  const routeEnd = http.indexOf("// GET /api/review/status", routeStart);
+  const route = http.slice(routeStart, routeEnd);
+
+  assert.doesNotMatch(createSession, /tokenIdentifier/);
+  assert.match(createSession, /requireViewerForMutation\(ctx\)/);
+  assert.match(createSession, /requireBetaUser\(ctx,\s*user\._id\)/);
+  assert.doesNotMatch(route, /tokenIdentifier/);
+  assert.match(route, /if \(!sessionToken \|\| !diffs\)/);
+});
+
 test("profile grant redemption requires and matches an allowlisted recipient", () => {
   const schema = read("convex/schema.ts");
   const adopt = read("convex/adopt.ts");

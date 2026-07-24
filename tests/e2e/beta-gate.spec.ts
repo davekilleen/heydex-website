@@ -104,6 +104,28 @@ test("direct Convex write chokepoints deny non-members and anonymous callers", a
   const deniedClient = getAuthenticatedConvexClient(denied);
   const anonymousClient = getAnonymousConvexClient();
 
+  await expect(
+    allowedClient.mutation("review:createSession", {
+      diffs: [DIFF],
+    }),
+  ).resolves.toMatchObject({ sessionCode: expect.any(String) });
+  await expectDenied(
+    deniedClient.mutation("review:createSession", {
+      diffs: [DIFF],
+    }),
+  );
+  await expectDenied(
+    anonymousClient.mutation("review:createSession", {
+      diffs: [DIFF],
+    }),
+  );
+  await expect(
+    anonymousClient.mutation("review:createSession", {
+      tokenIdentifier: `e2e:${allowed.handle}`,
+      diffs: [DIFF],
+    }),
+  ).rejects.toThrow(/tokenIdentifier|extra field|validation/i);
+
   const writes: Array<[string, Record<string, unknown>]> = [
     ["connect:generateCode", {}],
     [
@@ -277,6 +299,13 @@ test("code, review, publish, and removal paths re-check membership at use time",
     data: { sessionToken: deniedCli.sessionToken, diffs: [DIFF] },
   });
   expect(deniedCreate.status()).toBe(403);
+  const bareIdentityCreate = await request.post(apiUrl("/review/create"), {
+    data: {
+      tokenIdentifier: `e2e:${allowedHandle}`,
+      diffs: [DIFF],
+    },
+  });
+  expect(bareIdentityCreate.status()).toBe(400);
 
   const publishAllowedCode = await bootstrapConnectionCode(request, {
     handle: `beta-publish-allowed-${stamp}`,
