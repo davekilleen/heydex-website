@@ -3,6 +3,7 @@ import { useConvexAuth, useQuery } from 'convex/react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { api } from '../convex/_generated/api';
 import { identifyPendoVisitorAfterInitialization } from './analytics/pendoIdentity';
+import BetaPage from './pages/BetaPage';
 import ConnectPage from './pages/ConnectPage';
 import CompanyPage from './pages/CompanyPage';
 import DesktopPage from './pages/DesktopPage';
@@ -31,6 +32,8 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="/beta" element={<BetaPage />} />
+      <Route path="/beta/" element={<BetaPage />} />
       <Route path="/connect" element={<ConnectPage />} />
       <Route path="/connect/" element={<ConnectPage />} />
       <Route path="/desktop" element={<DesktopPage />} />

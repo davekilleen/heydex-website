@@ -1,0 +1,473 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:global(*) {
+  box-sizing: border-box;
+}
+
+.shell {
+  min-height: 100vh;
+  width: 100%;
+  padding: 64px 24px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 64, 129, 0.07), transparent 34rem),
+    #0d0e12;
+  color: #e4e5e7;
+  font-family: 'Inter', 'Geist', system-ui, sans-serif;
+}
+
+.card {
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.brand {
+  margin-bottom: 24px;
+  color: #787b87;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.meta,
+.label {
+  color: #787b87;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.meta {
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.card h1 {
+  margin: 0 0 12px;
+  color: #e4e5e7;
+  font-size: clamp(24px, 5vw, 32px);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.intro {
+  max-width: 520px;
+  margin: 0 auto 32px;
+  color: #9b9da6;
+  font-size: 14px;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.oauthButton,
+.submitButton,
+.secondaryButton,
+.lookupButton {
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: 'Inter', 'Geist', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 80ms ease, border-color 80ms ease, opacity 80ms ease;
+}
+
+.oauthButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  color: #e4e5e7;
+  background: #15161c;
+  border: 1px solid #24262e;
+}
+
+.oauthButton:hover {
+  background: #1c1d25;
+  border-color: #32343f;
+}
+
+.oauthButton:focus-visible,
+.submitButton:focus-visible,
+.secondaryButton:focus-visible,
+.lookupButton:focus-visible,
+.previewActions button:focus-visible,
+.pill:has(input:focus-visible) {
+  outline: 2px solid #ff4081;
+  outline-offset: 2px;
+}
+
+.fieldset {
+  min-width: 0;
+  margin: 0 0 28px;
+  padding: 0;
+  border: 0;
+}
+
+.label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.label span {
+  text-transform: none;
+}
+
+.pills {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px 12px;
+  color: #9b9da6;
+  background: #15161c;
+  border: 1px solid #24262e;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.35;
+  transition: background 80ms ease, border-color 80ms ease, color 80ms ease;
+}
+
+.pill:hover {
+  color: #e4e5e7;
+  border-color: #32343f;
+}
+
+.pillSelected {
+  color: #e4e5e7;
+  background: rgba(255, 64, 129, 0.12);
+  border-color: rgba(255, 64, 129, 0.55);
+}
+
+.pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.field {
+  display: block;
+  margin-bottom: 28px;
+}
+
+.field textarea,
+.linkedinInput {
+  width: 100%;
+  color: #e4e5e7;
+  background: #15161c;
+  border: 1px solid #24262e;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 80ms ease;
+}
+
+.field textarea {
+  display: block;
+  min-height: 104px;
+  padding: 10px 12px;
+  resize: vertical;
+  caret-color: #ff4081;
+  font-family: 'Inter', 'Geist', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.field textarea:focus,
+.linkedinInput:focus-within {
+  border-color: rgba(255, 64, 129, 0.72);
+}
+
+.field small,
+.notice {
+  display: block;
+  margin-top: 7px;
+  color: #787b87;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.linkedinRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.linkedinInput {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.linkedinInput span {
+  padding-left: 12px;
+  color: #787b87;
+  font-family: 'Geist Mono', monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.linkedinInput input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px 10px 2px;
+  color: #e4e5e7;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  caret-color: #ff4081;
+  font-family: 'Geist Mono', monospace;
+  font-size: 13px;
+}
+
+.linkedinInput input::placeholder {
+  color: #787b87;
+}
+
+.lookupButton,
+.secondaryButton {
+  color: #e4e5e7;
+  background: transparent;
+  border: 1px solid #32343f;
+}
+
+.lookupButton {
+  flex: 0 0 auto;
+  padding: 0 14px;
+}
+
+.lookupButton:hover,
+.secondaryButton:hover {
+  background: #1c1d25;
+}
+
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -12px 0 28px;
+  padding: 14px;
+  background: #15161c;
+  border: 1px solid #24262e;
+  border-radius: 3px;
+}
+
+.preview img,
+.avatarFallback {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 50%;
+}
+
+.preview img {
+  object-fit: cover;
+}
+
+.avatarFallback {
+  display: grid;
+  place-items: center;
+  color: #ff4081;
+  background: rgba(255, 64, 129, 0.12);
+  font-size: 18px;
+}
+
+.previewCopy {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.previewCopy strong {
+  color: #e4e5e7;
+  font-size: 14px;
+}
+
+.previewCopy span {
+  overflow: hidden;
+  color: #9b9da6;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.previewActions button {
+  padding: 6px 8px;
+  color: #9b9da6;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+}
+
+.previewActions button:first-child {
+  color: #ff4081;
+}
+
+.confirmed {
+  color: #22c55e;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+}
+
+.submitButton {
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px 16px;
+  color: #111;
+  background: #ff4081;
+  border: 0;
+}
+
+.submitButton:hover {
+  background: rgba(255, 64, 129, 0.82);
+}
+
+.secondaryButton {
+  width: 100%;
+  padding: 12px 16px;
+}
+
+.oauthButton:disabled,
+.submitButton:disabled,
+.lookupButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.error {
+  margin: 12px 0;
+  padding: 12px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.07);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 3px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 12px;
+}
+
+.loading {
+  color: #9b9da6;
+  font-family: 'Geist Mono', monospace;
+  font-size: 12px;
+  text-align: center;
+}
+
+.successMark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 18px;
+  place-items: center;
+  color: #111;
+  background: #22c55e;
+  border-radius: 50%;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.summary {
+  margin-bottom: 20px;
+  background: #15161c;
+  border: 1px solid #24262e;
+  border-radius: 3px;
+}
+
+.summary div {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #24262e;
+}
+
+.summary div:last-child {
+  border-bottom: 0;
+}
+
+.summary span {
+  color: #787b87;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.summary strong {
+  color: #e4e5e7;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #24262e;
+  text-align: center;
+}
+
+.footer a {
+  color: #787b87;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+
+.footer a:focus-visible {
+  outline: 2px solid #ff4081;
+  outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .shell {
+    padding: 40px 18px;
+  }
+
+  .pills {
+    grid-template-columns: 1fr;
+  }
+
+  .linkedinRow {
+    flex-direction: column;
+  }
+
+  .lookupButton {
+    padding: 10px 14px;
+  }
+
+  .preview {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .previewActions,
+  .confirmed {
+    width: 100%;
+    margin-left: 60px;
+  }
+
+  .summary div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
