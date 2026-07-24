@@ -1,0 +1,19 @@
+# Cosmetic Google sign-in gate for the DexDiff private beta.
+# Convex remains the authorization boundary; this only hides static /diff HTML.
+# Installed as /etc/caddy/diff-gate.caddy.
+
+handle /oauth2-diff/* {
+	reverse_proxy 127.0.0.1:4182
+}
+
+@dexdiff_beta_gate {
+	path /diff /diff/*
+}
+forward_auth @dexdiff_beta_gate 127.0.0.1:4182 {
+	uri /oauth2-diff/auth
+
+	@bounce status 401
+	handle_response @bounce {
+		redir * /oauth2-diff/start?rd={scheme}://{host}{uri}
+	}
+}

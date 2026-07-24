@@ -80,10 +80,16 @@ export default function ConnectPage() {
 
   const enrich = useAction(api.enrichment.enrichProfile);
   const register = useMutation(api.users.register);
-  const currentUser = useQuery(api.users.me);
+  const betaAccess = useQuery(api.beta.viewerAccess);
+  const currentUser = useQuery(
+    api.users.me,
+    betaAccess?.allowed ? {} : 'skip',
+  );
   const handleCheck = useQuery(
     api.users.checkHandle,
-    currentHandle.length >= 2 ? { handle: currentHandle } : 'skip',
+    betaAccess?.allowed && currentHandle.length >= 2
+      ? { handle: currentHandle }
+      : 'skip',
   );
 
   const returnUrl = params.get('return') || '/diff/';
@@ -146,6 +152,45 @@ export default function ConnectPage() {
   function onRegistered() {
     window.pendo?.track('registration_complete');
     window.location.href = postRegistrationUrl;
+  }
+
+  if (isAuthenticated && betaAccess && !betaAccess.allowed) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: NIGHTFALL.bgBase,
+        color: NIGHTFALL.textPrimary,
+        fontFamily: NIGHTFALL.fontSans,
+        display: 'grid',
+        placeItems: 'center',
+      }}>
+        <div style={{ maxWidth: 480, padding: '48px 24px', textAlign: 'center' }}>
+          <Logomark size={44} color={NIGHTFALL.accent} style={{ margin: '0 auto 24px' }} />
+          <div style={{ fontSize: 11, letterSpacing: '0.1em', color: NIGHTFALL.textTertiary, marginBottom: 16 }}>
+            DEXDIFF PRIVATE BETA
+          </div>
+          <h1 style={{ fontSize: 32, marginBottom: 16 }}>You&apos;re not in the beta yet</h1>
+          <p style={{ color: NIGHTFALL.textSecondary, marginBottom: 28 }}>
+            You&apos;re signed in, but this account hasn&apos;t been added to the
+            private beta. We&apos;ll let you know when a place opens.
+          </p>
+          <button
+            type="button"
+            onClick={handleCliSignOut}
+            style={{
+              padding: '12px 20px',
+              background: 'transparent',
+              color: NIGHTFALL.textPrimary,
+              border: `1px solid ${NIGHTFALL.borderDefault}`,
+              borderRadius: NIGHTFALL.radius,
+              cursor: 'pointer',
+            }}
+          >
+            Use a different account
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // ── CLI Authentication Flow ──

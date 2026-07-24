@@ -96,6 +96,22 @@ Run:
 npm run e2e
 ```
 
+Private-beta boundary coverage runs only against the dedicated test deployment:
+
+```bash
+# Set BETA_GATE=on on that test deployment first. Never use production.
+npm run e2e:beta
+```
+
+The wrapper refuses `api.heydex.ai` and the production Convex deployment. CI
+runs the existing suite with `BETA_GATE=off`, switches the same dedicated test
+deployment on for `beta-gate.spec.ts`, then restores it. The dedicated test
+deployment must use `CONVEX_ENV=test`. Production must use `CONVEX_ENV=prod`
+and must never have `E2E_TEST_SECRET`;
+`scripts/check-production-convex-env.sh` enforces both conditions before a
+frontend deploy. Test routes are omitted from the production route table and
+their backing fixture functions also reject production execution.
+
 Recommended wrapper for local dev/staging runs:
 
 ```bash

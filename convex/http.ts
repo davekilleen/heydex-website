@@ -2,6 +2,8 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { auth } from "./auth";
+import { isBetaGateDisabled } from "./lib/beta";
+import { isTestHarnessEnvironment } from "./lib/environment";
 
 const http = httpRouter();
 
@@ -13,6 +15,13 @@ const INVALID_ADOPTION_REQUEST_BODY = {
   error: "invalid_request",
   code: "INVALID_REQUEST",
 };
+
+function registerTestRoute(route: any) {
+  if (!isTestHarnessEnvironment()) {
+    return;
+  }
+  http.route(route);
+}
 
 type AdoptionRequest = {
   authorHandle: string;
@@ -69,7 +78,85 @@ function getConfiguredTestSecret() {
   return process.env.E2E_TEST_SECRET?.trim() || "";
 }
 
+function betaDeniedResponse(status = 403) {
+  return jsonResponse(
+    {
+      error: "You're not in the DexDiff beta yet.",
+      code: "BETA_ACCESS_DENIED",
+    },
+    status,
+  );
+}
+
+async function resolveHttpBetaUser(ctx: any, req: Request) {
+  if (isBetaGateDisabled()) {
+    return { user: null, error: null };
+  }
+
+  const authorization = req.headers.get("authorization") ?? "";
+  const match = authorization.match(/^Bearer\s+(\S+)$/i);
+  if (!match) {
+    return { user: null, error: betaDeniedResponse(401) };
+  }
+
+  try {
+    const user = await ctx.runMutation(internal.connect.resolveCliSession, {
+      sessionToken: match[1],
+    });
+    if (!user) {
+      return { user: null, error: betaDeniedResponse(401) };
+    }
+    return { user, error: null };
+  } catch {
+    return { user: null, error: betaDeniedResponse() };
+  }
+}
+
+async function resolveRequiredHttpBetaUser(ctx: any, req: Request) {
+  const authorization = req.headers.get("authorization") ?? "";
+  const match = authorization.match(/^Bearer\s+(\S+)$/i);
+  if (!match) {
+    return { user: null, error: betaDeniedResponse(401) };
+  }
+
+  try {
+    const user = await ctx.runMutation(internal.connect.resolveCliSession, {
+      sessionToken: match[1],
+    });
+    if (!user) {
+      return { user: null, error: betaDeniedResponse(401) };
+    }
+    return { user, error: null };
+  } catch {
+    return { user: null, error: betaDeniedResponse() };
+  }
+}
+
+async function redeemCodeForHttp(ctx: any, code: string, ip: string) {
+  if (!checkRateLimit(ip)) {
+    return {
+      result: null,
+      error: jsonResponse(
+        { error: "Too many attempts. Try again in 1 minute." },
+        429,
+      ),
+    };
+  }
+
+  try {
+    return {
+      result: await ctx.runMutation(internal.connect.redeemCode, { code }),
+      error: null,
+    };
+  } catch {
+    return { result: null, error: betaDeniedResponse() };
+  }
+}
+
 function authorizeTestHarness(req: Request) {
+  if (!isTestHarnessEnvironment()) {
+    return jsonResponse({ error: "Not found" }, 404);
+  }
   const configuredSecret = getConfiguredTestSecret();
   if (!configuredSecret) {
     return jsonResponse({ error: "Not found" }, 404);
@@ -113,6 +200,14 @@ function parseHarnessUserFields(body: any) {
     photoUrl: typeof body?.photoUrl === "string" ? body.photoUrl : undefined,
     integrations: Array.isArray(body?.integrations) ? body.integrations : undefined,
     visibility: parseVisibility(body?.visibility),
+  };
+}
+
+function parseHarnessCompanyMember(body: any) {
+  return {
+    ...parseHarnessUserFields(body),
+    handle: typeof body?.handle === "string" ? body.handle : undefined,
+    diffs: Array.isArray(body?.diffs) ? body.diffs : undefined,
   };
 }
 
@@ -241,6 +336,8 @@ http.route({
   path: "/api/diff",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
+    const betaAccess = await resolveHttpBetaUser(ctx, req);
+    if (betaAccess.error) return betaAccess.error;
     const url = new URL(req.url);
     const rawAuthorHandle = url.searchParams.get("author");
     const authorHandle = rawAuthorHandle
@@ -255,7 +352,13 @@ http.route({
       );
     }
 
-    const diff = await ctx.runQuery(api.diffs.get, { authorHandle, diffId });
+    const diff = betaAccess.user
+      ? await ctx.runQuery(internal.diffs.getForBetaUser, {
+          betaUserId: betaAccess.user._id,
+          authorHandle,
+          diffId,
+        })
+      : await ctx.runQuery(api.diffs.get, { authorHandle, diffId });
 
     if (!diff) {
       return new Response(
@@ -281,6 +384,8 @@ http.route({
   path: "/api/profile",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
+    const betaAccess = await resolveHttpBetaUser(ctx, req);
+    if (betaAccess.error) return betaAccess.error;
     const url = new URL(req.url);
     const rawHandle = url.searchParams.get("handle");
     const handle = rawHandle ? normalizeHandleParam(rawHandle) : null;
@@ -292,7 +397,12 @@ http.route({
       );
     }
 
-    const profile = await ctx.runQuery(api.profiles.get, { handle });
+    const profile = betaAccess.user
+      ? await ctx.runQuery(internal.profiles.getForBetaUser, {
+          betaUserId: betaAccess.user._id,
+          handle,
+        })
+      : await ctx.runQuery(api.profiles.get, { handle });
 
     if (!profile) {
       return new Response(
@@ -311,6 +421,8 @@ http.route({
   path: "/api/profile-bundle",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
+    const betaAccess = await resolveHttpBetaUser(ctx, req);
+    if (betaAccess.error) return betaAccess.error;
     const url = new URL(req.url);
     const rawHandle = url.searchParams.get("handle");
     const handle = rawHandle ? normalizeHandleParam(rawHandle) : null;
@@ -322,7 +434,12 @@ http.route({
       );
     }
 
-    const bundle = await ctx.runQuery(api.profiles.getBundle, { handle });
+    const bundle = betaAccess.user
+      ? await ctx.runQuery(internal.profiles.getBundleForBetaUser, {
+          betaUserId: betaAccess.user._id,
+          handle,
+        })
+      : await ctx.runQuery(api.profiles.getBundle, { handle });
 
     if (!bundle) {
       return new Response(
@@ -340,6 +457,9 @@ http.route({
   path: "/api/profile-bundle/redeem",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
+    const betaAccess = await resolveRequiredHttpBetaUser(ctx, req);
+    if (betaAccess.error) return betaAccess.error;
+
     const ip = req.headers.get("x-forwarded-for") || "unknown";
 
     if (!checkRateLimit(ip)) {
@@ -369,7 +489,10 @@ http.route({
 
     let result;
     try {
-      result = await ctx.runMutation(internal.adopt.redeemGrant, shaped.value);
+      result = await ctx.runMutation(internal.adopt.redeemGrant, {
+        ...shaped.value,
+        recipientUserId: betaAccess.user._id,
+      });
     } catch (error) {
       warnInvalidProfileBundleRedeemRequest(
         error instanceof Error
@@ -393,6 +516,8 @@ http.route({
   path: "/api/diffs",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
+    const betaAccess = await resolveHttpBetaUser(ctx, req);
+    if (betaAccess.error) return betaAccess.error;
     const url = new URL(req.url);
     const role = url.searchParams.get("role") ?? undefined;
     const limitParam = url.searchParams.get("limit");
@@ -402,26 +527,32 @@ http.route({
         ? parsedLimit
         : undefined;
 
-    const diffs = await ctx.runQuery(api.diffs.list, { role, limit });
+    const diffs = betaAccess.user
+      ? await ctx.runQuery(internal.diffs.listForBetaUser, {
+          betaUserId: betaAccess.user._id,
+          role,
+          limit,
+        })
+      : await ctx.runQuery(api.diffs.list, { role, limit });
 
     return jsonResponse(diffs);
   }),
 });
 
 /*
- * POST /api/adoptions records anonymous desktop adoption events.
+ * POST /api/adoptions records desktop adoption events.
  *
- * Anonymous-by-design for beta: the shipped desktop adopter has no hosted
- * site identity when it reports a successful local adoption. The compensating
- * control is the adoptionEvents audit trail; visible counts are derivable from
- * counted audit rows via internal repair tooling. The HTTP action only caps,
- * parses, and shapes the request before calling one internalMutation so all
- * reads-that-inform-writes and all writes are covered by Convex OCC.
+ * While the beta gate is on, the caller must send an allowlisted CLI session
+ * as a Bearer token. BETA_GATE=off restores the legacy anonymous contract.
+ * The action caps, parses, and shapes the request before one internalMutation
+ * so reads-that-inform-writes and writes remain covered by Convex OCC.
  */
 http.route({
   path: "/api/adoptions",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
+    const betaAccess = await resolveHttpBetaUser(ctx, req);
+    if (betaAccess.error) return betaAccess.error;
     const rawBody = await readCappedRequestText(req, MAX_ADOPTION_BODY_BYTES);
     if (!rawBody.ok) {
       warnInvalidAdoptionRequest(rawBody.reason);
@@ -444,7 +575,10 @@ http.route({
     try {
       result = await ctx.runMutation(
         internal.adoptionEvents.recordFromDesktop,
-        shaped.value
+        {
+          ...shaped.value,
+          betaUserId: betaAccess.user?._id,
+        }
       );
     } catch (error) {
       warnInvalidAdoptionRequest(
@@ -472,13 +606,6 @@ http.route({
   handler: httpAction(async (ctx, req) => {
     // Get IP from headers
     const ip = req.headers.get("x-forwarded-for") || "unknown";
-    
-    if (!checkRateLimit(ip)) {
-      return new Response(
-        JSON.stringify({ error: "Too many attempts. Try again in 1 minute." }),
-        { status: 429, headers: { "Content-Type": "application/json" } }
-      );
-    }
 
     const body = await req.json();
     const code = body?.code;
@@ -490,7 +617,9 @@ http.route({
       );
     }
 
-    const result = await ctx.runMutation(api.connect.redeemCode, { code });
+    const redemption = await redeemCodeForHttp(ctx, code, ip);
+    if (redemption.error) return redemption.error;
+    const result = redemption.result!;
 
     if ("error" in result) {
       return new Response(
@@ -499,7 +628,8 @@ http.route({
       );
     }
 
-    return jsonResponse(result);
+    const { userId: _userId, ...publicResult } = result;
+    return jsonResponse(publicResult);
   }),
 });
 
@@ -509,9 +639,9 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, req) => {
     const body = await req.json();
-    const { sessionToken, tokenIdentifier, diffs } = body ?? {};
+    const { sessionToken, diffs } = body ?? {};
 
-    if ((!sessionToken && !tokenIdentifier) || !diffs) {
+    if (!sessionToken || !diffs) {
       return new Response(
         JSON.stringify({ error: "Missing sessionToken or diffs" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -522,11 +652,13 @@ http.route({
     try {
       result = await ctx.runMutation(api.review.createSession, {
         sessionToken,
-        tokenIdentifier,
         diffs,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to create review session";
+      if (message.includes("not in the DexDiff beta")) {
+        return betaDeniedResponse();
+      }
       if (message.includes("User not found")) {
         return new Response(JSON.stringify({ error: "Invalid or expired session" }), {
           status: 401,
@@ -549,6 +681,8 @@ http.route({
   path: "/api/review/status",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
+    const betaAccess = await resolveHttpBetaUser(ctx, req);
+    if (betaAccess.error) return betaAccess.error;
     const url = new URL(req.url);
     const session = url.searchParams.get("session");
 
@@ -559,15 +693,20 @@ http.route({
       );
     }
 
-    const result = await ctx.runQuery(api.review.checkPublished, {
-      sessionCode: session,
-    });
+    const result = betaAccess.user
+      ? await ctx.runQuery(internal.review.checkPublishedForUser, {
+          userId: betaAccess.user._id,
+          sessionCode: session,
+        })
+      : await ctx.runQuery(api.review.checkPublished, {
+          sessionCode: session,
+        });
 
     return jsonResponse(result);
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-cli",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -586,7 +725,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-connect-code",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -606,7 +745,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-review",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -629,7 +768,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-public-profile",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -649,7 +788,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-auth",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -684,7 +823,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-company-domain",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -701,14 +840,14 @@ http.route({
     const result = await ctx.runMutation(internal.testHarness.createCompanyDomain, {
       domain: body.domain,
       company: typeof body?.company === "string" ? body.company : undefined,
-      members: body.members,
+      members: body.members.map(parseHarnessCompanyMember),
     });
 
     return jsonResponse(result);
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/company",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
@@ -730,7 +869,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/diffs",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
@@ -752,7 +891,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-adoption",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -787,7 +926,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-adopt-grant",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
@@ -815,6 +954,45 @@ http.route({
   }),
 });
 
+registerTestRoute({
+  path: "/api/test/set-beta-email",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) return authError;
+
+    const body = await req.json();
+    if (typeof body?.email !== "string" || typeof body?.allowed !== "boolean") {
+      return jsonResponse({ error: "email and allowed are required" }, 400);
+    }
+    return jsonResponse(
+      await ctx.runMutation(internal.beta.setEmailForTest, {
+        email: body.email,
+        allowed: body.allowed,
+      }),
+    );
+  }),
+});
+
+registerTestRoute({
+  path: "/api/test/remove-beta-email",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const authError = authorizeTestHarness(req);
+    if (authError) return authError;
+
+    const body = await req.json();
+    if (typeof body?.email !== "string") {
+      return jsonResponse({ error: "email is required" }, 400);
+    }
+    return jsonResponse(
+      await ctx.runMutation(internal.beta.removeEmailForTest, {
+        email: body.email,
+      }),
+    );
+  }),
+});
+
 // POST /api/publish - publish a diff, authenticated via connection code
 // Used by the CLI: /diff-push
 http.route({
@@ -839,7 +1017,10 @@ http.route({
     }
 
     // Redeem the connection code to authenticate the user
-    const authResult = await ctx.runMutation(api.connect.redeemCode, { code });
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const redemption = await redeemCodeForHttp(ctx, code, ip);
+    if (redemption.error) return redemption.error;
+    const authResult = redemption.result!;
 
     if ("error" in authResult) {
       return new Response(
@@ -856,8 +1037,8 @@ http.route({
     }
 
     // Publish the diff on behalf of the authenticated user
-    const result = await ctx.runMutation(api.diffs.publishViaCode, {
-      userHandle: authResult.handle,
+    const result = await ctx.runMutation(internal.diffs.publishViaCode, {
+      userId: authResult.userId,
       diffId,
       name,
       description: description ?? "",
@@ -907,7 +1088,10 @@ http.route({
     }
 
     // Redeem the connection code to authenticate the user
-    const authResult = await ctx.runMutation(api.connect.redeemCode, { code });
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const redemption = await redeemCodeForHttp(ctx, code, ip);
+    if (redemption.error) return redemption.error;
+    const authResult = redemption.result!;
 
     if ("error" in authResult) {
       return new Response(
@@ -923,20 +1107,8 @@ http.route({
       );
     }
 
-    // Look up the user by handle to get their userId
-    const user = await ctx.runQuery(internal.users.getByHandle, {
-      handle: authResult.handle!,
-    });
-
-    if (!user) {
-      return new Response(
-        JSON.stringify({ error: "User not found" }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
     const result = await ctx.runMutation(internal.loveLetters.submit, {
-      userId: user._id,
+      userId: authResult.userId,
       text: text.trim(),
     });
 
@@ -965,6 +1137,8 @@ http.route({
   path: "/api/love-letters",
   method: "GET",
   handler: httpAction(async (ctx, req) => {
+    const betaAccess = await resolveHttpBetaUser(ctx, req);
+    if (betaAccess.error) return betaAccess.error;
     const url = new URL(req.url);
     const function_ = url.searchParams.get("function") ?? undefined;
     const seniority = url.searchParams.get("seniority") ?? undefined;
@@ -974,13 +1148,13 @@ http.route({
     const limitParam = url.searchParams.get("limit");
     const limit = limitParam ? parseInt(limitParam, 10) : undefined;
 
-    const letters = await ctx.runQuery(api.loveLetters.list, {
-      function_,
-      seniority,
-      diffSlug,
-      handle,
-      limit,
-    });
+    const queryArgs = { function_, seniority, diffSlug, handle, limit };
+    const letters = betaAccess.user
+      ? await ctx.runQuery(internal.loveLetters.listForBetaUser, {
+          betaUserId: betaAccess.user._id,
+          ...queryArgs,
+        })
+      : await ctx.runQuery(api.loveLetters.list, queryArgs);
 
     return new Response(JSON.stringify(letters), {
       status: 200,
@@ -1002,7 +1176,7 @@ http.route({
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   }),
@@ -1017,7 +1191,7 @@ http.route({
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   }),
@@ -1030,7 +1204,7 @@ const corsPreflightHandler = httpAction(async () => {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   });
 });
@@ -1065,7 +1239,7 @@ http.route({
   handler: corsPreflightHandler,
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-cli",
   method: "OPTIONS",
   handler: httpAction(async () => {
@@ -1080,7 +1254,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-connect-code",
   method: "OPTIONS",
   handler: httpAction(async () => {
@@ -1095,7 +1269,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-review",
   method: "OPTIONS",
   handler: httpAction(async () => {
@@ -1110,7 +1284,7 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-public-profile",
   method: "OPTIONS",
   handler: httpAction(async () => {
@@ -1125,8 +1299,23 @@ http.route({
   }),
 });
 
-http.route({
+registerTestRoute({
   path: "/api/test/bootstrap-adopt-grant",
+  method: "OPTIONS",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": `Content-Type, ${TEST_SECRET_HEADER}`,
+      },
+    });
+  }),
+});
+
+registerTestRoute({
+  path: "/api/test/remove-beta-email",
   method: "OPTIONS",
   handler: httpAction(async () => {
     return new Response(null, {

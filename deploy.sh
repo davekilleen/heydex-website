@@ -4,6 +4,10 @@
 
 set -e
 
+echo "🔒 Checking production Convex test-harness safety..."
+./scripts/check-production-convex-env.sh
+echo ""
+
 # Run smoke tests before deploying (unless --skip-tests)
 if [[ "$1" != "--skip-tests" ]] && [[ "$2" != "--skip-tests" ]]; then
   echo "🧪 Running pre-deploy tests..."

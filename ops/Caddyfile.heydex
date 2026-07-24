@@ -16,6 +16,9 @@ heydex.ai, www.heydex.ai {
 	# password hashes here.
 	import /etc/caddy/desktop-gate.caddy
 
+	# Cosmetic /diff Google gate. Convex betaAllowlist remains authoritative.
+	import /etc/caddy/diff-gate.caddy
+
 	# Dex Dispatch founder's log: private single-page site for Dave, published by
 	# agent sessions via rsync to /var/www/dispatch (outside the public web root so
 	# a routing mistake can never expose it). Same host-only credential pattern as

@@ -34,7 +34,7 @@ test("fresh connection code redeems into a usable CLI session token", async ({ r
     sessionToken: redeemed.sessionToken,
     diffs: REVIEW_DIFFS,
   });
-  expect(created.sessionCode).toMatch(/^[A-Z2-9]{8}$/);
+  expect(created.sessionCode).toMatch(/^[A-Z2-9]{16}$/);
 });
 
 test("invalid, expired, and already-used connection codes are rejected", async ({ request }) => {

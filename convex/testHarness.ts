@@ -7,10 +7,19 @@ import {
   normalizeDomain,
 } from "./users";
 import { getCompanyViewForUser } from "./companies";
+import { isTestHarnessEnvironment } from "./lib/environment";
+import { generateSecureCode } from "./lib/random";
 
 const REVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const CLI_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const ADOPT_GRANT_TTL_MS = 10 * 60 * 1000;
+const TEST_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function assertTestHarnessAvailable() {
+  if (!isTestHarnessEnvironment()) {
+    throw new Error("Test harness is available only in the test environment");
+  }
+}
 
 const visibilityValidator = v.union(
   v.literal("private"),
@@ -109,12 +118,7 @@ const DEFAULT_DIFFS: ReviewDiff[] = [
 ];
 
 function generateSessionCode(length: number): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < length; i += 1) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
+  return generateSecureCode(TEST_CODE_ALPHABET, length);
 }
 
 function buildDefaultProfile(handle: string) {
@@ -247,6 +251,8 @@ async function upsertHarnessUser(
     return {
       _id: existingUser._id,
       handle: args.handle,
+      email,
+      domain,
     };
   }
 
@@ -321,6 +327,7 @@ export const createCliSession = internalMutation({
     expired: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const handle = args.handle ?? "dexdiff-e2e";
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
@@ -372,6 +379,7 @@ export const createConnectionCode = internalMutation({
     redeemed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const handle = args.handle ?? `dexdiff-code-${Date.now()}`;
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
@@ -389,7 +397,7 @@ export const createConnectionCode = internalMutation({
       visibility,
     });
 
-    const code = generateSessionCode(6);
+    const code = generateSessionCode(10);
     await ctx.db.insert("connectionCodes", {
       code,
       userId: user._id,
@@ -423,6 +431,7 @@ export const createReviewSession = internalMutation({
     expired: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const handle = args.handle ?? "dexdiff-e2e";
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
@@ -440,7 +449,7 @@ export const createReviewSession = internalMutation({
       visibility,
     });
 
-    const sessionCode = generateSessionCode(8);
+    const sessionCode = generateSessionCode(16);
     const now = Date.now();
     await ctx.db.insert("reviewSessions", {
       sessionCode,
@@ -479,6 +488,7 @@ export const createPublicProfileBundle = internalMutation({
     diffs: v.optional(v.array(reviewDiffValidator)),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const handle = args.handle ?? `dexdiff-public-${Date.now()}`;
     const visibility = args.visibility ?? "public";
     const user = await upsertHarnessUser(ctx, {
@@ -549,6 +559,7 @@ export const createAdoptionForEmail = internalMutation({
     diffSlug: v.string(),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const user = await ctx.db
       .query("users")
       .withIndex("email", (q) => q.eq("email", args.email))
@@ -639,6 +650,7 @@ export const createAdoptGrant = internalMutation({
     redeemed: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const target = await ctx.db
       .query("users")
       .withIndex("by_handle", (q) => q.eq("handle", args.targetHandle))
@@ -659,6 +671,7 @@ export const createAdoptGrant = internalMutation({
       code,
       targetHandle: args.targetHandle,
       granterUserId: granter._id,
+      recipientUserId: granter._id,
       expiresAt: args.expired ? now - 1000 : now + ADOPT_GRANT_TTL_MS,
       redeemed: args.redeemed === true,
     });
@@ -687,6 +700,7 @@ export const createAuthUser = internalMutation({
     visibility: v.optional(visibilityValidator),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const handle = args.handle ?? `auth-${Date.now()}`;
     const visibility = args.visibility ?? "private";
     const user = await upsertHarnessUser(ctx, {
@@ -720,6 +734,7 @@ export const createCompanyDomain = internalMutation({
     members: v.array(companyMemberValidator),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const domain = normalizeDomain(args.domain);
     const members = [];
 
@@ -765,6 +780,7 @@ export const getCompanyForHandle = internalQuery({
     handle: v.string(),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const user = await ctx.db
       .query("users")
       .withIndex("by_handle", (q) => q.eq("handle", args.handle))
@@ -780,6 +796,7 @@ export const getPublishedDiffsForHandle = internalQuery({
     handle: v.string(),
   },
   handler: async (ctx, args) => {
+    assertTestHarnessAvailable();
     const user = await ctx.db
       .query("users")
       .withIndex("by_handle", (q) => q.eq("handle", args.handle))

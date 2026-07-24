@@ -41,6 +41,14 @@ export default defineSchema({
     .index("email", ["email"])
     .index("by_tokenIdentifier", ["tokenIdentifier"]),
 
+  betaAllowlist: defineTable({
+    email: v.string(),
+    addedBy: v.string(),
+    addedAt: v.number(),
+    note: v.optional(v.string()),
+  })
+    .index("by_email", ["email"]),
+
   companies: defineTable({
     domain: v.string(),
     displayName: v.optional(v.string()),
@@ -119,6 +127,9 @@ export default defineSchema({
     code: v.string(),
     targetHandle: v.string(),
     granterUserId: v.id("users"),
+    // Optional only for schema compatibility with unexpired grants created
+    // before recipient binding shipped. Redemption rejects a missing value.
+    recipientUserId: v.optional(v.id("users")),
     expiresAt: v.number(),
     redeemed: v.boolean(),
   })

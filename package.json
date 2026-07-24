@@ -9,6 +9,7 @@
     "e2e": "playwright test",
     "e2e:dev": "bash ./scripts/run-e2e-dev.sh",
     "e2e:gate": "bash ./scripts/run-e2e-gate.sh",
+    "e2e:beta": "bash ./scripts/run-e2e-beta.sh",
     "e2e:google": "bash ./scripts/run-e2e-google-smoke.sh",
     "e2e:google:setup": "bash ./scripts/run-e2e-google-auth-setup.sh",
     "e2e:google:redirect-uri": "bash ./scripts/print-google-auth-redirect-uri.sh",

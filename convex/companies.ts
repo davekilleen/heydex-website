@@ -1,6 +1,6 @@
 import { Doc } from "./_generated/dataModel";
 import { QueryCtx, query } from "./_generated/server";
-import { getViewerOrNull } from "./viewer";
+import { requireBetaViewer } from "./lib/beta";
 
 function getEffectiveVisibility(user: {
   visibility?: "private" | "colleagues" | "public";
@@ -99,7 +99,7 @@ export async function getCompanyViewForUser(ctx: QueryCtx, user: Doc<"users">) {
 export const myCompany = query({
   args: {},
   handler: async (ctx) => {
-    const viewer = await getViewerOrNull(ctx);
+    const viewer = await requireBetaViewer(ctx);
     if (!viewer || !viewer.user.companyId) return null;
     return await getCompanyViewForUser(ctx, viewer.user);
   },

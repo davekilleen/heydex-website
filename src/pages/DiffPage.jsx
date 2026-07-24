@@ -6,15 +6,38 @@ import { TEXT_TERTIARY } from '../theme';
 import './DiffPage.css';
 
 export default function DiffPage() {
-  const diffs = useQuery(api.diffs.list, {});
   const { isAuthenticated } = useConvexAuth();
   const { signOut } = useAuthActions();
-  const currentUser = useQuery(api.users.me);
+  const betaAccess = useQuery(api.beta.viewerAccess);
+  const diffs = useQuery(api.diffs.list, betaAccess?.allowed ? {} : 'skip');
+  const currentUser = useQuery(
+    api.users.me,
+    betaAccess?.allowed ? {} : 'skip',
+  );
 
   async function handleLogout(event) {
     event.preventDefault();
     await signOut();
     window.location.href = '/diff/';
+  }
+
+  if (isAuthenticated && betaAccess && !betaAccess.allowed) {
+    return (
+      <main className="content" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+        <section style={{ maxWidth: 560, padding: 32, textAlign: 'center' }}>
+          <div className="hero-label">DexDiff private beta</div>
+          <h1 className="hero-headline" style={{ fontSize: 44 }}>You&apos;re not in the beta yet</h1>
+          <p className="hero-sub">
+            DexDiff is opening in small groups. Your account is signed in, but it
+            hasn&apos;t been added to this beta yet. We&apos;ll let you know when a
+            place opens.
+          </p>
+          <button type="button" className="btn-outline" onClick={handleLogout}>
+            Use a different account
+          </button>
+        </section>
+      </main>
+    );
   }
 
   return (
